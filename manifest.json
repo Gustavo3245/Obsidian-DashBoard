@@ -1,11 +1,11 @@
 {
-	"id": "Example code",
-	"name": "example code",
-	"version": "1.0.0",
-	"minAppVersion": "0.15.0",
+	"id": "Dynamic DashBoard",
+	"name": "Dynamic DashBoard",
+	"version": "0.0.0",
+	"minAppVersion": "0.0.0",
 	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
-	"isDesktopOnly": false
+	"author": "Gustavo3245",
+	"authorUrl": "https://github.com/Gustavo3245/Obsidian-DashBoard",
+	"fundingUrl": "free for use",
+	"isDesktopOnly": true
 }
