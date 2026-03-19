@@ -1,17 +1,19 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin, Vault} from 'obsidian';
+import {addIcon, App, Editor, MarkdownView, Modal, Notice, Plugin, Vault} from 'obsidian';
 import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
 
+import { getDashboardIcon } from "./components/icons/DashboardIcon.tsx";
 // Remember to rename these classes and interfaces!
 
 export default class HelloWorldPlugin extends Plugin {
 	settings: MyPluginSettings;
 
 	async onload() {
-		await this.loadSettings();
-	
+		await this.loadSettings();	
+
+		addIcon('meu', getDashboardIcon());
 
 		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Greet', () => {console.log(this.getLastModifiedFile())});
+		this.addRibbonIcon('meu', 'greet', () => {console.log(this.getLastModifiedFile())});
 
 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
 		const statusBarItemEl = this.addStatusBarItem();
