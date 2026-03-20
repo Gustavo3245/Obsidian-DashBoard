@@ -1,7 +1,8 @@
 // All metrics in this interface are related to the current file. 
 // (It doesn't make much sense to provide global metrics in the status bar.)
 
-interface statusBarMetrics {
+export interface statusBarMetrics {
+	
 	readtimeEstimate: Date | null;
 	lastTimeModifying: Date | null;
 

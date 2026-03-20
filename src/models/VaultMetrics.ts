@@ -1,8 +1,8 @@
 import { TFile } from "obsidian";
 
-interface VaultMetrics {
+export interface VaultMetrics {
 
-	characterCount: number; //Count every character in the entiry vault.
+	characterCount: number; 
 	wordCount: number;
 	fileCount: number; 
 
