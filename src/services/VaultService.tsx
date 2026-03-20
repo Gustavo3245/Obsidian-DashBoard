@@ -1,4 +1,10 @@
-import { App, getAllTags, FrontMatterCache, CachedMetadata } from "obsidian";
+import { App, getAllTags} from "obsidian";
+
+interface tagType {
+	name: string,
+	count: number
+}
+
 
 export class VaultService {
 	constructor(private app: App) {}
@@ -36,8 +42,7 @@ export class VaultService {
 		return wordTotal;
 	}
 
-	// FIXME
-	getMostAppearsTagInAllContent(): string | number {
+	getMostAppearsTagInAllContent(): tagType | string {
 		const files = this.app.vault.getMarkdownFiles();
 		const tagCount: Record<string, number> = {};
 
@@ -55,13 +60,18 @@ export class VaultService {
 			}
 		}
 
-		const mostAppearsTag = Object.entries(tagCount).sort((current, previous) => current[1] - previous[1]);
-		return mostAppearsTag.length > 0 ? mostAppearsTag[0][1] : "Nothing but Wind";
+		const mostAppearsTag = Object.entries(tagCount).sort((current, previous) => previous[1] - current[1]);
+		if(mostAppearsTag.length > 0) {
+			return {
+				name: mostAppearsTag[0][0],
+				count: mostAppearsTag[0][1]
+			}
+		}  
+		return "Nothing but Wind";
 		
 	}
-
-	// FIXME
-	getMostAppearsTagInFrontMatter(): String | number {
+	//FIXME
+	getMostAppearsTagInFrontMatter(): tagType | string {
 		const files = this.app.vault.getMarkdownFiles();
 		const tagCount: Record<string, number> = {};
 
@@ -89,7 +99,14 @@ export class VaultService {
 		}
 		// transforma o array em um Array de arrays, compara cada array (current) com o proximo (previous) retornando
 		// o array que possue a maior aparição.
-		const mostAppearsTag = Object.entries(tagCount).sort((current, previous) => current[1] - previous[1]);
-		return mostAppearsTag.length > 0 ? mostAppearsTag[0][1] : "Nothing but Wind"
+		const mostAppearsTag = Object.entries(tagCount).sort((current, previous) => previous[1] - current[1]);
+
+		if(mostAppearsTag.length > 0) {
+			return {
+				name: mostAppearsTag[0][0],
+				count: mostAppearsTag[0][1]
+			}
+		}  
+		return "Nothing but Wind";
 	}
 }
