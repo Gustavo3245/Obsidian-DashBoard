@@ -61,7 +61,7 @@ export class VaultService {
 		}
 
 		const mostAppearsTag = Object.entries(tagCount).sort((current, previous) => previous[1] - current[1]);
-		if(mostAppearsTag.length > 0) {
+		if(mostAppearsTag.length > 0 && mostAppearsTag) {
 			return {
 				name: mostAppearsTag[0][0],
 				count: mostAppearsTag[0][1]
@@ -70,7 +70,6 @@ export class VaultService {
 		return "Nothing but Wind";
 		
 	}
-	//FIXME
 	getMostAppearsTagInFrontMatter(): tagType | string {
 		const files = this.app.vault.getMarkdownFiles();
 		const tagCount: Record<string, number> = {};
@@ -91,8 +90,7 @@ export class VaultService {
 				// O problema está que é possível declarar sem usar o #.
 				if(Array.isArray(tags)) {
 					tags.forEach(tag => {
-						const formattedTag = tag.startsWith('#') ? tag : `#{tag}`;
-						tagCount[formattedTag] = (tagCount[formattedTag] || 0) + 1;
+						tagCount[tag] = (tagCount[tag] || 0) + 1;
 					});
 				}
 			}
@@ -101,12 +99,12 @@ export class VaultService {
 		// o array que possue a maior aparição.
 		const mostAppearsTag = Object.entries(tagCount).sort((current, previous) => previous[1] - current[1]);
 
-		if(mostAppearsTag.length > 0) {
+		if(mostAppearsTag?.length > 0 && mostAppearsTag[0]) {
 			return {
 				name: mostAppearsTag[0][0],
 				count: mostAppearsTag[0][1]
 			}
-		}  
-		return "Nothing but Wind";
+		} 
+		return "Nothing But Wind"
 	}
 }
