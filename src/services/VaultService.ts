@@ -1,16 +1,6 @@
 import { App, getAllTags, TFile} from "obsidian";
-
-export interface tagType {
-	name: string,
-	count: number
-}
-
-export interface ReadingTime {
-	hours: number,
-	minutes: number,
-	seconds: number,
-	totalSeconds: number;
-}
+import { tagType } from "models/TagType.js";
+import { ReadingTime } from "models/ReadingTime";
 
 
 export class VaultService {
