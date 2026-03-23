@@ -31,6 +31,9 @@ export default class DashboardPlugin extends Plugin {
             console.log(`Total de palavras: ${chars}`);
         });
 
+		const lastFile = await this.vaultService.getLastModifiedMarkDownFile();
+		console.log(`last file: ${lastFile}`);
+
     }
 	async unload() {
 	    

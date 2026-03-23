@@ -1,4 +1,4 @@
-import { App, getAllTags} from "obsidian";
+import { App, getAllTags, TFile} from "obsidian";
 
 export interface tagType {
 	name: string,
@@ -120,7 +120,7 @@ export class VaultService {
 		const WORD_PER_MINUTE_READTIME = 200;
 
 		if(totalWords <= 0){
-			return "Lack of information";
+			return "Nothing But Wind";
 		}
 		
 		const totalSeconds = Math.floor((totalWords / WORD_PER_MINUTE_READTIME) * 60);
@@ -135,6 +135,18 @@ export class VaultService {
 			seconds,
 			totalSeconds
 		};
+	}
+
+	getLastModifiedMarkDownFile(): TFile | undefined { 
+		const files = this.app.vault.getMarkdownFiles();
+
+		if(files.length === 0){
+			return undefined;
+		}
+		
+		const sortedMarkDownFiles = files.sort((current, previous) => previous.stat.mtime - current.stat.mtime);
+
+		return sortedMarkDownFiles[0];
 	}
 
 }
