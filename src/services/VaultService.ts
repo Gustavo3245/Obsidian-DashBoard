@@ -144,9 +144,13 @@ export class VaultService {
 			return undefined;
 		}
 		
-		const sortedMarkDownFiles = files.sort((current, previous) => previous.stat.mtime - current.stat.mtime);
+		return  files.reduce((previous, current) => 
+			(current.stat.mtime > previous.stat.mtime) ? previous : current);
 
-		return sortedMarkDownFiles[0];
+	}
+
+	getActiveFile(): TFile | null {
+		return this.app.workspace.getActiveFile();
 	}
 
 }
