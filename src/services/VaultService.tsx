@@ -1,8 +1,15 @@
 import { App, getAllTags} from "obsidian";
 
-interface tagType {
+export interface tagType {
 	name: string,
 	count: number
+}
+
+export interface ReadingTime {
+	hours: number,
+	minutes: number,
+	seconds: number,
+	totalSeconds: number;
 }
 
 
@@ -107,4 +114,27 @@ export class VaultService {
 		} 
 		return "Nothing But Wind"
 	}
+
+
+	getVaultEstimateReadingTime(totalWords: number): ReadingTime | string {
+		const WORD_PER_MINUTE_READTIME = 200;
+
+		if(totalWords <= 0){
+			return "Lack of information";
+		}
+		
+		const totalSeconds = Math.floor((totalWords / WORD_PER_MINUTE_READTIME) * 60);
+
+		const hours = Math.floor(totalSeconds / 3600);
+		const minutes = Math.floor((totalSeconds % 3600) / 60);
+		const seconds = totalSeconds % 60;
+
+		return {
+			hours,
+			minutes,
+			seconds,
+			totalSeconds
+		};
+	}
+
 }
