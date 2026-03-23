@@ -10,7 +10,6 @@ export default class DashboardPlugin extends Plugin {
 	async onload() {
         console.log("Plugin carregado!");
 
-        // Exemplo de uso:
         const totalChars = await this.vaultService.calculateTotalCharacters();
         console.log(`Total de caracteres: ${totalChars}`);
 		
