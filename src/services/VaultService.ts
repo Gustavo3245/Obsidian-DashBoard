@@ -1,9 +1,6 @@
-import { App, getAllTags} from "obsidian";
-
-interface tagType {
-	name: string,
-	count: number
-}
+import { App, getAllTags, TFile} from "obsidian";
+import { tagType } from "models/TagType.js";
+import { ReadingTime } from "models/ReadingTime";
 
 
 export class VaultService {
@@ -61,7 +58,7 @@ export class VaultService {
 		}
 
 		const mostAppearsTag = Object.entries(tagCount).sort((current, previous) => previous[1] - current[1]);
-		if(mostAppearsTag.length > 0) {
+		if(mostAppearsTag.length > 0 && mostAppearsTag) {
 			return {
 				name: mostAppearsTag[0][0],
 				count: mostAppearsTag[0][1]
@@ -70,7 +67,6 @@ export class VaultService {
 		return "Nothing but Wind";
 		
 	}
-	//FIXME
 	getMostAppearsTagInFrontMatter(): tagType | string {
 		const files = this.app.vault.getMarkdownFiles();
 		const tagCount: Record<string, number> = {};
@@ -91,8 +87,7 @@ export class VaultService {
 				// O problema está que é possível declarar sem usar o #.
 				if(Array.isArray(tags)) {
 					tags.forEach(tag => {
-						const formattedTag = tag.startsWith('#') ? tag : `#{tag}`;
-						tagCount[formattedTag] = (tagCount[formattedTag] || 0) + 1;
+						tagCount[tag] = (tagCount[tag] || 0) + 1;
 					});
 				}
 			}
@@ -101,12 +96,51 @@ export class VaultService {
 		// o array que possue a maior aparição.
 		const mostAppearsTag = Object.entries(tagCount).sort((current, previous) => previous[1] - current[1]);
 
-		if(mostAppearsTag.length > 0) {
+		if(mostAppearsTag?.length > 0 && mostAppearsTag[0]) {
 			return {
 				name: mostAppearsTag[0][0],
 				count: mostAppearsTag[0][1]
 			}
-		}  
-		return "Nothing but Wind";
+		} 
+		return "Nothing But Wind"
 	}
+
+
+	getVaultEstimateReadingTime(totalWords: number): ReadingTime | string {
+		const WORD_PER_MINUTE_READTIME = 200;
+
+		if(totalWords <= 0){
+			return "Nothing But Wind";
+		}
+		
+		const totalSeconds = Math.floor((totalWords / WORD_PER_MINUTE_READTIME) * 60);
+
+		const hours = Math.floor(totalSeconds / 3600);
+		const minutes = Math.floor((totalSeconds % 3600) / 60);
+		const seconds = totalSeconds % 60;
+
+		return {
+			hours,
+			minutes,
+			seconds,
+			totalSeconds
+		};
+	}
+
+	getLastModifiedMarkDownFile(): TFile | undefined { 
+		const files = this.app.vault.getMarkdownFiles();
+
+		if(files.length === 0){
+			return undefined;
+		}
+		
+		return  files.reduce((previous, current) => 
+			(current.stat.mtime > previous.stat.mtime) ? previous : current);
+
+	}
+
+	getActiveFile(): TFile | null {
+		return this.app.workspace.getActiveFile();
+	}
+
 }
