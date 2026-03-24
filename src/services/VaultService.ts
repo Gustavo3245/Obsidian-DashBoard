@@ -1,13 +1,32 @@
 import { App, getAllTags, TFile} from "obsidian";
 import { tagType } from "models/TagType.js";
 import { ReadingTime } from "models/ReadingTime";
+import { TimeRange } from "models/TimeRange";
 
 
 export class VaultService {
 	constructor(private app: App) {}
 
-	async calculateTotalCharacters(): Promise<number> {
+	getFilesByRange(range: TimeRange): TFile[] {
 		const files = this.app.vault.getMarkdownFiles();
+
+		if(range === 'all') return files;
+
+		const ActualDate = Date.now();
+
+		const setLimits: Record<TimeRange, number> = {
+			'today': ActualDate - (24 * 60 * 60 * 1000),
+			'week': ActualDate - (7 * 24 * 60 * 60 * 1000),
+			'month': ActualDate - (30 * 24 * 60 * 60 * 1000),
+			'all': 0
+		}
+		
+		const threshold = setLimits[range];
+		return allFiles.filter(TFile: file => file.stat.mtime >= threshold);
+	}
+
+
+	async calculateTotalCharacters(files: TFile[]): Promise<number> {
 		
 		const characterCount = await Promise.all(
 			files.map(async (file) => {
@@ -22,8 +41,7 @@ export class VaultService {
 	// getMarkdownFiles retorna uma Promise, que é uma lista composta de TFile (obsdian markDown File)
 	// o intuito aqui é mapear cada arquivo e em cada arquivo realizar a operação necessaria da função.
 
-	async calculateTotalword(): Promise<number> {
-		const files = this.app.vault.getMarkdownFiles();
+	async calculateTotalword(files: TFile[]): Promise<number> {
 
 		const wordCount = await Promise.all(
 			files.map(async (file) => {
@@ -39,8 +57,7 @@ export class VaultService {
 		return wordTotal;
 	}
 
-	getMostAppearsTagInAllContent(): tagType | string {
-		const files = this.app.vault.getMarkdownFiles();
+	getMostAppearsTagInAllContent(files: TFile[]): tagType | string {
 		const tagCount: Record<string, number> = {};
 
 		for (const file of files) {
@@ -67,8 +84,7 @@ export class VaultService {
 		return "Nothing but Wind";
 		
 	}
-	getMostAppearsTagInFrontMatter(): tagType | string {
-		const files = this.app.vault.getMarkdownFiles();
+	getMostAppearsTagInFrontMatter(files: TFile[]): tagType | string {
 		const tagCount: Record<string, number> = {};
 
 		for (const file of files){ 
@@ -83,8 +99,6 @@ export class VaultService {
 					tags = [tags];
 				}
 
-				// a declaração de tag dentro do frontmatter é feita por (# + nameTag)
-				// O problema está que é possível declarar sem usar o #.
 				if(Array.isArray(tags)) {
 					tags.forEach(tag => {
 						tagCount[tag] = (tagCount[tag] || 0) + 1;
