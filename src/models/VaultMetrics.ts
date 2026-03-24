@@ -1,17 +1,36 @@
 import { TFile } from "obsidian";
+import { ReadingTime } from "./ReadingTime";
+import { tagType } from "./TagType";
 
 export interface VaultMetrics {
 
-	characterCount: number; 
-	wordCount: number;
-	fileCount: number; 
+	// Metricas Quantitativas referentes a valores númericos.
+	totalCharacters: number; 
+	totalWords: number;
+	totalFiles: number;
+	totalFolders: number;
+	totalAttachments: number;
+	totalOrphansFiles: number;
+	totalFileSize: number;
+	totalSentences: number;
+	averageWordsPerFile: number;
 
-	lastModifiedFile: TFile | null;
-	mostAppearsTag: String | null;
+	estimatedReadingTime: ReadingTime;
+	estimatedSpeakingTime: null | undefined;
+	dailyAverageWords: null | undefined;
 
-	orphanFilesCount: number | 0;
-	attachmentsCount: number;
+	mostAppearsTag: tagType | string;
+	mostAppearsTagInFrontMatter: tagType | string;
+	minorAppearsTag: tagType | string;
+	totalUniqueTags: null | undefined;
+	mostActiveFolder: null | undefined;
+	lastModifiedFile: TFile | undefined;
+	
+	streakCount: null | undefined;
+	longestStreak: null | undefined;
 
-	readTimeEstimate: number;
-
+	mostActiveDay: null | undefined;
+	mostActiveWeek: null | undefined;
+	mostActiveMonth: null | undefined;
+	
 }
