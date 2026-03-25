@@ -178,4 +178,13 @@ export class VaultService {
 		}
 		return folders.length;
 	}
+
+	getActiveMarkDownFiles(): string[] | null {
+		const files = this.app.workspace.getLastOpenFiles();
+
+		if(files.length == 0) {
+			return null;
+		}
+		return files;
+	}
 }
