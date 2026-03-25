@@ -4,7 +4,7 @@ import { tagType } from "./TagType";
 
 export interface VaultMetrics {
 
-	// Metricas Quantitativas referentes a valores númericos.
+	// Quantitative metrics relating to numerical values.
 	volume: {
 		snapshot: {
 		totalCharacters: number; 
@@ -18,23 +18,31 @@ export interface VaultMetrics {
 		totalSentences: number;
 		averageWordsPerFile: number;
 	}
-
-	estimatedReadingTime: ReadingTime;
-	estimatedSpeakingTime: null | undefined;
-	dailyAverageWords: null | undefined;
-
-	mostAppearsTag: tagType | string;
-	mostAppearsTagInFrontMatter: tagType | string;
-	minorAppearsTag: tagType | string;
-	totalUniqueTags: null | undefined;
-	mostActiveFolder: null | undefined;
-	lastModifiedFile: TFile | undefined;
-	
-	streakCount: null | undefined;
-	longestStreak: null | undefined;
-
-	mostActiveDay: null | undefined;
-	mostActiveWeek: null | undefined;
-	mostActiveMonth: null | undefined;
+	// Measurements related to estimates and time.
+	estimates: {
+		estimatedReadingTime: ReadingTime;
+		estimatedSpeakingTime: null | undefined;
+		dailyAverageWords: null | undefined;
+	}
+	// appearances
+	appears: {
+		mostAppearsTag: tagType | string;
+		mostAppearsTagInFrontMatter: tagType | string;
+		minorAppearsTag: tagType | string;
+		totalUniqueTags: null | undefined;
+		mostActiveFolder: null | undefined;
+		lastModifiedFile: TFile | undefined;
+	}
+	// streak
+	streak: {
+		streakCount: null | undefined;
+		longestStreak: null | undefined;
+	}
+	// values that should be saved by the user obsidian.
+	storageValues : {
+		mostActiveDay: null | undefined;
+		mostActiveWeek: null | undefined;
+		mostActiveMonth: null | undefined;
+	}
 	
 }
