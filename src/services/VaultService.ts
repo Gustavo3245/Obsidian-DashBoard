@@ -170,4 +170,12 @@ export class VaultService {
 		return files.length;
 	}
 
+	getTotalFoldes(): number | null {
+		const folders = this.app.vault.getAllFolders(false);
+
+		if(folders.length == 0){
+			return null;
+		}
+		return folders.length;
+	}
 }
