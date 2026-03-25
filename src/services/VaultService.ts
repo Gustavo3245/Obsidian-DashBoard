@@ -161,4 +161,13 @@ export class VaultService {
 		return this.app.vault.getName();
 	}
 
+	getTotalFiles(): number | null {
+		const files = this.app.vault.getMarkdownFiles();
+
+		if(files.length == 0) {
+			return null;
+		}
+		return files.length;
+	}
+
 }
