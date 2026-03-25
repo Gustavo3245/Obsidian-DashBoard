@@ -8,14 +8,19 @@ const LogTheme = {
 export class Logger {
 
 	private static vaultName: string = "Vault";
+	private static baseStyle = "border-radius: 4px; padding: 2px 6px; font-weight: bold;";
+	
 	static init(name: string){
 		this.vaultName = name;
 	}
 
 	// (DRY) Don't Repeat Yourself Principle, make a default private function for the info, sucess and error.
-	private static log(message: string, themeStyle: string, data?: any){
-		console.log(`Vault: ${this.vaultName} ${message}`, themeStyle, "color: inherit;", data ?? "Nothing But Wind")
-	}
+	private static log(message: string, themeStyle: string, data?: any) {
+        const fullStyle = `${this.baseStyle} ${themeStyle}`;
+        const prefix = `%c ${this.vaultName} `;
+        
+        console.log(`${prefix}%c ${message}`, fullStyle, "color: inherit;", data ?? "");
+    }
 
 	static info(message: string, data?: any) { this.log(message, LogTheme.INFO, data)}
 	static error(message: string, data?: any) { this.log(message, LogTheme.ERROR, data)}
