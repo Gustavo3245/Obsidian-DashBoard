@@ -5,15 +5,19 @@ import { tagType } from "./TagType";
 export interface VaultMetrics {
 
 	// Metricas Quantitativas referentes a valores númericos.
-	totalCharacters: number; 
-	totalWords: number;
-	totalFiles: number;
-	totalFolders: number;
-	totalAttachments: number;
-	totalOrphansFiles: number;
-	totalFileSize: number;
-	totalSentences: number;
-	averageWordsPerFile: number;
+	volume: {
+		snapshot: {
+		totalCharacters: number; 
+		totalWords: number;
+	}
+		totalFiles: number;
+		totalFolders: number;
+		totalAttachments: number;
+		totalOrphansFiles: number;
+		totalFileSize: number;
+		totalSentences: number;
+		averageWordsPerFile: number;
+	}
 
 	estimatedReadingTime: ReadingTime;
 	estimatedSpeakingTime: null | undefined;
