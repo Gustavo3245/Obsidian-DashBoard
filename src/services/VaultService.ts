@@ -22,7 +22,7 @@ export class VaultService {
 		}
 		
 		const threshold = setLimits[range];
-		return allFiles.filter(TFile: file => file.stat.mtime >= threshold);
+		return files.filter(file => file.stat.mtime >= threshold);
 	}
 
 
@@ -155,6 +155,10 @@ export class VaultService {
 
 	getActiveFile(): TFile | null {
 		return this.app.workspace.getActiveFile();
+	}
+
+	getVaultName(): string | null {
+		return this.app.vault.getName();
 	}
 
 }
