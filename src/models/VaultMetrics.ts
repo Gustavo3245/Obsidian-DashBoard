@@ -16,7 +16,7 @@ export interface VaultMetrics {
 		totalOrphansFiles: number;
 		totalFileSize: number;
 		totalSentences: number;
-		averageWordsPerFile: number;
+		averageWordsPerFile: number; // Done
 	}
 	// Measurements related to estimates and time.
 	estimates: {
@@ -32,7 +32,7 @@ export interface VaultMetrics {
 		totalUniqueTags: null | undefined;
 		mostActiveFolder: null | undefined;
 		lastModifiedFile: TFile | undefined; // Done
-		lastModifiedFiles: string[] | null;
+		lastModifiedFiles: string[] | null; // Done
 	}
 	// streak
 	streak: {

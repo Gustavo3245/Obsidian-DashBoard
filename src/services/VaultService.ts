@@ -187,4 +187,23 @@ export class VaultService {
 		}
 		return files;
 	}
+
+	async getAvarageFileLength(): Promise<number>{
+		const { vault } = this.app;
+
+		const fileContents: string[] = await Promise.all(
+			vault.getMarkdownFiles().map((file) =>
+			vault.cachedRead(file))
+		);
+
+		let totalLength = 0;
+		fileContents.forEach((content) => {
+			totalLength += content.length;
+		})
+
+
+		let response = totalLength / fileContents.length;
+		console.log(`Test new function: ${response}`);
+		return response;
+	}
 }
