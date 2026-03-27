@@ -188,6 +188,21 @@ export class VaultService {
 		return files;
 	}
 
+	// pegar todos os arquivos - total de arquivos markdown
+	getTotalAttachments(): number | null {
+		const files = this.app.vault.getFiles();
+		const markdownFiles = this.app.vault.getMarkdownFiles()
+
+		if(files.length == 0) {
+			return null;
+		}
+
+		const attachments = (files.length - markdownFiles.length);
+		console.log(`Total attachments: ${attachments}`)
+		return attachments;
+	}
+
+
 	async getAvarageFileLength(): Promise<number>{
 		const { vault } = this.app;
 
