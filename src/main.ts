@@ -29,6 +29,7 @@ export default class DashboardPlugin extends Plugin {
 		this.vaultService.getAvarageFileLength()
 		this.vaultService.getTotalAttachments()
 		this.vaultService.getTotalOrphansFiles('all');
+		this.vaultService.getTotalVaultSize();
 	}
 	async unload() {
 	    

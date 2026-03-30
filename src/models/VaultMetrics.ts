@@ -14,7 +14,7 @@ export interface VaultMetrics {
 		totalFolders: number; // Done
 		totalAttachments: number; // Done
 		totalOrphansFiles: number; // Done
-		totalFileSize: number;
+		totalVaultSize: number; // Done
 		totalSentences: number;
 		averageWordsPerFile: number; // Done
 	}

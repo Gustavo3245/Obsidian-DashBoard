@@ -254,4 +254,26 @@ export class VaultService {
 		console.log(`Orphans files count: ${orphanFiles.length}`)
 		return orphanFiles.length;
 	}
+
+	/*
+	 * get the total size (in MegaBytes) inside the vault.
+	 * this function returns a double number represent the actual vault size.
+	*/
+	async getTotalVaultSize(): Promise<number> {
+		const files = this.getFilesByRange('all');
+
+		if(files.length == 0){
+			return 0;
+		}
+
+		const fileSize = await Promise.all(
+			files.map(async (file) => {
+				const content = await this.app.vault.read(file);
+				return file.stat.size;
+			})
+		)
+		const totalSize = fileSize.reduce((total, count) => total + count, 0);
+		console.log(`Vault total size: ${totalSize}`);
+		return totalSize;
+	}
 }
