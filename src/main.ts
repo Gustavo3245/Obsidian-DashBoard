@@ -11,7 +11,7 @@ export default class DashboardPlugin extends Plugin {
 
 	private vaultService: VaultService;
 	private statsProcessor: StatProcessor;
-	private vaultCommands: VaultCommands ;
+	private vaultCommands: VaultCommands;
 
 	async onload() {
 
@@ -28,6 +28,7 @@ export default class DashboardPlugin extends Plugin {
 		console.log(`the total word: ${processor.totalWords}`);
 		this.vaultService.getAvarageFileLength()
 		this.vaultService.getTotalAttachments()
+		this.vaultService.getTotalOrphansFiles('all');
 	}
 	async unload() {
 	    

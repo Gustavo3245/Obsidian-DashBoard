@@ -221,4 +221,37 @@ export class VaultService {
 		console.log(`Test new function: ${response}`);
 		return response;
 	}
+
+	/**
+	 * get all Orphan files inside the vault
+	 * orphan file is a file that has no connection whatsoever (tags and Hyperlinks).
+	 */
+	async getTotalOrphansFiles(range: TimeRange): Promise<number> {
+		const allfiles = this.getFilesByRange(range);
+		const orphanFiles: TFile[] = [];
+
+		allfiles.forEach((file) => {
+			const cache = this.app.metadataCache.getFileCache(file);
+
+			const hasTags = (cache?.tags?.length ?? 0) > 0 || (cache?.frontmatter?.length ?? 0) > 0;
+
+			const hasOutlinks = (cache?.links?.length ?? 0) > 0;
+
+			const backlinks = this.app.metadataCache.resolvedLinks;
+			let hasInlinks = false;
+
+			for(const sourcePath in backlinks){
+				if(backlinks[sourcePath][file.path]){
+					hasInlinks = true;
+					break;
+				}
+			}
+
+			if(!hasTags && !hasOutlinks && !hasInlinks){
+				orphanFiles.push(file)
+			}
+		});
+		console.log(`Orphans files count: ${orphanFiles.length}`)
+		return orphanFiles.length;
+	}
 }
