@@ -1,15 +1,20 @@
-import { Plugin } from "obsidian";
 import DashBoardPlugin from "../main";
+import { StatProcessor } from "services/StatsProcessor";
 
 export class VaultCommands {
-	constructor(private plugin: DashBoardPlugin) {}
+	constructor(
+		private plugin: DashBoardPlugin, 
+		private statProcessor: StatProcessor
+	) {}
+	
 
 	public register(): void {
 		this.plugin.addCommand({
-			id: "Vault-greeting-to-console",
-			name: "Vault-greeting-to-console",
-			callback: () => {
-				console.log("Hey, You");
+			id: "DashBoard-word",
+			name: "Print Snapshot",
+			callback: async () => {
+				const data = await this.statProcessor.getSnapshot('all');
+				console.log(`the active data: ${data}`);
 			},
 		});
 	}
