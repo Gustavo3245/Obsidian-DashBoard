@@ -25,8 +25,10 @@ export class VaultService {
 		return files.filter(file => file.stat.mtime >= threshold);
 	}
 
-
-	async calculateTotalCharacters(files: TFile[]): Promise<number> {
+	/*
+	 * get the total caracters bases in the current relevant files (parameter files).
+	 */
+	async getTotalCharacters(files: TFile[]): Promise<number> {
 		
 		const characterCount = await Promise.all(
 			files.map(async (file) => {
@@ -34,14 +36,16 @@ export class VaultService {
 				return content.replace(/\s/g, '').length;
 			})
 		)
-		const characterTotal = characterCount.reduce((total, count) => total + count, 0);
-		return characterTotal;
+		return characterCount.reduce((total, count) => total + count, 0);
+		
 	}
 
-	// getMarkdownFiles retorna uma Promise, que é uma lista composta de TFile (obsdian markDown File)
-	// o intuito aqui é mapear cada arquivo e em cada arquivo realizar a operação necessaria da função.
-
-	async calculateTotalword(files: TFile[]): Promise<number> {
+	/*
+	 * get the total words based in the current relevant files.
+	 * Something is considered a word if there is a space 
+	 * or punctuation at the end of it.
+	 */
+	async getTotalWords(files: TFile[]): Promise<number> {
 
 		const wordCount = await Promise.all(
 			files.map(async (file) => {
@@ -53,8 +57,7 @@ export class VaultService {
 				return content.split(/\s+/).filter(word => word.length > 0).length;
 			})
 		)
-		const wordTotal = wordCount.reduce((total, count) => total + count, 0);
-		return wordTotal;
+		return wordCount.reduce((total, count) => total + count, 0);
 	}
 
 	getMostAppearsTagInAllContent(files: TFile[]): tagType | string {
@@ -132,6 +135,7 @@ export class VaultService {
 		const hours = Math.floor(totalSeconds / 3600);
 		const minutes = Math.floor((totalSeconds % 3600) / 60);
 		const seconds = totalSeconds % 60;
+
 
 		console.log(`total time: ${hours}, ${minutes}, ${seconds}`)
 

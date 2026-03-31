@@ -21,7 +21,7 @@ export interface VaultMetrics {
 	// Measurements related to estimates and time.
 	estimates: {
 		estimatedReadingTime: ReadingTime; // Done
-		estimatedSpeakingTime: null | undefined;
+		estimatedSpeakingTime: null | undefined; // Done
 		dailyAverageWords: null | undefined;
 	}
 	// appearances
