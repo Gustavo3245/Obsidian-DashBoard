@@ -60,33 +60,35 @@ export class VaultService {
 		return wordCount.reduce((total, count) => total + count, 0);
 	}
 
+	/*
+	 * return a type tag with the name and count of the most used tag.
+	 * this calculation uses all tag appearances.
+	 */
 	getMostAppearsTagInAllContent(files: TFile[]): tagType | string {
 		const tagCount: Record<string, number> = {};
 
 		for (const file of files) {
 			const cache = this.app.metadataCache.getFileCache(file);
 
-			if (cache) {
-				const fileTags = getAllTags(cache);
+			const fileTags = cache ? getAllTags(cache): null;
 
-				if (fileTags) {
-					fileTags.forEach(tag => {
-						tagCount[tag] = (tagCount[tag] || 0) + 1;
-					})
-				}
-			}
+			fileTags?.forEach(tag => {
+				tagCount[tag] = (tagCount[tag] || 0) + 1;
+			});
+			
 		}
 
 		const mostAppearsTag = Object.entries(tagCount).sort((current, previous) => previous[1] - current[1]);
-		if(mostAppearsTag.length > 0 && mostAppearsTag) {
+
+		if(mostAppearsTag.length > 0 && mostAppearsTag[0]) {
 			return {
 				name: mostAppearsTag[0][0],
 				count: mostAppearsTag[0][1]
 			}
 		}  
 		return "Nothing but Wind";
-		
 	}
+
 	getMostAppearsTagInFrontMatter(files: TFile[]): tagType | string {
 		const tagCount: Record<string, number> = {};
 
