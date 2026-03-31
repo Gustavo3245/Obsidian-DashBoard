@@ -24,12 +24,9 @@ export default class DashboardPlugin extends Plugin {
 		this.vaultCommands.register();
 		console.log("Plugin is load")
 		const processor = await this.statsProcessor.getSnapshot('all');
-		console.log(`the total character: ${processor.totalCharacters}`);
-		console.log(`the total word: ${processor.totalWords}`);
-		this.vaultService.getAvarageFileLength()
-		this.vaultService.getTotalAttachments()
-		this.vaultService.getTotalOrphansFiles('all');
-		this.vaultService.getTotalVaultSize();
+
+		this.vaultService.getVaultEstimateReadingTime(processor.totalWords);
+		this.vaultService.getEstimatedSpeakingTime('all');
 	}
 	async unload() {
 	    

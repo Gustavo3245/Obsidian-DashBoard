@@ -133,6 +133,8 @@ export class VaultService {
 		const minutes = Math.floor((totalSeconds % 3600) / 60);
 		const seconds = totalSeconds % 60;
 
+		console.log(`total time: ${hours}, ${minutes}, ${seconds}`)
+
 		return {
 			hours,
 			minutes,
@@ -273,7 +275,37 @@ export class VaultService {
 			})
 		)
 		const totalSize = fileSize.reduce((total, count) => total + count, 0);
+		const totalSizeInMegabytes = (totalSize / 1024) / 1024;
+
 		console.log(`Vault total size: ${totalSize}`);
 		return totalSize;
+	}
+
+	/*
+	 * get the current estimated Speaking Time (for files, folders and complete Vault).
+	*/
+	async getEstimatedSpeakingTime(range: TimeRange): Promise<ReadingTime | string> {
+		const totalWords = await this.calculateTotalword(this.getFilesByRange(range));
+		const WORDS_PER_MINUTE_SPEAKTIME = 130;
+
+		if(!totalWords || totalWords <= 0){
+			return "Nothing But Wind";
+		}
+		
+		const totalSeconds = Math.floor((totalWords / WORDS_PER_MINUTE_SPEAKTIME) * 60);
+
+		const hours = Math.floor(totalSeconds / 3600);
+		const minutes = Math.floor((totalSeconds % 3600) / 60);
+		const seconds = totalSeconds % 60;
+
+		console.log(`total time: ${hours}, ${minutes}, ${seconds}`)
+
+		return {
+			hours,
+			minutes,
+			seconds,
+			totalSeconds
+		};
+
 	}
 }
