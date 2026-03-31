@@ -25,7 +25,7 @@ export class VaultService {
 		return files.filter(file => file.stat.mtime >= threshold);
 	}
 
-	/*
+	/**
 	 * get the total caracters bases in the current relevant files (parameter files).
 	 */
 	async getTotalCharacters(files: TFile[]): Promise<number> {
@@ -37,10 +37,9 @@ export class VaultService {
 			})
 		)
 		return characterCount.reduce((total, count) => total + count, 0);
-		
 	}
 
-	/*
+	/**
 	 * get the total words based in the current relevant files.
 	 * Something is considered a word if there is a space 
 	 * or punctuation at the end of it.
@@ -60,7 +59,7 @@ export class VaultService {
 		return wordCount.reduce((total, count) => total + count, 0);
 	}
 
-	/*
+	/**
 	 * return a type tag with the name and count of the most used tag.
 	 * this calculation uses all tag appearances.
 	 */
@@ -89,6 +88,10 @@ export class VaultService {
 		return "Nothing but Wind";
 	}
 
+	/**
+	 * return a type tag with the name and count of the most used tag.
+	 * this calculation uses ONLY frontmatter tags appearances.
+	 */
 	getMostAppearsTagInFrontMatter(files: TFile[]): tagType | string {
 		const tagCount: Record<string, number> = {};
 
@@ -125,10 +128,11 @@ export class VaultService {
 	}
 
 
-	getVaultEstimateReadingTime(totalWords: number): ReadingTime | string {
+	async getVaultEstimateReadingTime(files: TFile[]): Promise<ReadingTime | string> {
+		const totalWords = await this.getTotalWords(files);
 		const WORD_PER_MINUTE_READTIME = 200;
 
-		if(totalWords <= 0){
+		if(totalWords == null || !totalWords){
 			return "Nothing But Wind";
 		}
 		
@@ -291,7 +295,7 @@ export class VaultService {
 	 * get the current estimated Speaking Time (for files, folders and complete Vault).
 	*/
 	async getEstimatedSpeakingTime(range: TimeRange): Promise<ReadingTime | string> {
-		const totalWords = await this.calculateTotalword(this.getFilesByRange(range));
+		const totalWords = await this.getTotalWords(this.getFilesByRange(range));
 		const WORDS_PER_MINUTE_SPEAKTIME = 130;
 
 		if(!totalWords || totalWords <= 0){

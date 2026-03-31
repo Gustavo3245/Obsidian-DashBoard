@@ -16,17 +16,14 @@ export default class DashboardPlugin extends Plugin {
 	async onload() {
 
 		this.vaultService = new VaultService(this.app);
-		this.statsProcessor = new StatProcessor(this.vaultService);
-		
+		this.statsProcessor = new StatProcessor(this.vaultService);	
 		this.vaultCommands = new VaultCommands(this, this.statsProcessor);
 
 
 		this.vaultCommands.register();
 		console.log("Plugin is load")
-		const processor = await this.statsProcessor.getSnapshot('all');
 
-		this.vaultService.getVaultEstimateReadingTime(processor.totalWords);
-		this.vaultService.getEstimatedSpeakingTime('all');
+		this.vaultService.getVaultEstimateReadingTime(this.vaultService.getFilesByRange('all'));
 	}
 	async unload() {
 	    
