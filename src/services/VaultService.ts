@@ -25,8 +25,10 @@ export class VaultService {
 		return files.filter(file => file.stat.mtime >= threshold);
 	}
 
-
-	async calculateTotalCharacters(files: TFile[]): Promise<number> {
+	/**
+	 * get the total caracters bases in the current relevant files (parameter files).
+	 */
+	async getTotalCharacters(files: TFile[]): Promise<number> {
 		
 		const characterCount = await Promise.all(
 			files.map(async (file) => {
@@ -34,14 +36,15 @@ export class VaultService {
 				return content.replace(/\s/g, '').length;
 			})
 		)
-		const characterTotal = characterCount.reduce((total, count) => total + count, 0);
-		return characterTotal;
+		return characterCount.reduce((total, count) => total + count, 0);
 	}
 
-	// getMarkdownFiles retorna uma Promise, que é uma lista composta de TFile (obsdian markDown File)
-	// o intuito aqui é mapear cada arquivo e em cada arquivo realizar a operação necessaria da função.
-
-	async calculateTotalword(files: TFile[]): Promise<number> {
+	/**
+	 * get the total words based in the current relevant files.
+	 * Something is considered a word if there is a space 
+	 * or punctuation at the end of it.
+	 */
+	async getTotalWords(files: TFile[]): Promise<number> {
 
 		const wordCount = await Promise.all(
 			files.map(async (file) => {
@@ -53,37 +56,42 @@ export class VaultService {
 				return content.split(/\s+/).filter(word => word.length > 0).length;
 			})
 		)
-		const wordTotal = wordCount.reduce((total, count) => total + count, 0);
-		return wordTotal;
+		return wordCount.reduce((total, count) => total + count, 0);
 	}
 
+	/**
+	 * return a type tag with the name and count of the most used tag.
+	 * this calculation uses all tag appearances.
+	 */
 	getMostAppearsTagInAllContent(files: TFile[]): tagType | string {
 		const tagCount: Record<string, number> = {};
 
 		for (const file of files) {
 			const cache = this.app.metadataCache.getFileCache(file);
+			const fileTags = cache ? getAllTags(cache): null;
 
-			if (cache) {
-				const fileTags = getAllTags(cache);
-
-				if (fileTags) {
-					fileTags.forEach(tag => {
-						tagCount[tag] = (tagCount[tag] || 0) + 1;
-					})
-				}
-			}
+			fileTags?.forEach(tag => {
+				const normalized = tag.startsWith('#') ? tag : `#${tag}`;
+				tagCount[normalized] = (tagCount[normalized] || 0) + 1;
+			});
+			
 		}
 
 		const mostAppearsTag = Object.entries(tagCount).sort((current, previous) => previous[1] - current[1]);
-		if(mostAppearsTag.length > 0 && mostAppearsTag) {
+
+		if(mostAppearsTag.length > 0 && mostAppearsTag[0]) {
 			return {
 				name: mostAppearsTag[0][0],
 				count: mostAppearsTag[0][1]
 			}
 		}  
 		return "Nothing but Wind";
-		
 	}
+
+	/**
+	 * return a type tag with the name and count of the most used tag.
+	 * this calculation uses ONLY frontmatter tags appearances.
+	 */
 	getMostAppearsTagInFrontMatter(files: TFile[]): tagType | string {
 		const tagCount: Record<string, number> = {};
 
@@ -120,10 +128,11 @@ export class VaultService {
 	}
 
 
-	getVaultEstimateReadingTime(totalWords: number): ReadingTime | string {
+	async getVaultEstimateReadingTime(files: TFile[]): Promise<ReadingTime | string> {
+		const totalWords = await this.getTotalWords(files);
 		const WORD_PER_MINUTE_READTIME = 200;
 
-		if(totalWords <= 0){
+		if(totalWords == null || !totalWords){
 			return "Nothing But Wind";
 		}
 		
@@ -132,6 +141,7 @@ export class VaultService {
 		const hours = Math.floor(totalSeconds / 3600);
 		const minutes = Math.floor((totalSeconds % 3600) / 60);
 		const seconds = totalSeconds % 60;
+
 
 		console.log(`total time: ${hours}, ${minutes}, ${seconds}`)
 
@@ -143,14 +153,19 @@ export class VaultService {
 		};
 	}
 
-	getLastModifiedMarkDownFile(): TFile | undefined { 
+	/*
+	 * get the current last modified MarkDown file in the vault.
+	 * Typically, the last modified file is the active one at the moment.
+	 * DEPRECITED //ERROR
+	 */
+	getLastModifiedMarkDownFile(): TFile | string { 
 		const files = this.app.vault.getMarkdownFiles();
 
 		if(files.length === 0){
-			return undefined;
+			return "Nothing But Wind";
 		}
 		
-		return  files.reduce((previous, current) => 
+		return files.reduce((previous, current) => 
 			(current.stat.mtime > previous.stat.mtime) ? previous : current);
 
 	}
@@ -172,6 +187,10 @@ export class VaultService {
 		return files.length;
 	}
 
+	/*
+	 * get the current count of all folders inside the vault.
+	 * The root folder is not counted (includeRoot = false).
+	 */
 	getTotalFoldes(): number | null {
 		const folders = this.app.vault.getAllFolders(false);
 
@@ -285,7 +304,7 @@ export class VaultService {
 	 * get the current estimated Speaking Time (for files, folders and complete Vault).
 	*/
 	async getEstimatedSpeakingTime(range: TimeRange): Promise<ReadingTime | string> {
-		const totalWords = await this.calculateTotalword(this.getFilesByRange(range));
+		const totalWords = await this.getTotalWords(this.getFilesByRange(range));
 		const WORDS_PER_MINUTE_SPEAKTIME = 130;
 
 		if(!totalWords || totalWords <= 0){
