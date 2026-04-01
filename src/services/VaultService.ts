@@ -68,11 +68,11 @@ export class VaultService {
 
 		for (const file of files) {
 			const cache = this.app.metadataCache.getFileCache(file);
-
 			const fileTags = cache ? getAllTags(cache): null;
 
 			fileTags?.forEach(tag => {
-				tagCount[tag] = (tagCount[tag] || 0) + 1;
+				const normalized = tag.startsWith('#') ? tag : `#${tag}`;
+				tagCount[normalized] = (tagCount[normalized] || 0) + 1;
 			});
 			
 		}
@@ -153,14 +153,19 @@ export class VaultService {
 		};
 	}
 
-	getLastModifiedMarkDownFile(): TFile | undefined { 
+	/*
+	 * get the current last modified MarkDown file in the vault.
+	 * Typically, the last modified file is the active one at the moment.
+	 * DEPRECITED //ERROR
+	 */
+	getLastModifiedMarkDownFile(): TFile | string { 
 		const files = this.app.vault.getMarkdownFiles();
 
 		if(files.length === 0){
-			return undefined;
+			return "Nothing But Wind";
 		}
 		
-		return  files.reduce((previous, current) => 
+		return files.reduce((previous, current) => 
 			(current.stat.mtime > previous.stat.mtime) ? previous : current);
 
 	}
@@ -182,6 +187,10 @@ export class VaultService {
 		return files.length;
 	}
 
+	/*
+	 * get the current count of all folders inside the vault.
+	 * The root folder is not counted (includeRoot = false).
+	 */
 	getTotalFoldes(): number | null {
 		const folders = this.app.vault.getAllFolders(false);
 
