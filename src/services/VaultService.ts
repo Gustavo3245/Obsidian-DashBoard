@@ -287,24 +287,16 @@ export class VaultService {
 	 * get the total size (in MegaBytes) inside the vault.
 	 * this function returns a double number represent the actual vault size.
 	*/
-	async getTotalVaultSize(): Promise<number> {
-		const files = this.getFilesByRange('all');
+	getTotalVaultSize(files: TFile[]): number {
 
-		if(files.length == 0){
+		if(files.length === 0){
 			return 0;
 		}
+		
+		const totalSizeBytes = files.reduce((total, file) => total + file.stat.size, 0);
+		const totalSizeInMB = totalSizeBytes / (1024 * 1024);
 
-		const fileSize = await Promise.all(
-			files.map(async (file) => {
-				const content = await this.app.vault.read(file);
-				return file.stat.size;
-			})
-		)
-		const totalSize = fileSize.reduce((total, count) => total + count, 0);
-		const totalSizeInMegabytes = (totalSize / 1024) / 1024;
-
-		console.log(`Vault total size: ${totalSize}`);
-		return totalSize;
+		return Number(totalSizeBytes.toFixed(2));
 	}
 
 	/**
