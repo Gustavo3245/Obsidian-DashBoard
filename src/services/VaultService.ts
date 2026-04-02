@@ -170,32 +170,33 @@ export class VaultService {
 
 	}
 
-	getActiveFile(): TFile | null {
+	getLastModifiedFile(): TFile | null {
 		return this.app.workspace.getActiveFile();
 	}
 
-	getVaultName(): string | null {
+	getVaultName(): string {
 		return this.app.vault.getName();
 	}
 
-	getTotalFiles(): number | null {
+	
+	getTotalFiles(): number {
 		const files = this.app.vault.getMarkdownFiles();
 
 		if(files.length == 0 || !files) {
-			return null;
+			return 0;
 		}
 		return files.length;
 	}
 
-	/*
+	/**
 	 * get the current count of all folders inside the vault.
 	 * The root folder is not counted (includeRoot = false).
 	 */
-	getTotalFoldes(): number | null {
+	getTotalFoldes(): number {
 		const folders = this.app.vault.getAllFolders(false);
 
 		if(folders.length == 0){
-			return null;
+			return 0;
 		}
 		return folders.length;
 	}
@@ -213,12 +214,12 @@ export class VaultService {
 	 * get the count of attachments inside the vault
 	 * a attachments its considered a file which is not a Markdown file.
 	 */
-	getTotalAttachments(): number | null {
+	getTotalAttachments(): number {
 		const files = this.app.vault.getFiles();
 		const markdownFiles = this.app.vault.getMarkdownFiles()
 
 		if(files.length == 0) {
-			return null;
+			return 0;
 		}
 
 		const attachments = (files.length - markdownFiles.length);
@@ -231,7 +232,7 @@ export class VaultService {
 	 * get the current average file length inside the vault
 	 * the average file length is based in the (vault.files.length - vault.totalFiles).
 	 */
-	async getAverageFileLength(): Promise<number>{
+	async getAverageWordsPerFile(): Promise<number>{
 		const { vault } = this.app;
 
 		const fileContents: string[] = await Promise.all(
@@ -241,6 +242,7 @@ export class VaultService {
 
 		let totalLength = 0;
 		fileContents.forEach((content) => {
+			content.replace(/\s/g, '').length;
 			totalLength += content.length;
 		})
 
@@ -257,6 +259,9 @@ export class VaultService {
 	getTotalOrphansFiles(files: TFile[]): number {
 		const orphanFiles: TFile[] = [];
 
+		if(files.length === 0 || !files){
+			return 0;
+		}
 
 		files.forEach((file) => {
 			const cache = this.app.metadataCache.getFileCache(file);
