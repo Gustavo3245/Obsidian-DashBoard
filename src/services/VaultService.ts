@@ -156,7 +156,7 @@ export class VaultService {
 	/*
 	 * get the current last modified MarkDown file in the vault.
 	 * Typically, the last modified file is the active one at the moment.
-	 * DEPRECITED //ERROR
+	 * DEPRECITED // Not used
 	 */
 	getLastModifiedMarkDownFile(): TFile | string { 
 		const files = this.app.vault.getMarkdownFiles();
@@ -181,7 +181,7 @@ export class VaultService {
 	getTotalFiles(): number | null {
 		const files = this.app.vault.getMarkdownFiles();
 
-		if(files.length == 0) {
+		if(files.length == 0 || !files) {
 			return null;
 		}
 		return files.length;
@@ -209,7 +209,10 @@ export class VaultService {
 		return files;
 	}
 
-	// pegar todos os arquivos - total de arquivos markdown
+	/**
+	 * get the count of attachments inside the vault
+	 * a attachments its considered a file which is not a Markdown file.
+	 */
 	getTotalAttachments(): number | null {
 		const files = this.app.vault.getFiles();
 		const markdownFiles = this.app.vault.getMarkdownFiles()
@@ -224,7 +227,11 @@ export class VaultService {
 	}
 
 
-	async getAvarageFileLength(): Promise<number>{
+	/**
+	 * get the current average file length inside the vault
+	 * the average file length is based in the (vault.files.length - vault.totalFiles).
+	 */
+	async getAverageFileLength(): Promise<number>{
 		const { vault } = this.app;
 
 		const fileContents: string[] = await Promise.all(
@@ -300,11 +307,11 @@ export class VaultService {
 		return totalSize;
 	}
 
-	/*
+	/**
 	 * get the current estimated Speaking Time (for files, folders and complete Vault).
 	*/
-	async getEstimatedSpeakingTime(range: TimeRange): Promise<ReadingTime | string> {
-		const totalWords = await this.getTotalWords(this.getFilesByRange(range));
+	async getEstimatedSpeakingTime(files: TFile[]): Promise<ReadingTime | string> {
+		const totalWords = await this.getTotalWords(files);
 		const WORDS_PER_MINUTE_SPEAKTIME = 130;
 
 		if(!totalWords || totalWords <= 0){

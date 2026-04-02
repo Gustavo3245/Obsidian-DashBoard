@@ -25,7 +25,7 @@ export default class DashboardPlugin extends Plugin {
 
 		this.vaultService.getVaultEstimateReadingTime(this.vaultService.getFilesByRange('all'));
 		const mostAppears = this.vaultService.getMostAppearsTagInAllContent(this.vaultService.getFilesByRange('all'));
-		console.log(`mostAppears tag: ${mostAppears.name}`)
+		console.log(`mostAppears tag: ${mostAppears}`)
 	}
 	async unload() {
 	    
