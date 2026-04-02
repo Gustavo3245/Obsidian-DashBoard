@@ -254,11 +254,11 @@ export class VaultService {
 	 * get all Orphan files inside the vault
 	 * orphan file is a file that has no connection whatsoever (tags and Hyperlinks).
 	 */
-	async getTotalOrphansFiles(range: TimeRange): Promise<number> {
-		const allfiles = this.getFilesByRange(range);
+	getTotalOrphansFiles(files: TFile[]): number {
 		const orphanFiles: TFile[] = [];
 
-		allfiles.forEach((file) => {
+
+		files.forEach((file) => {
 			const cache = this.app.metadataCache.getFileCache(file);
 
 			const hasTags = (cache?.tags?.length ?? 0) > 0 || (cache?.frontmatter?.length ?? 0) > 0;
