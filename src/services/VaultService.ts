@@ -232,18 +232,20 @@ export class VaultService {
 	 * get the current average file length inside the vault
 	 * the average file length is based in the (vault.files.length - vault.totalFiles).
 	 */
-	async getAverageWordsPerFile(): Promise<number>{
-		const { vault } = this.app;
+	async getAverageWordsPerFile(files: TFile[]): Promise<number>{
+
+		if(files.length === 0 || !files){
+			return 0;
+		}
 
 		const fileContents: string[] = await Promise.all(
-			vault.getMarkdownFiles().map((file) =>
-			vault.cachedRead(file))
+			files.map((file) => this.app.vault.cachedRead(file))
 		);
 
 		let totalLength = 0;
 		fileContents.forEach((content) => {
-			content.replace(/\s/g, '').length;
-			totalLength += content.length;
+			const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
+			totalLength += wordCount;
 		})
 
 
@@ -288,7 +290,7 @@ export class VaultService {
 		return orphanFiles.length;
 	}
 
-	/*
+	/**
 	 * get the total size (in MegaBytes) inside the vault.
 	 * this function returns a double number represent the actual vault size.
 	*/
