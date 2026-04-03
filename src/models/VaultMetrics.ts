@@ -7,21 +7,21 @@ export interface VaultMetrics {
 	// Quantitative metrics relating to numerical values.
 	volume: {
 		snapshot: {
-		totalCharacters: number; // Done
-		totalWords: number; // Done
+		totalCharacters: Promise<number>; // Done
+		totalWords: Promise<number>; // Done
 	}
 		totalFiles: number; // Done
 		totalFolders: number; // Done
 		totalAttachments: number; // Done
 		totalOrphansFiles: number; // Done
 		totalVaultSize: number; // Done
-		totalSentences: number; // Done
-		averageWordsPerFile: number; // Done
+		totalSentences: number; 
+		averageWordsPerFile: number; //Done
 	}
 	// Measurements related to estimates and time.
 	estimates: {
-		estimatedReadingTime: ReadingTime; // Done
-		estimatedSpeakingTime: null | undefined; // Done
+		estimatedReadingTime: Promise<ReadingTime | string>; // Done
+		estimatedSpeakingTime: Promise<ReadingTime | string>; // Done
 		dailyAverageWords: null | undefined;
 	}
 	// appearances
@@ -29,9 +29,9 @@ export interface VaultMetrics {
 		mostAppearsTag: tagType | string; // Done
 		mostAppearsTagInFrontMatter: tagType | string; // Done
 		minorAppearsTag: tagType | string;
-		totalUniqueTags: null | undefined;
+		totalUniqueTags: number; // Done
 		mostActiveFolder: null | undefined;
-		lastModifiedFile: TFile | undefined; // Done
+		lastModifiedFile: TFile | null; // Done
 		lastModifiedFiles: string[] | null; // Done
 	}
 	// streak

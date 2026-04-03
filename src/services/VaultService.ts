@@ -156,7 +156,7 @@ export class VaultService {
 	/*
 	 * get the current last modified MarkDown file in the vault.
 	 * Typically, the last modified file is the active one at the moment.
-	 * DEPRECITED //ERROR
+	 * DEPRECITED // Not used
 	 */
 	getLastModifiedMarkDownFile(): TFile | string { 
 		const files = this.app.vault.getMarkdownFiles();
@@ -170,32 +170,33 @@ export class VaultService {
 
 	}
 
-	getActiveFile(): TFile | null {
+	getLastModifiedFile(): TFile | null {
 		return this.app.workspace.getActiveFile();
 	}
 
-	getVaultName(): string | null {
+	getVaultName(): string {
 		return this.app.vault.getName();
 	}
 
-	getTotalFiles(): number | null {
+	
+	getTotalFiles(): number {
 		const files = this.app.vault.getMarkdownFiles();
 
-		if(files.length == 0) {
-			return null;
+		if(files.length == 0 || !files) {
+			return 0;
 		}
 		return files.length;
 	}
 
-	/*
+	/**
 	 * get the current count of all folders inside the vault.
 	 * The root folder is not counted (includeRoot = false).
 	 */
-	getTotalFoldes(): number | null {
+	getTotalFoldes(): number {
 		const folders = this.app.vault.getAllFolders(false);
 
 		if(folders.length == 0){
-			return null;
+			return 0;
 		}
 		return folders.length;
 	}
@@ -209,13 +210,16 @@ export class VaultService {
 		return files;
 	}
 
-	// pegar todos os arquivos - total de arquivos markdown
-	getTotalAttachments(): number | null {
+	/**
+	 * get the count of attachments inside the vault
+	 * a attachments its considered a file which is not a Markdown file.
+	 */
+	getTotalAttachments(): number {
 		const files = this.app.vault.getFiles();
 		const markdownFiles = this.app.vault.getMarkdownFiles()
 
 		if(files.length == 0) {
-			return null;
+			return 0;
 		}
 
 		const attachments = (files.length - markdownFiles.length);
@@ -224,17 +228,24 @@ export class VaultService {
 	}
 
 
-	async getAvarageFileLength(): Promise<number>{
-		const { vault } = this.app;
+	/**
+	 * get the current average file length inside the files range,
+	 * the average file length is based in the (vault.files.length - vault.totalFiles).
+	 */
+	async getAverageWordsPerFile(files: TFile[]): Promise<number>{
+
+		if(files.length === 0 || !files){
+			return 0;
+		}
 
 		const fileContents: string[] = await Promise.all(
-			vault.getMarkdownFiles().map((file) =>
-			vault.cachedRead(file))
+			files.map((file) => this.app.vault.cachedRead(file))
 		);
 
 		let totalLength = 0;
 		fileContents.forEach((content) => {
-			totalLength += content.length;
+			const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
+			totalLength += wordCount;
 		})
 
 
@@ -244,14 +255,25 @@ export class VaultService {
 	}
 
 	/**
+	 * get the current average file length inside the files range,
+	 * this function uses the current totalWords parameter made available by getTotalWords().
+	 */
+	async getAverageWordsPerFiles(files: TFile[], totalWords: number): Promise<number> { 
+		return Number(totalWords / files.length)
+	}
+
+	/**
 	 * get all Orphan files inside the vault
 	 * orphan file is a file that has no connection whatsoever (tags and Hyperlinks).
 	 */
-	async getTotalOrphansFiles(range: TimeRange): Promise<number> {
-		const allfiles = this.getFilesByRange(range);
+	getTotalOrphansFiles(files: TFile[]): number {
 		const orphanFiles: TFile[] = [];
 
-		allfiles.forEach((file) => {
+		if(files.length === 0 || !files){
+			return 0;
+		}
+
+		files.forEach((file) => {
 			const cache = this.app.metadataCache.getFileCache(file);
 
 			const hasTags = (cache?.tags?.length ?? 0) > 0 || (cache?.frontmatter?.length ?? 0) > 0;
@@ -276,35 +298,27 @@ export class VaultService {
 		return orphanFiles.length;
 	}
 
-	/*
+	/**
 	 * get the total size (in MegaBytes) inside the vault.
 	 * this function returns a double number represent the actual vault size.
 	*/
-	async getTotalVaultSize(): Promise<number> {
-		const files = this.getFilesByRange('all');
+	getTotalVaultSize(files: TFile[]): number {
 
-		if(files.length == 0){
+		if(files.length === 0){
 			return 0;
 		}
+		
+		const totalSizeBytes = files.reduce((total, file) => total + file.stat.size, 0);
+		const totalSizeInMB = totalSizeBytes / (1024 * 1024);
 
-		const fileSize = await Promise.all(
-			files.map(async (file) => {
-				const content = await this.app.vault.read(file);
-				return file.stat.size;
-			})
-		)
-		const totalSize = fileSize.reduce((total, count) => total + count, 0);
-		const totalSizeInMegabytes = (totalSize / 1024) / 1024;
-
-		console.log(`Vault total size: ${totalSize}`);
-		return totalSize;
+		return Number(totalSizeBytes.toFixed(2));
 	}
 
-	/*
+	/**
 	 * get the current estimated Speaking Time (for files, folders and complete Vault).
 	*/
-	async getEstimatedSpeakingTime(range: TimeRange): Promise<ReadingTime | string> {
-		const totalWords = await this.getTotalWords(this.getFilesByRange(range));
+	async getEstimatedSpeakingTime(files: TFile[]): Promise<ReadingTime | string> {
+		const totalWords = await this.getTotalWords(files);
 		const WORDS_PER_MINUTE_SPEAKTIME = 130;
 
 		if(!totalWords || totalWords <= 0){
@@ -327,4 +341,25 @@ export class VaultService {
 		};
 
 	}
+
+	getTotalUniqueTags(files: TFile[]): number {
+
+		if(files.length === 0 || !files){
+			return 0;
+		}
+
+		const uniqueTags = new Set<string>();
+
+		files.forEach((file) => {
+			const cache = this.app.metadataCache.getFileCache(file);
+			const fileTags = cache ? getAllTags(cache) : null;
+
+			fileTags?.forEach(tag => {
+				uniqueTags.add(tag.toLowerCase());
+			});
+		});
+
+		return uniqueTags.size;
+	}
+
 }
