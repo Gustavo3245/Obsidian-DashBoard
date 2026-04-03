@@ -15,7 +15,7 @@ export interface VaultMetrics {
 		totalAttachments: number; // Done
 		totalOrphansFiles: number; // Done
 		totalVaultSize: number; // Done
-		totalSentences: number; // Done
+		totalSentences: number; 
 		averageWordsPerFile: number; //Done
 	}
 	// Measurements related to estimates and time.
@@ -29,7 +29,7 @@ export interface VaultMetrics {
 		mostAppearsTag: tagType | string; // Done
 		mostAppearsTagInFrontMatter: tagType | string; // Done
 		minorAppearsTag: tagType | string;
-		totalUniqueTags: null | undefined;
+		totalUniqueTags: number; // Done
 		mostActiveFolder: null | undefined;
 		lastModifiedFile: TFile | null; // Done
 		lastModifiedFiles: string[] | null; // Done
