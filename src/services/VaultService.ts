@@ -229,7 +229,7 @@ export class VaultService {
 
 
 	/**
-	 * get the current average file length inside the vault
+	 * get the current average file length inside the files range,
 	 * the average file length is based in the (vault.files.length - vault.totalFiles).
 	 */
 	async getAverageWordsPerFile(files: TFile[]): Promise<number>{
@@ -252,6 +252,14 @@ export class VaultService {
 		let response = totalLength / fileContents.length;
 		console.log(`Test new function: ${response}`);
 		return response;
+	}
+
+	/**
+	 * get the current average file length inside the files range,
+	 * this function uses the current totalWords parameter made available by getTotalWords().
+	 */
+	async getAverageWordsPerFiles(files: TFile[], totalWords: number): Promise<number> { 
+		return Number(totalWords / files.length)
 	}
 
 	/**
