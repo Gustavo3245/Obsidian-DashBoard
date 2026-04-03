@@ -341,4 +341,25 @@ export class VaultService {
 		};
 
 	}
+
+	getTotalUniqueTags(files: TFile[]): number {
+
+		if(files.length === 0 || !files){
+			return 0;
+		}
+
+		const uniqueTags = new Set<string>();
+
+		files.forEach((file) => {
+			const cache = this.app.metadataCache.getFileCache(file);
+			const fileTags = cache ? getAllTags(cache) : null;
+
+			fileTags?.forEach(tag => {
+				uniqueTags.add(tag.toLowerCase());
+			});
+		});
+
+		return uniqueTags.size;
+	}
+
 }
