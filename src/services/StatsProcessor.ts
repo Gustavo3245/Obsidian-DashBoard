@@ -32,4 +32,14 @@ export class StatProcessor {
 		};
 	}
 
+	async getEstimatesMetric(range: TimeRange): Promise<VaultMetrics['estimates']> {
+		const relevantFiles = this.vaultService.getFilesByRange(range);
+
+		return {
+			estimatedReadingTime: this.vaultService.getVaultEstimateReadingTime(relevantFiles),
+			estimatedSpeakingTime: this.vaultService.getEstimatedSpeakingTime(relevantFiles),
+			dailyAverageWords: null
+		}
+	}
+
 }
