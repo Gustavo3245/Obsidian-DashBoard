@@ -42,7 +42,7 @@ export class StatProcessor {
 		}
 	}
 
-	async getEstimatesAppears(range: TimeRange): Promise<VaultMetrics['appears']> {
+	async getAppearsMetrics(range: TimeRange): Promise<VaultMetrics['appears']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
 
 		return {
@@ -54,6 +54,25 @@ export class StatProcessor {
 			lastModifiedFile: this.vaultService.getLastModifiedMarkDownFile(),
 			lastModifiedFiles: this.vaultService.getActiveMarkDownFiles(),
 
+		}
+	}
+
+	async getStreakMetrics(range: TimeRange): Promise<VaultMetrics['streak']> {
+		const relevantFiles = this.vaultService.getFilesByRange(range);
+
+		return {
+			streakCount: null,
+			longestStreak: null
+		}
+	}
+
+	async storageValuesMetrics(range: TimeRange): Promise<VaultMetrics['storageValues']> {
+		const relevantFiles = this.vaultService.getFilesByRange(range);
+
+		return {
+			mostActiveDay: null,
+			mostActiveWeek: null,
+			mostActiveMonth: null
 		}
 	}
 }
