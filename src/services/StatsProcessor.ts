@@ -42,4 +42,18 @@ export class StatProcessor {
 		}
 	}
 
+	async getEstimatesAppears(range: TimeRange): Promise<VaultMetrics['appears']> {
+		const relevantFiles = this.vaultService.getFilesByRange(range);
+
+		return {
+			mostAppearsTag: this.vaultService.getMostAppearsTagInAllContent(relevantFiles),
+			mostAppearsTagInFrontMatter: this.vaultService.getMostAppearsTagInFrontMatter(relevantFiles),
+			minorAppearsTag: "null",
+			totalUniqueTags: this.vaultService.getTotalUniqueTags(relevantFiles),
+			mostActiveFolder: null,
+			lastModifiedFile: this.vaultService.getLastModifiedMarkDownFile(),
+			lastModifiedFiles: this.vaultService.getActiveMarkDownFiles(),
+
+		}
+	}
 }
