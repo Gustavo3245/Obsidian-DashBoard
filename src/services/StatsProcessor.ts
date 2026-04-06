@@ -32,4 +32,47 @@ export class StatProcessor {
 		};
 	}
 
+	async getEstimatesMetric(range: TimeRange): Promise<VaultMetrics['estimates']> {
+		const relevantFiles = this.vaultService.getFilesByRange(range);
+
+		return {
+			estimatedReadingTime: this.vaultService.getVaultEstimateReadingTime(relevantFiles),
+			estimatedSpeakingTime: this.vaultService.getEstimatedSpeakingTime(relevantFiles),
+			dailyAverageWords: null
+		}
+	}
+
+	async getAppearsMetrics(range: TimeRange): Promise<VaultMetrics['appears']> {
+		const relevantFiles = this.vaultService.getFilesByRange(range);
+
+		return {
+			mostAppearsTag: this.vaultService.getMostAppearsTagInAllContent(relevantFiles),
+			mostAppearsTagInFrontMatter: this.vaultService.getMostAppearsTagInFrontMatter(relevantFiles),
+			minorAppearsTag: "null",
+			totalUniqueTags: this.vaultService.getTotalUniqueTags(relevantFiles),
+			mostActiveFolder: null,
+			lastModifiedFile: this.vaultService.getLastModifiedMarkDownFile(),
+			lastModifiedFiles: this.vaultService.getActiveMarkDownFiles(),
+
+		}
+	}
+
+	async getStreakMetrics(range: TimeRange): Promise<VaultMetrics['streak']> {
+		const relevantFiles = this.vaultService.getFilesByRange(range);
+
+		return {
+			streakCount: null,
+			longestStreak: null
+		}
+	}
+
+	async storageValuesMetrics(range: TimeRange): Promise<VaultMetrics['storageValues']> {
+		const relevantFiles = this.vaultService.getFilesByRange(range);
+
+		return {
+			mostActiveDay: null,
+			mostActiveWeek: null,
+			mostActiveMonth: null
+		}
+	}
 }

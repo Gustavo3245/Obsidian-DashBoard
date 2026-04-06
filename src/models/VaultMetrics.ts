@@ -31,7 +31,7 @@ export interface VaultMetrics {
 		minorAppearsTag: tagType | string;
 		totalUniqueTags: number; // Done
 		mostActiveFolder: null | undefined;
-		lastModifiedFile: TFile | null; // Done
+		lastModifiedFile: TFile | string; // Done
 		lastModifiedFiles: string[] | null; // Done
 	}
 	// streak
