@@ -362,4 +362,23 @@ export class VaultService {
 		return uniqueTags.size;
 	}
 
+	/**
+	 * get the current vault TotalSentences count (this function declares that a sentence
+	 * is considered text separated by a line break);
+	 * */
+	async getTotalSentences(files: TFile[]): Promise<number> {
+		let totalSentences = 0;
+
+		const contents = await Promise.all(
+			files.map(file => this.app.vault.cachedRead(file))
+		);
+
+		contents.forEach(content => {
+			const sentencesInFile = content.split(/\r?\n/).filter(line => line.trim().length > 0).length
+			totalSentences += sentencesInFile;
+		});
+		console.log(`TotalSentences: ${totalSentences}`);
+		return totalSentences;
+	}
+
 }
