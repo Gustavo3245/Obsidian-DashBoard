@@ -9,16 +9,24 @@ export class StatProcessor {
 	async getSnapshot(range: TimeRange): Promise<VaultMetrics['volume']['snapshot']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
 
+		const [chars, words] = await Promise.all([
+			this.vaultService.getTotalCharacters(relevantFiles),
+			this.vaultService.getTotalWords(relevantFiles)
+		])
 		return {
-			totalCharacters: this.vaultService.getTotalCharacters(relevantFiles),
-			totalWords: this.vaultService.getTotalWords(relevantFiles)
+			totalCharacters: chars, totalWords: words
 		};
 	}
 
 	async updateSnapshotMetrics(files: TFile): Promise<VaultMetrics['volume']['snapshot']> {
+
+		const [chars, words] = await Promise.all([
+			this.vaultService.getTotalCharacters([files]),
+			this.vaultService.getTotalWords([files])
+		])
+
 		return {
-			totalCharacters: this.vaultService.getTotalCharacters([files]),
-			totalWords: this.vaultService.getTotalWords([files])
+			totalCharacters: chars, totalWords: words
 		}
 	}
 

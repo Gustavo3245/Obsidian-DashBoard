@@ -7,8 +7,8 @@ export interface VaultMetrics {
 	// Quantitative metrics relating to numerical values.
 	volume: {
 		snapshot: {
-		totalCharacters: Promise<number>; // Done
-		totalWords: Promise<number>; // Done
+		totalCharacters: number; // Done
+		totalWords: number; // Done
 	}
 		totalFiles: number; // Done
 		totalFolders: number; // Done
@@ -20,8 +20,8 @@ export interface VaultMetrics {
 	}
 	// Measurements related to estimates and time.
 	estimates: {
-		estimatedReadingTime: Promise<ReadingTime | string>; // Done
-		estimatedSpeakingTime: Promise<ReadingTime | string>; // Done
+		estimatedReadingTime: ReadingTime | string; // Done
+		estimatedSpeakingTime: ReadingTime | string; // Done
 		dailyAverageWords: null | undefined;
 	}
 	// appearances
