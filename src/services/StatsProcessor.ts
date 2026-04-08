@@ -33,12 +33,18 @@ export class StatProcessor {
 	async getVolumeMetrics(range: TimeRange): Promise<VaultMetrics['volume']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
 
+		const [chars, words, sentences] = await Promise.all([
+			this.vaultService.getTotalCharacters(relevantFiles),
+			this.vaultService.getTotalWords(relevantFiles),
+			this.vaultService.getTotalSentences(relevantFiles)
+		]);
+
 		return {
 			snapshot: {
-				totalCharacters: this.vaultService.getTotalCharacters(relevantFiles),
-				totalWords: this.vaultService.getTotalWords(relevantFiles),
+				totalCharacters: chars,
+				totalWords: words
 			},
-			totalSentences: 0, // Not done yet
+			totalSentences: sentences,
 			totalFiles: this.vaultService.getTotalFiles(),
 			totalFolders: this.vaultService.getTotalFoldes(),
 			totalAttachments: this.vaultService.getTotalAttachments(),
