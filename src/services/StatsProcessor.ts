@@ -1,6 +1,7 @@
 import { TimeRange } from "models/TimeRange";
 import { VaultService } from "./VaultService";
 import { VaultMetrics } from "models/VaultMetrics";
+import { TFile } from "obsidian";
 
 export class StatProcessor {
 	constructor(private vaultService: VaultService) {}
@@ -12,6 +13,13 @@ export class StatProcessor {
 			totalCharacters: this.vaultService.getTotalCharacters(relevantFiles),
 			totalWords: this.vaultService.getTotalWords(relevantFiles)
 		};
+	}
+
+	async updateSnapshotMetrics(files: TFile): Promise<VaultMetrics['volume']['snapshot']> {
+		return {
+			totalCharacters: this.vaultService.getTotalCharacters([files]),
+			totalWords: this.vaultService.getTotalWords([files])
+		}
 	}
 
 	async getVolumeMetrics(range: TimeRange): Promise<VaultMetrics['volume']> {
