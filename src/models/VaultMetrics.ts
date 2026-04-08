@@ -1,6 +1,6 @@
 import { TFile } from "obsidian";
-import { ReadingTime } from "./ReadingTime";
-import { tagType } from "./TagType";
+import { ReadingTime } from "./value_objects/ReadingTime";
+import { tagType } from "./value_objects/TagType";
 
 export interface VaultMetrics {
 

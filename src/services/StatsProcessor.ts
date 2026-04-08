@@ -1,6 +1,6 @@
-import { TimeRange } from "models/TimeRange";
 import { VaultService } from "./VaultService";
 import { VaultMetrics } from "models/VaultMetrics";
+import { TimeRange } from "models/value_objects/TimeRange";
 import { TFile } from "obsidian";
 
 export class StatProcessor {
@@ -18,18 +18,22 @@ export class StatProcessor {
 		};
 	}
 
-	private fileValueCache: Map<string, { chars: number, words: number}> = new Map();
-
-	async updateSnapshotMetrics(files: TFile): Promise<VaultMetrics['volume']['snapshot']> {
+	async updateSnapshotMetrics(file: TFile): Promise<VaultMetrics['volume']['snapshot']> {
 
 		const [chars, words] = await Promise.all([
-			this.vaultService.getTotalCharacters([files]),
-			this.vaultService.getTotalWords([files])
+			this.vaultService.getTotalCharacters([file]),
+			this.vaultService.getTotalWords([file])
 		])
 
 		return {
 			totalCharacters: chars, totalWords: words
 		}
+	}
+
+	async handleIncrementalUpdate(file: TFile) {
+		const snapshot = await this.updateSnapshotMetrics(file);
+		const newCount = snapshot.totalCharacters;
+
 	}
 
 	async getVolumeMetrics(range: TimeRange): Promise<VaultMetrics['volume']> {
