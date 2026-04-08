@@ -18,6 +18,8 @@ export class StatProcessor {
 		};
 	}
 
+	private fileValueCache: Map<string, { chars: number, words: number}> = new Map();
+
 	async updateSnapshotMetrics(files: TFile): Promise<VaultMetrics['volume']['snapshot']> {
 
 		const [chars, words] = await Promise.all([
@@ -57,9 +59,14 @@ export class StatProcessor {
 	async getEstimatesMetric(range: TimeRange): Promise<VaultMetrics['estimates']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
 
+		const [estimatedReading, estimatedSpeaking] = await Promise.all([
+			this.vaultService.getVaultEstimateReadingTime(relevantFiles),
+			this.vaultService.getEstimatedSpeakingTime(relevantFiles)
+		]);
+
 		return {
-			estimatedReadingTime: this.vaultService.getVaultEstimateReadingTime(relevantFiles),
-			estimatedSpeakingTime: this.vaultService.getEstimatedSpeakingTime(relevantFiles),
+			estimatedReadingTime: estimatedReading,
+			estimatedSpeakingTime: estimatedSpeaking,
 			dailyAverageWords: null
 		}
 	}

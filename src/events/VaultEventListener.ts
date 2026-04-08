@@ -12,9 +12,30 @@ export class VaultEventListener {
 	public init() {
 
 		this.plugin.registerEvent(
+			this.plugin.app.vault.on('modify', (file) => this.handleCharactersModify(file))
+		);
+
+		this.plugin.registerEvent(
 			this.plugin.app.vault.on('modify', (file) => this.handleTextModify(file))
 		);
 
+		this.plugin.registerEvent(
+			this.plugin.app.vault.on('create', (file) => this.handleCreateModify(file))
+		);
+
+		this.plugin.registerEvent(
+			this.plugin.app.vault.on('delete', (file) => this.handleDeletedModify(file))
+		);
+	}
+
+	private async handleCharactersModify(activeFile: TAbstractFile) {
+		if(activeFile instanceof TFile && activeFile.extension === 'md'){
+			clearTimeout(this.debounceTimeout);
+
+			this.debounceTimeout = setTimeout(async () => {
+				await this.processor.updateSnapshotMetrics(activeFile);
+			}, 250);
+		}
 	}
 
 	private async handleTextModify(activeFile: TAbstractFile) {
