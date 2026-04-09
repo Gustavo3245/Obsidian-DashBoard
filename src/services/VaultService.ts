@@ -1,7 +1,7 @@
 import { App, getAllTags, TFile} from "obsidian";
-import { tagType } from "models/TagType.js";
-import { ReadingTime } from "models/ReadingTime";
-import { TimeRange } from "models/TimeRange";
+import { tagType } from "models/value_objects/TagType";
+import { ReadingTime } from "models/value_objects/ReadingTime";
+import { TimeRange } from "models/value_objects/TimeRange";
 
 
 export class VaultService {

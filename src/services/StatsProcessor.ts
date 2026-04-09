@@ -1,10 +1,25 @@
+import { FileMetrics } from "models/FileMetrics";
 import { VaultService } from "./VaultService";
 import { VaultMetrics } from "models/VaultMetrics";
 import { TimeRange } from "models/value_objects/TimeRange";
+import { VaultMapper } from "mappers/VaultMapper";
 import { TFile } from "obsidian";
 
 export class StatProcessor {
-	constructor(private vaultService: VaultService) {}
+	private VaultMetricsState: VaultMetrics;
+	private activeFileMetricsState: FileMetrics;
+
+	constructor(private vaultService: VaultService) {
+		this.VaultMetricsState = VaultMapper.getEmptyVaultMetrics();
+		this.activeFileMetricsState = VaultMapper.getEmptyActiveFileMetrics();
+	}
+
+	private emitNewState(patch: Partial<VaultMetrics>) {
+		this.VaultMetricsState = VaultMapper.mapToVaultMetrics({
+			...this.VaultMetricsState,
+			...patch
+		});
+	}
 
 	async getSnapshot(range: TimeRange): Promise<VaultMetrics['volume']['snapshot']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
@@ -28,12 +43,6 @@ export class StatProcessor {
 		return {
 			totalCharacters: chars, totalWords: words
 		}
-	}
-
-	async handleIncrementalUpdate(file: TFile) {
-		const snapshot = await this.updateSnapshotMetrics(file);
-		const newCount = snapshot.totalCharacters;
-
 	}
 
 	async getVolumeMetrics(range: TimeRange): Promise<VaultMetrics['volume']> {

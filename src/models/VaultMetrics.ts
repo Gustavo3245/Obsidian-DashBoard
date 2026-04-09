@@ -45,5 +45,4 @@ export interface VaultMetrics {
 		mostActiveWeek: null | undefined;
 		mostActiveMonth: null | undefined;
 	}
-	
 }
