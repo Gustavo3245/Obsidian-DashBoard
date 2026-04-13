@@ -1,7 +1,7 @@
 import { App, getAllTags, TFile} from "obsidian";
-import { tagType } from "models/TagType.js";
-import { ReadingTime } from "models/ReadingTime";
-import { TimeRange } from "models/TimeRange";
+import { tagType } from "models/value_objects/TagType";
+import { ReadingTime } from "models/value_objects/ReadingTime";
+import { TimeRange } from "models/value_objects/TimeRange";
 
 
 export class VaultService {
@@ -32,10 +32,10 @@ export class VaultService {
 		
 		const characterCount = await Promise.all(
 			files.map(async (file) => {
-				const content = await this.app.vault.read(file);
+				const content = await this.app.vault.cachedRead(file);
 				return content.replace(/\s/g, '').length;
 			})
-		)
+		);
 		return characterCount.reduce((total, count) => total + count, 0);
 	}
 
@@ -52,10 +52,10 @@ export class VaultService {
 				// split the actual content of this complete file created a list
 				// where every item divide by a space/colon or ponctuation is a item
 				// ifs the length of the item is > 2 caracters is considered a word.
-				const content = await this.app.vault.read(file);
+				const content = await this.app.vault.cachedRead(file);
 				return content.split(/\s+/).filter(word => word.length > 0).length;
 			})
-		)
+		);
 		return wordCount.reduce((total, count) => total + count, 0);
 	}
 
@@ -227,7 +227,8 @@ export class VaultService {
 		return attachments;
 	}
 
-
+	//ERROR Lembre de implementar essa função recebendo a função de getTotalCharacters,
+	// Mudala para sincrona (retirar o retorno de Promise).
 	/**
 	 * get the current average file length inside the files range,
 	 * the average file length is based in the (vault.files.length - vault.totalFiles).
@@ -360,6 +361,25 @@ export class VaultService {
 		});
 
 		return uniqueTags.size;
+	}
+
+	/**
+	 * get the current vault TotalSentences count (this function declares that a sentence
+	 * is considered text separated by a line break);
+	 * */
+	async getTotalSentences(files: TFile[]): Promise<number> {
+		let totalSentences = 0;
+
+		const contents = await Promise.all(
+			files.map(file => this.app.vault.cachedRead(file))
+		);
+
+		contents.forEach(content => {
+			const sentencesInFile = content.split(/\r?\n/).filter(line => line.trim().length > 0).length
+			totalSentences += sentencesInFile;
+		});
+		console.log(`TotalSentences: ${totalSentences}`);
+		return totalSentences;
 	}
 
 }

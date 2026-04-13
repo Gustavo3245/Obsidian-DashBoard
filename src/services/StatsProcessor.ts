@@ -1,28 +1,65 @@
-import { TimeRange } from "models/TimeRange";
+import { FileMetrics } from "models/FileMetrics";
 import { VaultService } from "./VaultService";
 import { VaultMetrics } from "models/VaultMetrics";
+import { TimeRange } from "models/value_objects/TimeRange";
+import { VaultMapper } from "mappers/VaultMapper";
+import { TFile } from "obsidian";
 
 export class StatProcessor {
-	constructor(private vaultService: VaultService) {}
+	private VaultMetricsState: VaultMetrics;
+	private activeFileMetricsState: FileMetrics;
+
+	constructor(private vaultService: VaultService) {
+		this.VaultMetricsState = VaultMapper.getEmptyVaultMetrics();
+		this.activeFileMetricsState = VaultMapper.getEmptyActiveFileMetrics();
+	}
+
+	private emitNewState(patch: Partial<VaultMetrics>) {
+		this.VaultMetricsState = VaultMapper.mapToVaultMetrics({
+			...this.VaultMetricsState,
+			...patch
+		});
+	}
 
 	async getSnapshot(range: TimeRange): Promise<VaultMetrics['volume']['snapshot']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
 
+		const [chars, words] = await Promise.all([
+			this.vaultService.getTotalCharacters(relevantFiles),
+			this.vaultService.getTotalWords(relevantFiles)
+		])
 		return {
-			totalCharacters: this.vaultService.getTotalCharacters(relevantFiles),
-			totalWords: this.vaultService.getTotalWords(relevantFiles)
+			totalCharacters: chars, totalWords: words
 		};
+	}
+
+	async updateSnapshotMetrics(file: TFile): Promise<VaultMetrics['volume']['snapshot']> {
+
+		const [chars, words] = await Promise.all([
+			this.vaultService.getTotalCharacters([file]),
+			this.vaultService.getTotalWords([file])
+		])
+
+		return {
+			totalCharacters: chars, totalWords: words
+		}
 	}
 
 	async getVolumeMetrics(range: TimeRange): Promise<VaultMetrics['volume']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
 
+		const [chars, words, sentences] = await Promise.all([
+			this.vaultService.getTotalCharacters(relevantFiles),
+			this.vaultService.getTotalWords(relevantFiles),
+			this.vaultService.getTotalSentences(relevantFiles)
+		]);
+
 		return {
 			snapshot: {
-				totalCharacters: this.vaultService.getTotalCharacters(relevantFiles),
-				totalWords: this.vaultService.getTotalWords(relevantFiles),
+				totalCharacters: chars,
+				totalWords: words
 			},
-			totalSentences: 0, // Not done yet
+			totalSentences: sentences,
 			totalFiles: this.vaultService.getTotalFiles(),
 			totalFolders: this.vaultService.getTotalFoldes(),
 			totalAttachments: this.vaultService.getTotalAttachments(),
@@ -35,9 +72,14 @@ export class StatProcessor {
 	async getEstimatesMetric(range: TimeRange): Promise<VaultMetrics['estimates']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
 
+		const [estimatedReading, estimatedSpeaking] = await Promise.all([
+			this.vaultService.getVaultEstimateReadingTime(relevantFiles),
+			this.vaultService.getEstimatedSpeakingTime(relevantFiles)
+		]);
+
 		return {
-			estimatedReadingTime: this.vaultService.getVaultEstimateReadingTime(relevantFiles),
-			estimatedSpeakingTime: this.vaultService.getEstimatedSpeakingTime(relevantFiles),
+			estimatedReadingTime: estimatedReading,
+			estimatedSpeakingTime: estimatedSpeaking,
 			dailyAverageWords: null
 		}
 	}
