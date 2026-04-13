@@ -30,9 +30,9 @@ export interface VaultMetrics {
 		mostAppearsTagInFrontMatter: tagType | string; // Done
 		minorAppearsTag: tagType | string;
 		totalUniqueTags: number; // Done
-		mostActiveFolder: null | undefined;
+		mostActiveFolder: string | undefined;
 		lastModifiedFile: TFile | string; // Done
-		lastModifiedFiles: string[] | null; // Done
+		lastModifiedFiles: string[] | string; // Done
 	}
 	// streak
 	streak: {

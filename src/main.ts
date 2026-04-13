@@ -23,7 +23,7 @@ export default class DashboardPlugin extends Plugin {
 
 		console.log("1. estado inicial (zerado):", this.statsProcessor.getVaultMetricsState());
 		
-		await this.statsProcessor.snapshotLoad('all');
+		await this.statsProcessor.VaultLoad('all');
 
 		console.log("2. Estado Populado:", this.statsProcessor.getVaultMetricsState());
 

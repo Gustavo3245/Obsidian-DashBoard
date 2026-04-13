@@ -47,6 +47,25 @@ export class StatProcessor {
 		})
 	}
 
+	async VaultLoad(range: TimeRange) {
+
+		const [volume, estimates, appears, streak, storage] = await Promise.all([
+			this.getVolumeMetrics(range),
+			this.getEstimatesMetric(range),
+			this.getAppearsMetrics(range),
+			this.getStreakMetrics(range),
+			this.storageValuesMetrics(range)
+		])
+
+		this.emitNewState({
+			volume: volume,
+			estimates: estimates,
+			appears: appears,
+			streak: streak,
+			storageValues: storage
+		});
+	}
+
 	async getSnapshot(range: TimeRange): Promise<VaultMetrics['volume']['snapshot']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
 

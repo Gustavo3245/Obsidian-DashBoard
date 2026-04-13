@@ -27,9 +27,9 @@ export class VaultMapper {
 				mostAppearsTagInFrontMatter: "Nothing but Wind",
 				minorAppearsTag: "Nothing but Wind",
 				totalUniqueTags: 0,
-				mostActiveFolder: null,
+				mostActiveFolder: "Nothing but Wind",
 				lastModifiedFile: "Nothing but Wind",
-				lastModifiedFiles: null,
+				lastModifiedFiles: "Nothing but Wind",
 			},
 			streak: { streakCount: null, longestStreak: null },
 			storageValues: { mostActiveDay: null, mostActiveWeek: null, mostActiveMonth: null }
