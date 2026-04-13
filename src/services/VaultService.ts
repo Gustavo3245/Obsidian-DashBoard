@@ -201,11 +201,11 @@ export class VaultService {
 		return folders.length;
 	}
 
-	getActiveMarkDownFiles(): string[] | null {
+	getActiveMarkDownFiles(): string[] | string {
 		const files = this.app.workspace.getLastOpenFiles();
 
 		if(files.length == 0) {
-			return null;
+			return "Nothing but Wind";
 		}
 		return files;
 	}
