@@ -33,7 +33,7 @@ export class VaultEventListener {
 			clearTimeout(this.debounceTimeout);
 
 			this.debounceTimeout = setTimeout(async () => {
-				await this.processor.updateSnapshotMetrics(activeFile);
+				await this.processor.updateSnapshotLoad(activeFile);
 			}, 250);
 		}
 	}
@@ -43,7 +43,7 @@ export class VaultEventListener {
 			clearTimeout(this.debounceTimeout);
 
 			this.debounceTimeout = setTimeout(async () => {
-				await this.processor.updateSnapshotMetrics(activeFile);
+				await this.processor.updateSnapshotLoad(activeFile);
 			}, 500);
 		}
 	}

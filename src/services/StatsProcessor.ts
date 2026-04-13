@@ -36,6 +36,17 @@ export class StatProcessor {
 		})
 	}
 
+	async updateSnapshotLoad(file: TFile) {
+		const updatedSnapshot = await this.updateSnapshotMetrics(file);
+
+		this.emitNewState({
+			volume: {
+				...this.VaultMetricsState.volume,
+				snapshot: updatedSnapshot
+			}
+		})
+	}
+
 	async getSnapshot(range: TimeRange): Promise<VaultMetrics['volume']['snapshot']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
 
