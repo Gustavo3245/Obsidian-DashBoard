@@ -20,11 +20,11 @@ export class VaultEventListener {
 		);
 
 		this.plugin.registerEvent(
-			this.plugin.app.vault.on('create', (file) => this.handleCreateModify(file))
+			this.plugin.app.vault.on('create', (file) => this.handleCreateModify())
 		);
 
 		this.plugin.registerEvent(
-			this.plugin.app.vault.on('delete', (file) => this.handleDeletedModify(file))
+			this.plugin.app.vault.on('delete', (file) => this.handleDeletedModify())
 		);
 	}
 
@@ -46,5 +46,21 @@ export class VaultEventListener {
 				await this.processor.updateSnapshotMetrics(activeFile);
 			}, 500);
 		}
+	}
+
+	private async handleCreateModify() {
+		clearTimeout(this.debounceTimeout);
+
+		this.debounceTimeout = setTimeout(async () => {
+			await this.processor.updateFilesMetrics();
+		}, 1000);
+	}
+
+	private async handleDeletedModify() {
+		clearTimeout(this.debounceTimeout);
+
+		this.debounceTimeout = setTimeout(async () => {
+			await this.processor.updateFilesMetrics();
+		}, 1000)
 	}
 }
