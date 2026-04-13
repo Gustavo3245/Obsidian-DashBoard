@@ -4,19 +4,27 @@ import { StatProcessor } from "services/StatsProcessor";
 
 export class VaultEventListener {
 	constructor(private plugin: DashboardPlugin,
-				private processor: StatProcessor
-				) {}
+		private processor: StatProcessor
+	) {}
 
 	private debounceTimeout: NodeJS.Timeout;
 	
 	public init() {
 
 		this.plugin.registerEvent(
-			this.plugin.app.vault.on('modify', (file) => this.handleCharactersModify(file))
+			this.plugin.app.vault.on('modify', (file) => {
+				if(file instanceof TFile && file.extension === 'md'){
+					this.handleCharactersModify(file);
+				}
+			})
 		);
 
 		this.plugin.registerEvent(
-			this.plugin.app.vault.on('modify', (file) => this.handleTextModify(file))
+			this.plugin.app.vault.on('modify', (file) => { 
+				if(file instanceof TFile && file.extension === 'md'){
+					this.handleTextModify(file);
+				}
+			})
 		);
 
 		this.plugin.registerEvent(
@@ -28,24 +36,22 @@ export class VaultEventListener {
 		);
 	}
 
-	private async handleCharactersModify(activeFile: TAbstractFile) {
-		if(activeFile instanceof TFile && activeFile.extension === 'md'){
-			clearTimeout(this.debounceTimeout);
+	private async handleCharactersModify(activeFile: TFile) {
+		clearTimeout(this.debounceTimeout);
 
-			this.debounceTimeout = setTimeout(async () => {
-				await this.processor.updateSnapshotLoad(activeFile);
-			}, 250);
-		}
+		this.debounceTimeout = setTimeout(async () => {
+			await this.processor.updateSnapshotLoad(activeFile);
+		}, 250);
+
 	}
 
-	private async handleTextModify(activeFile: TAbstractFile) {
-		if(activeFile instanceof TFile && activeFile.extension === 'md'){
-			clearTimeout(this.debounceTimeout);
+	private async handleTextModify(activeFile: TFile) {
+		clearTimeout(this.debounceTimeout);
 
-			this.debounceTimeout = setTimeout(async () => {
-				await this.processor.updateSnapshotLoad(activeFile);
-			}, 500);
-		}
+		this.debounceTimeout = setTimeout(async () => {
+			await this.processor.updateSnapshotLoad(activeFile);
+		}, 500);
+
 	}
 
 	private async handleCreateModify() {
