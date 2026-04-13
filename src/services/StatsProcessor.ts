@@ -14,11 +14,26 @@ export class StatProcessor {
 		this.activeFileMetricsState = VaultMapper.getEmptyActiveFileMetrics();
 	}
 
+	getVaultMetricsState() {
+		return this.VaultMetricsState;
+	}
+
 	private emitNewState(patch: Partial<VaultMetrics>) {
 		this.VaultMetricsState = VaultMapper.mapToVaultMetrics({
 			...this.VaultMetricsState,
 			...patch
 		});
+	}
+
+	async snapshotLoad(range: TimeRange) {
+		const snapshot = await this.getSnapshot(range);
+
+		this.emitNewState({
+			volume: {
+				...this.VaultMetricsState.volume,
+				snapshot: snapshot
+			}
+		})
 	}
 
 	async getSnapshot(range: TimeRange): Promise<VaultMetrics['volume']['snapshot']> {
