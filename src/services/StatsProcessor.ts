@@ -59,8 +59,32 @@ export class StatProcessor {
 		})
 	}
 
-	async updateVolumeLoad() {
+	async processNewMarkdownFile(file: TFile) {
+		const fileSnapshot = await this.calculator.updateSnapshotMetrics(file);
+		const currentVolume = this.VaultMetricsState.volume;
 
+		this.emitNewState({
+			volume: {
+				...currentVolume,
+				totalFiles: currentVolume.totalFiles + 1,
+				totalOrphansFiles: currentVolume.totalOrphansFiles + 1,
+				snapshot: {
+					totalCharacters: currentVolume.snapshot.totalCharacters = fileSnapshot.totalCharacters,
+					totalWords: currentVolume.snapshot.totalWords = fileSnapshot.totalWords
+				}
+			}
+		})
+	}
+
+	async processNewFolder() {
+		const currentVolume = this.VaultMetricsState.volume;
+
+		this.emitNewState({
+			volume: {
+				...currentVolume,
+				totalFolders: currentVolume.totalFolders + 1
+			}
+		})
 	}
 
 	async VaultLoad(range: TimeRange) {

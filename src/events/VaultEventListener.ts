@@ -13,32 +13,24 @@ export class VaultEventListener {
 
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('modify', (AbstractFile) => {
-				this.handleCharactersModify(AbstractFile);
+				this.handleAbstractFileModification(AbstractFile);
 			})
 		);
 
-		// this.plugin.registerEvent(
-		// 	this.plugin.app.vault.on('modify', (file) => { 
-		// 		if(file instanceof TFile && file.extension === 'md'){
-		// 			this.handleTextModify(file);
-		// 		}
-		// 	})
-		// );
-
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('create', (AbstractFile) => {
-				this.handleCreateModify(AbstractFile);
+				this.handleAbstractFileCreation(AbstractFile);
 			})
 		);
 
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('delete', (AbstractFile) => {
-				this.handleDeletedModify(AbstractFile);
+				this.handleAbstractFileDeletion(AbstractFile);
 			})
 		);
 	}
 
-	private async handleCharactersModify(AbstractFile: TAbstractFile) {
+	private async handleAbstractFileModification(AbstractFile: TAbstractFile) {
 
 		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
 			clearTimeout(this.debounceTimeout);
@@ -49,32 +41,25 @@ export class VaultEventListener {
 		}
 	}
 
-
-	// private async handleTextModify(activeFile: TFile) {
-	// 	clearTimeout(this.debounceTimeout);
-
-	// 	this.debounceTimeout = setTimeout(async () => {
-	// 		await this.processor.updateSnapshotLoad(activeFile);
-	// 	}, 500);
-
-	// }
-
-	private async handleCreateModify(AbstractFile: TAbstractFile) {
+	private async handleAbstractFileCreation(AbstractFile: TAbstractFile) {
 
 		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
-			clearTimeout(this.debounceTimeout);
+			await this.processor.processNewMarkdownFile(AbstractFile);
+		}
 
-			this.debounceTimeout = setTimeout(async () => {
-				await this.processor.updateVolumeLoad();
-			}, 1000);
+		else if(AbstractFile instanceof TFolder) {
+			await this.processor.processNewFolder();
 		}
 	}
 
-	private async handleDeletedModify(AbstractFile: TAbstractFile) {
-		clearTimeout(this.debounceTimeout);
+	private async handleAbstractFileDeletion(AbstractFile: TAbstractFile) {
 
-		this.debounceTimeout = setTimeout(async () => {
-			await this.processor.updateVolumeLoad();
-		}, 1000)
+		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
+			
+		}
+
+		else if(AbstractFile instanceof TFolder){
+
+		}
 	}
 }

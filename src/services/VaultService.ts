@@ -181,7 +181,7 @@ export class VaultService {
 
 	
 	getTotalFiles(): number {
-		const files = this.app.vault.getMarkdownFiles();
+		const files = this.app.vault.getFiles();
 
 		if(files.length == 0 || !files) {
 			return 0;
