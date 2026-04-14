@@ -59,6 +59,10 @@ export class StatProcessor {
 		})
 	}
 
+	async updateVolumeLoad() {
+
+	}
+
 	async VaultLoad(range: TimeRange) {
 
 		const [volume, estimates, appears, streak, storage] = await Promise.all([
