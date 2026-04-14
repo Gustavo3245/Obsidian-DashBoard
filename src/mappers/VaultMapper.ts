@@ -61,7 +61,9 @@ export class VaultMapper {
             ...data,
             volume: { ...empty.volume, ...data.volume },
             estimates: { ...empty.estimates, ...data.estimates },
-            appears: { ...empty.appears, ...data.appears }
+            appears: { ...empty.appears, ...data.appears },
+			streak: { ...empty.streak, ...data.streak},
+			storageValues: { ...empty.storageValues, ...data.storageValues}
         };
 	}
 	

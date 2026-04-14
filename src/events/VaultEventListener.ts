@@ -1,4 +1,4 @@
-import { Plugin, TAbstractFile, TFile, TFolder } from "obsidian";
+import { TAbstractFile, TFile, TFolder } from "obsidian";
 import DashboardPlugin from "../main";
 import { StatProcessor } from "services/StatsProcessor";
 
@@ -32,7 +32,9 @@ export class VaultEventListener {
 		);
 
 		this.plugin.registerEvent(
-			this.plugin.app.vault.on('delete', (file) => this.handleDeletedModify())
+			this.plugin.app.vault.on('delete', (AbstractFile) => {
+				this.handleDeletedModify(AbstractFile);
+			})
 		);
 	}
 
@@ -44,14 +46,6 @@ export class VaultEventListener {
 			this.debounceTimeout = setTimeout(async () => {
 				await this.processor.updateSnapshotLoad(AbstractFile);
 			}, 250);
-		}
-
-		else if(AbstractFile instanceof TFolder) {
-			clearTimeout(this.debounceTimeout);
-
-			this.debounceTimeout = setTimeout(async () => {
-				await this.processor.updateVolumeLoad();
-			}, 500);
 		}
 	}
 
@@ -76,11 +70,11 @@ export class VaultEventListener {
 		}
 	}
 
-	private async handleDeletedModify() {
+	private async handleDeletedModify(AbstractFile: TAbstractFile) {
 		clearTimeout(this.debounceTimeout);
 
 		this.debounceTimeout = setTimeout(async () => {
-			await this.processor.updateFilesMetrics();
+			await this.processor.updateVolumeLoad();
 		}, 1000)
 	}
 }

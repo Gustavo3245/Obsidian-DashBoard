@@ -13,7 +13,7 @@ export class VaultCommands {
 			id: "DashBoard-word",
 			name: "Print Snapshot",
 			callback: async () => {
-				const data = await this.statProcessor.getSnapshot('all');
+				const data = await this.statProcessor.snapshotLoad('all');
 				console.log(`the active data: ${data}`);
 			},
 		});
