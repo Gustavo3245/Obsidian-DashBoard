@@ -50,6 +50,15 @@ export class StatProcessor {
 		})
 	}
 
+	async volumesLoad(range: TimeRange) {
+		const volumeMetrics = await this.calculator.getVolumeMetrics(range);
+
+		this.emitNewState({
+			...this.VaultMetricsState.volume,
+			volume: volumeMetrics
+		})
+	}
+
 	async VaultLoad(range: TimeRange) {
 
 		const [volume, estimates, appears, streak, storage] = await Promise.all([

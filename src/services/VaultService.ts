@@ -27,6 +27,7 @@ export class VaultService {
 
 	/**
 	 * get the total caracters bases in the current relevant files (parameter files).
+	 * //FIXME this function is much heaved to is should be.
 	 */
 	async getTotalCharacters(files: TFile[]): Promise<number> {
 		
