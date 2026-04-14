@@ -66,7 +66,7 @@ export class StatProcessor {
 		this.emitNewState({
 			volume: {
 				...currentVolume,
-				totalFiles: currentVolume.totalFiles + 1,
+				totalMarkdownFiles: currentVolume.totalMarkdownFiles + 1,
 				totalOrphansFiles: currentVolume.totalOrphansFiles + 1,
 				snapshot: {
 					totalCharacters: currentVolume.snapshot.totalCharacters = fileSnapshot.totalCharacters,

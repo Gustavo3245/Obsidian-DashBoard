@@ -9,6 +9,7 @@ export class VaultMapper {
 		return {
 			volume: {
 				snapshot: { totalCharacters: 0, totalWords: 0 },
+				totalMarkdownFiles: 0,
 				totalFiles: 0,
 				totalFolders: 0,
 				totalAttachments: 0,

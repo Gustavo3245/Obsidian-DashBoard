@@ -45,6 +45,7 @@ export class StatsCalculator {
 				totalWords: words
 			},
 			totalSentences: sentences,
+			totalMarkdownFiles: this.vaultService.getTotalMarkdownFiles(),
 			totalFiles: this.vaultService.getTotalFiles(),
 			totalFolders: this.vaultService.getTotalFoldes(),
 			totalAttachments: this.vaultService.getTotalAttachments(),

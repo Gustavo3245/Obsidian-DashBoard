@@ -10,7 +10,8 @@ export interface VaultMetrics {
 		totalCharacters: number; // Done
 		totalWords: number; // Done
 	}
-		totalFiles: number; // Done
+		totalMarkdownFiles: number; // Done
+		totalFiles: number; //Done
 		totalFolders: number; // Done
 		totalAttachments: number; // Done
 		totalOrphansFiles: number; // Done

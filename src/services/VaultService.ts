@@ -180,10 +180,19 @@ export class VaultService {
 	}
 
 	
+	getTotalMarkdownFiles(): number {
+		const files = this.app.vault.getMarkdownFiles();
+
+		if(files.length == 0 || !files) {
+			return 0;
+		}
+		return files.length;
+	}
+
 	getTotalFiles(): number {
 		const files = this.app.vault.getFiles();
 
-		if(files.length == 0 || !files) {
+		if(files.length == 0 || !files){
 			return 0;
 		}
 		return files.length;
