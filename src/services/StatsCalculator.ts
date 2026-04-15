@@ -9,24 +9,26 @@ export class StatsCalculator {
 	async getSnapshot(range: TimeRange): Promise<VaultMetrics['volume']['snapshot']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
 
-		const [chars, words] = await Promise.all([
+		const [chars, words, sentences] = await Promise.all([
 			this.vaultService.getTotalCharacters(relevantFiles),
-			this.vaultService.getTotalWords(relevantFiles)
+			this.vaultService.getTotalWords(relevantFiles),
+			this.vaultService.getTotalSentences(relevantFiles)
 		])
 		return {
-			totalCharacters: chars, totalWords: words
+			totalCharacters: chars, totalWords: words, totalSentences: sentences
 		};
 	}
 
 	async updateSnapshotMetrics(file: TFile): Promise<VaultMetrics['volume']['snapshot']> {
 
-		const [chars, words] = await Promise.all([
+		const [chars, words, sentences] = await Promise.all([
 			this.vaultService.getTotalCharacters([file]),
-			this.vaultService.getTotalWords([file])
+			this.vaultService.getTotalWords([file]),
+			this.vaultService.getTotalSentences([file])
 		])
 
 		return {
-			totalCharacters: chars, totalWords: words
+			totalCharacters: chars, totalWords: words, totalSentences: sentences
 		}
 	}
 
@@ -42,9 +44,9 @@ export class StatsCalculator {
 		return {
 			snapshot: {
 				totalCharacters: chars,
-				totalWords: words
+				totalWords: words,
+				totalSentences: sentences
 			},
-			totalSentences: sentences,
 			totalMarkdownFiles: this.vaultService.getTotalMarkdownFiles(),
 			totalFiles: this.vaultService.getTotalFiles(),
 			totalFolders: this.vaultService.getTotalFoldes(),

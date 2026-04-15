@@ -8,14 +8,13 @@ export class VaultMapper {
 	static getEmptyVaultMetrics(): VaultMetrics {
 		return {
 			volume: {
-				snapshot: { totalCharacters: 0, totalWords: 0 },
+				snapshot: { totalCharacters: 0, totalWords: 0, totalSentences: 0 },
 				totalMarkdownFiles: 0,
 				totalFiles: 0,
 				totalFolders: 0,
 				totalAttachments: 0,
 				totalOrphansFiles: 0,
 				totalVaultSize: 0,
-				totalSentences: 0,
 				averageWordsPerFile: 0,
 			},
 			estimates: {

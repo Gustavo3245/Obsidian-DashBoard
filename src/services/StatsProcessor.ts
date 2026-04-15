@@ -20,7 +20,7 @@ export class StatProcessor {
 	getVaultMetricsState() {
 		return this.VaultMetricsState;
 	}
-
+	
 	private emitNewState(patch: Partial<VaultMetrics>) {
 		this.VaultMetricsState = VaultMapper.mapToVaultMetrics({
 			...this.VaultMetricsState,
@@ -72,7 +72,8 @@ export class StatProcessor {
 				totalOrphansFiles: currentVolume.totalOrphansFiles + 1,
 				snapshot: {
 					totalCharacters: currentVolume.snapshot.totalCharacters = fileSnapshot.totalCharacters,
-					totalWords: currentVolume.snapshot.totalWords = fileSnapshot.totalWords
+					totalWords: currentVolume.snapshot.totalWords = fileSnapshot.totalWords,
+					totalSentences: currentVolume.snapshot.totalSentences = fileSnapshot.totalSentences
 				}
 			}
 		})
@@ -89,8 +90,8 @@ export class StatProcessor {
 		})
 	}
 
+	// FIXME
 	async processDeletedMarkdownFile(file: TFile) {
-		const fileSnapshot = await this.calculator.updateSnapshotMetrics(file);
 		const currentVolume = this.VaultMetricsState.volume;
 
 		this.emitNewState({
@@ -101,14 +102,15 @@ export class StatProcessor {
 				// to fix this problem, (I have to repass the getTotalOrphanFiles again).
 				totalOrphansFiles: currentVolume.totalOrphansFiles - 1,
 				snapshot: {
-					totalWords: fileSnapshot.totalWords,
-					totalCharacters: fileSnapshot.totalCharacters
+					totalWords: currentVolume.snapshot.totalWords,
+					totalCharacters: currentVolume.snapshot.totalCharacters,
+					totalSentences: currentVolume.snapshot.totalSentences
 				}
 			}
 		})
 	}
 
-	async processDeletedFolder(folder: TFolder) {
+	async processDeletedFolder() {
 
 	}
 

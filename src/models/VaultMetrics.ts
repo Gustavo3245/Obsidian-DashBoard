@@ -9,6 +9,7 @@ export interface VaultMetrics {
 		snapshot: {
 		totalCharacters: number; // Done
 		totalWords: number; // Done
+		totalSentences: number; // Done
 	}
 		totalMarkdownFiles: number; // Done
 		totalFiles: number; //Done
@@ -16,7 +17,6 @@ export interface VaultMetrics {
 		totalAttachments: number; // Done
 		totalOrphansFiles: number; // Done
 		totalVaultSize: number; // Done
-		totalSentences: number; // Done
 		averageWordsPerFile: number; //Done
 	}
 	// Measurements related to estimates and time.
