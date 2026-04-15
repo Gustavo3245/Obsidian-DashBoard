@@ -21,11 +21,7 @@ export default class DashboardPlugin extends Plugin {
 		this.statsProcessor = new StatProcessor(this.vaultService);	
 		this.vaultCommands = new VaultCommands(this, this.statsProcessor);
 
-		console.log("1. estado inicial (zerado):", this.statsProcessor.getVaultMetricsState());
-		
 		await this.statsProcessor.volumesLoad('all');
-
-		console.log("2. Estado Populado:", this.statsProcessor.getVaultMetricsState());
 
 		this.vaultCommands.register();
 	}

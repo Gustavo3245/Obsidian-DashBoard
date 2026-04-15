@@ -143,9 +143,6 @@ export class VaultService {
 		const minutes = Math.floor((totalSeconds % 3600) / 60);
 		const seconds = totalSeconds % 60;
 
-
-		console.log(`total time: ${hours}, ${minutes}, ${seconds}`)
-
 		return {
 			hours,
 			minutes,
@@ -233,7 +230,6 @@ export class VaultService {
 		}
 
 		const attachments = (files.length - markdownFiles.length);
-		console.log(`Total attachments: ${attachments}`)
 		return attachments;
 	}
 
@@ -261,7 +257,6 @@ export class VaultService {
 
 
 		let response = totalLength / fileContents.length;
-		console.log(`Test new function: ${response}`);
 		return response;
 	}
 
@@ -305,7 +300,6 @@ export class VaultService {
 				orphanFiles.push(file)
 			}
 		});
-		console.log(`Orphans files count: ${orphanFiles.length}`)
 		return orphanFiles.length;
 	}
 
@@ -341,8 +335,6 @@ export class VaultService {
 		const hours = Math.floor(totalSeconds / 3600);
 		const minutes = Math.floor((totalSeconds % 3600) / 60);
 		const seconds = totalSeconds % 60;
-
-		console.log(`total time: ${hours}, ${minutes}, ${seconds}`)
 
 		return {
 			hours,
@@ -388,7 +380,6 @@ export class VaultService {
 			const sentencesInFile = content.split(/\r?\n/).filter(line => line.trim().length > 0).length
 			totalSentences += sentencesInFile;
 		});
-		console.log(`TotalSentences: ${totalSentences}`);
 		return totalSentences;
 	}
 

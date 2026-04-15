@@ -55,11 +55,11 @@ export class VaultEventListener {
 	private async handleAbstractFileDeletion(AbstractFile: TAbstractFile) {
 
 		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
-			
+			await this.processor.processDeletedMarkdownFile(AbstractFile);
 		}
 
 		else if(AbstractFile instanceof TFolder){
-
+			await this.processor.processDeletedFolder(AbstractFile);
 		}
 	}
 }

@@ -3,7 +3,7 @@ import { VaultService } from "./VaultService";
 import { VaultMetrics } from "models/VaultMetrics";
 import { TimeRange } from "models/value_objects/TimeRange";
 import { VaultMapper } from "mappers/VaultMapper";
-import { TFile } from "obsidian";
+import { TFile, TFolder } from "obsidian";
 import { StatsCalculator } from "./StatsCalculator";
 
 export class StatProcessor {
@@ -26,6 +26,8 @@ export class StatProcessor {
 			...this.VaultMetricsState,
 			...patch
 		});
+
+		console.group(`Active State:`, this.getVaultMetricsState());
 	}
 
 	async snapshotLoad(range: TimeRange) {
@@ -85,6 +87,29 @@ export class StatProcessor {
 				totalFolders: currentVolume.totalFolders + 1
 			}
 		})
+	}
+
+	async processDeletedMarkdownFile(file: TFile) {
+		const fileSnapshot = await this.calculator.updateSnapshotMetrics(file);
+		const currentVolume = this.VaultMetricsState.volume;
+
+		this.emitNewState({
+			volume: {
+				...currentVolume,
+				totalMarkdownFiles: currentVolume.totalMarkdownFiles - 1,
+				// -- NOTE Not every type of markDown file is a orphan file,
+				// to fix this problem, (I have to repass the getTotalOrphanFiles again).
+				totalOrphansFiles: currentVolume.totalOrphansFiles - 1,
+				snapshot: {
+					totalWords: fileSnapshot.totalWords,
+					totalCharacters: fileSnapshot.totalCharacters
+				}
+			}
+		})
+	}
+
+	async processDeletedFolder(folder: TFolder) {
+
 	}
 
 	async VaultLoad(range: TimeRange) {
