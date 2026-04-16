@@ -5,11 +5,18 @@ import { TimeRange } from "models/value_objects/TimeRange";
 import { VaultMapper } from "mappers/VaultMapper";
 import { TFile, TFolder } from "obsidian";
 import { StatsCalculator } from "./StatsCalculator";
+import { ReadingTime } from "models/value_objects/ReadingTime";
 
 export class StatProcessor {
 	private VaultMetricsState: VaultMetrics;
 	private activeFileMetricsState: FileMetrics;
 	private calculator: StatsCalculator;
+
+	private fileStatsCache: Map<string, { 
+		chars: number, words: number, 
+		sentences: number, fileSize: number,
+		readingTime: ReadingTime | string,
+	}> = new Map();
 
 	constructor(private vaultService: VaultService) {
 		this.calculator = new StatsCalculator(vaultService);
@@ -27,7 +34,7 @@ export class StatProcessor {
 			...patch
 		});
 
-		console.group(`Active State:`, this.getVaultMetricsState());
+		console.log(`Active State:`, this.getVaultMetricsState());
 	}
 
 	async snapshotLoad(range: TimeRange) {
@@ -94,17 +101,27 @@ export class StatProcessor {
 	async processDeletedMarkdownFile(file: TFile) {
 		const currentVolume = this.VaultMetricsState.volume;
 
+		const cachedFileMetrics = this.fileStatsCache.get(file.path) || {
+			chars: 0, words: 0, sentences: 0, fileSize: 0,
+			readingTime: "Nothing but Wind", path: "null"
+		}
+
 		this.emitNewState({
 			volume: {
 				...currentVolume,
-				totalMarkdownFiles: currentVolume.totalMarkdownFiles - 1,
 				// -- NOTE Not every type of markDown file is a orphan file,
 				// to fix this problem, (I have to repass the getTotalOrphanFiles again).
-				totalOrphansFiles: currentVolume.totalOrphansFiles - 1,
+				totalMarkdownFiles: currentVolume.totalFiles - 1,
+				totalFiles: currentVolume.totalFiles - 1,
+				totalFolders: currentVolume.totalFolders,
+				totalAttachments: currentVolume.totalAttachments,
+				totalOrphansFiles: currentVolume.totalOrphansFiles,
+				totalVaultSize: currentVolume.totalVaultSize - cachedFileMetrics.fileSize,
+				averageWordsPerFile: cachedFileMetrics.words / currentVolume.totalFiles,
 				snapshot: {
-					totalWords: currentVolume.snapshot.totalWords,
-					totalCharacters: currentVolume.snapshot.totalCharacters,
-					totalSentences: currentVolume.snapshot.totalSentences
+					totalWords: currentVolume.snapshot.totalWords - cachedFileMetrics.words,
+					totalCharacters: currentVolume.snapshot.totalCharacters - cachedFileMetrics.chars,
+					totalSentences: currentVolume.snapshot.totalSentences - cachedFileMetrics.sentences
 				}
 			}
 		})
@@ -115,6 +132,21 @@ export class StatProcessor {
 	}
 
 	async VaultLoad(range: TimeRange) {
+
+		const files = this.vaultService.getFilesByRange(range);
+
+		for (const file of files) {
+			const stats = await this.calculator.getFileMetrics(file);
+			this.fileStatsCache.set(file.path, { 
+				chars: stats.characters, 
+				words: stats.words,
+				sentences: stats.sentences,
+				readingTime: stats.readingTime,
+				fileSize: stats.fileSize
+			});
+		}
+
+		console.log(Array.from(this.fileStatsCache.entries()));
 
 		const [volume, estimates, appears, streak, storage] = await Promise.all([
 			this.calculator.getVolumeMetrics(range),

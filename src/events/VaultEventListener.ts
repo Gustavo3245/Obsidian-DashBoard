@@ -59,7 +59,7 @@ export class VaultEventListener {
 		}
 
 		else if(AbstractFile instanceof TFolder){
-			await this.processor.processDeletedFolder(AbstractFile);
+			await this.processor.processDeletedFolder();
 		}
 	}
 }

@@ -21,7 +21,7 @@ export default class DashboardPlugin extends Plugin {
 		this.statsProcessor = new StatProcessor(this.vaultService);	
 		this.vaultCommands = new VaultCommands(this, this.statsProcessor);
 
-		await this.statsProcessor.volumesLoad('all');
+		await this.statsProcessor.VaultLoad('all');
 
 		this.vaultCommands.register();
 	}

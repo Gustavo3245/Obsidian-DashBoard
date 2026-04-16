@@ -1,11 +1,34 @@
 import { VaultService } from "./VaultService";
 import { VaultMetrics } from "models/VaultMetrics";
+import { FileMetrics } from "models/FileMetrics";
 import { TimeRange } from "models/value_objects/TimeRange";
 import { TFile } from "obsidian";
 
 export class StatsCalculator {
 	constructor(private vaultService: VaultService){}
 	
+	// FIXME Perfomance in check (call 4 time the same file is pretty fuck up)
+	async getFileMetrics(file: TFile): Promise<FileMetrics> {
+
+		const [chars, words, sentences, readingTime, size] = await Promise.all([
+			this.vaultService.getTotalCharacters([file]),
+			this.vaultService.getTotalWords([file]),
+			this.vaultService.getTotalSentences([file]),
+			this.vaultService.getVaultEstimateReadingTime([file]),
+			this.vaultService.getTotalVaultSize([file])
+		]);
+
+		return {
+			name: file.name,
+			path: file.path,
+			characters: chars,
+			words: words,
+			sentences: sentences,
+			readingTime: readingTime,
+			fileSize: size
+		}
+	}
+
 	async getSnapshot(range: TimeRange): Promise<VaultMetrics['volume']['snapshot']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
 
