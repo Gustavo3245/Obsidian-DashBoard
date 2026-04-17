@@ -1,7 +1,5 @@
 import { VaultMetrics } from "models/VaultMetrics";
 import { FileMetrics } from "models/FileMetrics";
-import { TFile } from "obsidian";
-import { ReadingTime } from "models/value_objects/ReadingTime";
 
 export class VaultMapper {
 	
@@ -69,16 +67,20 @@ export class VaultMapper {
 	}
 	
 	
-	static mapToFileMetrics(file: FileMetrics): FileMetrics {
+	static mapToFileMetrics(file: Partial<FileMetrics>): FileMetrics {
+		const empty = this.getEmptyActiveFileMetrics();
+
 		return {
-			name: file.name,
-			path: file.path,
-			characters: file.characters,
-			words: file.words,
-			sentences: file.sentences,
-			fileSize: file.fileSize,
-			isOrphanFile: file.isOrphanFile,
-			readingTime: file.readingTime
+			...empty,
+			...file,
+			name: file.name ?? empty.name,
+			path: file.path ?? empty.path,
+			characters: file.characters ?? empty.characters,
+			words: file.words ?? empty.words,
+			sentences: file.sentences ?? empty.sentences,
+			fileSize: file.fileSize ?? empty.fileSize,
+			isOrphanFile: file.isOrphanFile ?? empty.isOrphanFile,
+			readingTime: file.readingTime ?? empty.readingTime
 		};
 	}
 }
