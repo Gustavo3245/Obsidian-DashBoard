@@ -27,6 +27,7 @@ export class VaultService {
 
 	/**
 	 * get the total caracters bases in the current relevant files (parameter files).
+	 * //FIXME this function is much heaved to is should be.
 	 */
 	async getTotalCharacters(files: TFile[]): Promise<number> {
 		
@@ -142,9 +143,6 @@ export class VaultService {
 		const minutes = Math.floor((totalSeconds % 3600) / 60);
 		const seconds = totalSeconds % 60;
 
-
-		console.log(`total time: ${hours}, ${minutes}, ${seconds}`)
-
 		return {
 			hours,
 			minutes,
@@ -179,10 +177,19 @@ export class VaultService {
 	}
 
 	
-	getTotalFiles(): number {
+	getTotalMarkdownFiles(): number {
 		const files = this.app.vault.getMarkdownFiles();
 
 		if(files.length == 0 || !files) {
+			return 0;
+		}
+		return files.length;
+	}
+
+	getTotalFiles(): number {
+		const files = this.app.vault.getFiles();
+
+		if(files.length == 0 || !files){
 			return 0;
 		}
 		return files.length;
@@ -201,11 +208,11 @@ export class VaultService {
 		return folders.length;
 	}
 
-	getActiveMarkDownFiles(): string[] | null {
+	getActiveMarkDownFiles(): string[] | string {
 		const files = this.app.workspace.getLastOpenFiles();
 
 		if(files.length == 0) {
-			return null;
+			return "Nothing but Wind";
 		}
 		return files;
 	}
@@ -223,7 +230,6 @@ export class VaultService {
 		}
 
 		const attachments = (files.length - markdownFiles.length);
-		console.log(`Total attachments: ${attachments}`)
 		return attachments;
 	}
 
@@ -251,7 +257,6 @@ export class VaultService {
 
 
 		let response = totalLength / fileContents.length;
-		console.log(`Test new function: ${response}`);
 		return response;
 	}
 
@@ -295,7 +300,6 @@ export class VaultService {
 				orphanFiles.push(file)
 			}
 		});
-		console.log(`Orphans files count: ${orphanFiles.length}`)
 		return orphanFiles.length;
 	}
 
@@ -331,8 +335,6 @@ export class VaultService {
 		const hours = Math.floor(totalSeconds / 3600);
 		const minutes = Math.floor((totalSeconds % 3600) / 60);
 		const seconds = totalSeconds % 60;
-
-		console.log(`total time: ${hours}, ${minutes}, ${seconds}`)
 
 		return {
 			hours,
@@ -378,7 +380,6 @@ export class VaultService {
 			const sentencesInFile = content.split(/\r?\n/).filter(line => line.trim().length > 0).length
 			totalSentences += sentencesInFile;
 		});
-		console.log(`TotalSentences: ${totalSentences}`);
 		return totalSentences;
 	}
 

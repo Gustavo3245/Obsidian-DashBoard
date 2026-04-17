@@ -7,4 +7,5 @@ export interface FileMetrics {
 	words: number;
 	sentences: number;
 	readingTime: ReadingTime | string;
+	fileSize: number;
 }

@@ -1,50 +1,65 @@
-import { Plugin, TAbstractFile, TFile } from "obsidian";
+import { TAbstractFile, TFile, TFolder } from "obsidian";
 import DashboardPlugin from "../main";
 import { StatProcessor } from "services/StatsProcessor";
 
 export class VaultEventListener {
 	constructor(private plugin: DashboardPlugin,
-				private processor: StatProcessor
-				) {}
+		private processor: StatProcessor
+	) {}
 
 	private debounceTimeout: NodeJS.Timeout;
 	
 	public init() {
 
 		this.plugin.registerEvent(
-			this.plugin.app.vault.on('modify', (file) => this.handleCharactersModify(file))
+			this.plugin.app.vault.on('modify', (AbstractFile) => {
+				this.handleAbstractFileModification(AbstractFile);
+			})
 		);
 
 		this.plugin.registerEvent(
-			this.plugin.app.vault.on('modify', (file) => this.handleTextModify(file))
+			this.plugin.app.vault.on('create', (AbstractFile) => {
+				this.handleAbstractFileCreation(AbstractFile);
+			})
 		);
 
 		this.plugin.registerEvent(
-			this.plugin.app.vault.on('create', (file) => this.handleCreateModify(file))
-		);
-
-		this.plugin.registerEvent(
-			this.plugin.app.vault.on('delete', (file) => this.handleDeletedModify(file))
+			this.plugin.app.vault.on('delete', (AbstractFile) => {
+				this.handleAbstractFileDeletion(AbstractFile);
+			})
 		);
 	}
 
-	private async handleCharactersModify(activeFile: TAbstractFile) {
-		if(activeFile instanceof TFile && activeFile.extension === 'md'){
+	private async handleAbstractFileModification(AbstractFile: TAbstractFile) {
+
+		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
 			clearTimeout(this.debounceTimeout);
 
 			this.debounceTimeout = setTimeout(async () => {
-				await this.processor.updateSnapshotMetrics(activeFile);
+				await this.processor.updateSnapshotLoad(AbstractFile);
 			}, 250);
 		}
 	}
 
-	private async handleTextModify(activeFile: TAbstractFile) {
-		if(activeFile instanceof TFile && activeFile.extension === 'md'){
-			clearTimeout(this.debounceTimeout);
+	private async handleAbstractFileCreation(AbstractFile: TAbstractFile) {
 
-			this.debounceTimeout = setTimeout(async () => {
-				await this.processor.updateSnapshotMetrics(activeFile);
-			}, 500);
+		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
+			await this.processor.processNewMarkdownFile(AbstractFile);
+		}
+
+		else if(AbstractFile instanceof TFolder) {
+			await this.processor.processNewFolder();
+		}
+	}
+
+	private async handleAbstractFileDeletion(AbstractFile: TAbstractFile) {
+
+		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
+			await this.processor.processDeletedMarkdownFile(AbstractFile);
+		}
+
+		else if(AbstractFile instanceof TFolder){
+			await this.processor.processDeletedFolder();
 		}
 	}
 }

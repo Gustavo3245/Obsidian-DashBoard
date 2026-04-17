@@ -9,13 +9,14 @@ export interface VaultMetrics {
 		snapshot: {
 		totalCharacters: number; // Done
 		totalWords: number; // Done
+		totalSentences: number; // Done
 	}
-		totalFiles: number; // Done
+		totalMarkdownFiles: number; // Done
+		totalFiles: number; //Done
 		totalFolders: number; // Done
 		totalAttachments: number; // Done
 		totalOrphansFiles: number; // Done
 		totalVaultSize: number; // Done
-		totalSentences: number; // Done
 		averageWordsPerFile: number; //Done
 	}
 	// Measurements related to estimates and time.
@@ -30,9 +31,9 @@ export interface VaultMetrics {
 		mostAppearsTagInFrontMatter: tagType | string; // Done
 		minorAppearsTag: tagType | string;
 		totalUniqueTags: number; // Done
-		mostActiveFolder: null | undefined;
+		mostActiveFolder: string | undefined;
 		lastModifiedFile: TFile | string; // Done
-		lastModifiedFiles: string[] | null; // Done
+		lastModifiedFiles: string[] | string; // Done
 	}
 	// streak
 	streak: {

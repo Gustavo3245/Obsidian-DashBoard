@@ -8,13 +8,13 @@ export class VaultMapper {
 	static getEmptyVaultMetrics(): VaultMetrics {
 		return {
 			volume: {
-				snapshot: { totalCharacters: 0, totalWords: 0 },
+				snapshot: { totalCharacters: 0, totalWords: 0, totalSentences: 0 },
+				totalMarkdownFiles: 0,
 				totalFiles: 0,
 				totalFolders: 0,
 				totalAttachments: 0,
 				totalOrphansFiles: 0,
 				totalVaultSize: 0,
-				totalSentences: 0,
 				averageWordsPerFile: 0,
 			},
 			estimates: {
@@ -27,9 +27,9 @@ export class VaultMapper {
 				mostAppearsTagInFrontMatter: "Nothing but Wind",
 				minorAppearsTag: "Nothing but Wind",
 				totalUniqueTags: 0,
-				mostActiveFolder: null,
+				mostActiveFolder: "Nothing but Wind",
 				lastModifiedFile: "Nothing but Wind",
-				lastModifiedFiles: null,
+				lastModifiedFiles: "Nothing but Wind",
 			},
 			streak: { streakCount: null, longestStreak: null },
 			storageValues: { mostActiveDay: null, mostActiveWeek: null, mostActiveMonth: null }
@@ -61,7 +61,9 @@ export class VaultMapper {
             ...data,
             volume: { ...empty.volume, ...data.volume },
             estimates: { ...empty.estimates, ...data.estimates },
-            appears: { ...empty.appears, ...data.appears }
+            appears: { ...empty.appears, ...data.appears },
+			streak: { ...empty.streak, ...data.streak},
+			storageValues: { ...empty.storageValues, ...data.storageValues}
         };
 	}
 	
