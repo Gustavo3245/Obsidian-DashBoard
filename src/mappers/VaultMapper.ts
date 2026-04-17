@@ -43,7 +43,9 @@ export class VaultMapper {
 			characters: 0,
 			words: 0,
 			sentences: 0,
-
+			fileSize: 0,
+			totalAttachments: 0,
+			isOrphanFile: false,
 			readingTime: {
 				hours: 0,
 				minutes: 0,
@@ -68,15 +70,17 @@ export class VaultMapper {
 	}
 	
 	
-	static mapToFileMetrics(file: TFile, chars: number, words: number, 
-							sentences: number, readingTime: ReadingTime): FileMetrics {
+	static mapToFileMetrics(file: FileMetrics): FileMetrics {
 		return {
 			name: file.name,
 			path: file.path,
-			characters: chars,
-			words: words,
-			sentences: sentences,
-			readingTime: readingTime
+			characters: file.characters,
+			words: file.words,
+			sentences: file.sentences,
+			fileSize: file.fileSize,
+			totalAttachments: file.totalAttachments,
+			isOrphanFile: file.isOrphanFile,
+			readingTime: file.readingTime
 		};
 	}
 }
