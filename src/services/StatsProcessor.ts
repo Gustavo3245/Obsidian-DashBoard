@@ -69,18 +69,23 @@ export class StatProcessor {
 	}
 
 	async processNewMarkdownFile(file: TFile) {
-		const fileSnapshot = await this.calculator.updateSnapshotMetrics(file);
 		const currentVolume = this.VaultMetricsState.volume;
+		const fileSnapshot = await this.calculator.updateSnapshotMetrics(file);
 
 		this.emitNewState({
 			volume: {
 				...currentVolume,
-				totalMarkdownFiles: currentVolume.totalMarkdownFiles + 1,
-				totalOrphansFiles: currentVolume.totalOrphansFiles + 1,
+				totalMarkdownFiles: currentVolume.totalFiles + 1,
+				totalFiles: currentVolume.totalFiles + 1,
+				totalFolders: currentVolume.totalFolders,
+				totalAttachments: currentVolume.totalAttachments,
+				totalOrphansFiles: currentVolume.totalOrphansFiles,
+				totalVaultSize: currentVolume.totalVaultSize + file.stat.size,
+				averageWordsPerFile: currentVolume.averageWordsPerFile,
 				snapshot: {
-					totalCharacters: currentVolume.snapshot.totalCharacters = fileSnapshot.totalCharacters,
-					totalWords: currentVolume.snapshot.totalWords = fileSnapshot.totalWords,
-					totalSentences: currentVolume.snapshot.totalSentences = fileSnapshot.totalSentences
+					totalCharacters: currentVolume.snapshot.totalCharacters + fileSnapshot.totalCharacters,
+					totalWords: currentVolume.snapshot.totalWords + fileSnapshot.totalWords,
+					totalSentences: currentVolume.snapshot.totalSentences + fileSnapshot.totalSentences
 				}
 			}
 		})
@@ -97,7 +102,6 @@ export class StatProcessor {
 		})
 	}
 
-	// FIXME
 	async processDeletedMarkdownFile(file: TFile) {
 		const currentVolume = this.VaultMetricsState.volume;
 
@@ -106,11 +110,13 @@ export class StatProcessor {
 			readingTime: "Nothing but Wind", path: "null"
 		}
 
+		// -- NOTE Not every type of markDown file is a orphan file,
+		// to fix this problem, (I have to repass the getTotalOrphanFiles again).
+	
+		
 		this.emitNewState({
 			volume: {
 				...currentVolume,
-				// -- NOTE Not every type of markDown file is a orphan file,
-				// to fix this problem, (I have to repass the getTotalOrphanFiles again).
 				totalMarkdownFiles: currentVolume.totalFiles - 1,
 				totalFiles: currentVolume.totalFiles - 1,
 				totalFolders: currentVolume.totalFolders,
