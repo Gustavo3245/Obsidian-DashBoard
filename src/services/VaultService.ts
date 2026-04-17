@@ -383,4 +383,27 @@ export class VaultService {
 		return totalSentences;
 	}
 
+	isOrphanFile(file: TFile): Boolean {
+		const cache = this.app.metadataCache.getFileCache(file);
+
+		// 1. Verifica Tags (Conteúdo e Frontmatter)
+		const hasTags = (cache?.tags?.length ?? 0) > 0 || (cache?.frontmatter?.tags?.length ?? 0) > 0;
+
+		// 2. Verifica Links de Saída (Outlinks)
+		const hasOutlinks = (cache?.links?.length ?? 0) > 0;
+
+		// 3. Verifica Links de Entrada (Inlinks/Backlinks)
+		const backlinks = this.app.metadataCache.resolvedLinks;
+		let hasInlinks = false;
+
+		for (const sourcePath in backlinks) {
+			if (backlinks[sourcePath][file.path]) {
+				hasInlinks = true;
+				break;
+			}
+		}
+
+		return !hasTags && !hasOutlinks && !hasInlinks;	
+	}
+
 }

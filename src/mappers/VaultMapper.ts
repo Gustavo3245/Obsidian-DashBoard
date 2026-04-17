@@ -44,8 +44,7 @@ export class VaultMapper {
 			words: 0,
 			sentences: 0,
 			fileSize: 0,
-			totalAttachments: 0,
-			isOrphanFile: false,
+			isOrphanFile: true,
 			readingTime: {
 				hours: 0,
 				minutes: 0,
@@ -78,7 +77,6 @@ export class VaultMapper {
 			words: file.words,
 			sentences: file.sentences,
 			fileSize: file.fileSize,
-			totalAttachments: file.totalAttachments,
 			isOrphanFile: file.isOrphanFile,
 			readingTime: file.readingTime
 		};

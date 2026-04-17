@@ -14,6 +14,5 @@ export interface FileMetrics {
 	// Has the propose for the new volume calculation.
 	readingTime: ReadingTime | string;
 	fileSize: number;
-	totalAttachments: number,
-	isOrphanFile: Boolean,
+	isOrphanFile: Boolean;
 }
