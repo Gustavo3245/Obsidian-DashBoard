@@ -26,7 +26,6 @@ export class StatProcessor {
 			...patch
 		});
 
-		console.log(`Active State:`, this.getVaultMetricsState());
 	}
 
 	async snapshotLoad(range: TimeRange) {
@@ -49,6 +48,7 @@ export class StatProcessor {
 				snapshot: updatedSnapshot
 			}
 		})
+		console.log("new file state: ", this.getVaultMetricsState().volume.snapshot);
 	}
 
 	async volumesLoad(range: TimeRange) {
@@ -71,9 +71,9 @@ export class StatProcessor {
 				totalFiles: currentVolume.totalFiles + 1, // Done
 				totalFolders: currentVolume.totalFolders, // Done
 				totalAttachments: currentVolume.totalAttachments, // Done
-				totalOrphansFiles: currentVolume.totalOrphansFiles, // Need to be create
+				totalOrphansFiles: currentVolume.totalOrphansFiles + (this.vaultService.isOrphanFile(file) ? 1 : 0), // Done
 				totalVaultSize: currentVolume.totalVaultSize + file.stat.size, // Done
-				averageWordsPerFile: currentVolume.averageWordsPerFile, // Need to be fixed
+				averageWordsPerFile: currentVolume.averageWordsPerFile, // need to be fixed
 				snapshot: { // Done
 					totalCharacters: currentVolume.snapshot.totalCharacters + fileSnapshot.totalCharacters,
 					totalWords: currentVolume.snapshot.totalWords + fileSnapshot.totalWords,
@@ -89,7 +89,7 @@ export class StatProcessor {
 		this.emitNewState({
 			volume: {
 				...currentVolume,
-				totalFolders: currentVolume.totalFolders + 1
+				totalFolders: currentVolume.totalFolders + 1,
 			}
 		})
 	}
@@ -98,11 +98,10 @@ export class StatProcessor {
 		const currentVolume = this.VaultMetricsState.volume;
 
 		const cachedFileMetrics = this.fileStatsCache.get(file.path) ?? VaultMapper.getEmptyActiveFileMetrics();
-
+		
 		// -- NOTE Not every type of markDown file is a orphan file,
 		// to fix this problem, (I have to repass the getTotalOrphanFiles again).
 	
-		
 		this.emitNewState({
 			volume: {
 				...currentVolume,
@@ -110,9 +109,9 @@ export class StatProcessor {
 				totalFiles: currentVolume.totalFiles - 1, // Done
 				totalFolders: currentVolume.totalFolders, // Done
 				totalAttachments: currentVolume.totalAttachments, // Done
-				totalOrphansFiles: currentVolume.totalOrphansFiles, // Need to be created
+				totalOrphansFiles: currentVolume.totalOrphansFiles - (cachedFileMetrics.isOrphanFile ? 1 : 0), // Done
 				totalVaultSize: currentVolume.totalVaultSize - cachedFileMetrics.fileSize, // Done
-				averageWordsPerFile: currentVolume.averageWordsPerFile,
+				averageWordsPerFile: currentVolume.averageWordsPerFile, // need to be fixed
 				snapshot: {
 					totalWords: currentVolume.snapshot.totalWords - cachedFileMetrics.words,
 					totalCharacters: currentVolume.snapshot.totalCharacters - cachedFileMetrics.characters,
@@ -135,8 +134,6 @@ export class StatProcessor {
 			this.fileStatsCache.set(file.path, stats);
 		}))
 		
-		console.log(Array.from(this.fileStatsCache.entries()));
-
 		const [volume, estimates, appears, streak, storage] = await Promise.all([
 			this.calculator.getVolumeMetrics(range),
 			this.calculator.getEstimatesMetric(range),

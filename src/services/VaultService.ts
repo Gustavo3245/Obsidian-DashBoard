@@ -233,8 +233,6 @@ export class VaultService {
 		return attachments;
 	}
 
-	//ERROR Lembre de implementar essa função recebendo a função de getTotalCharacters,
-	// Mudala para sincrona (retirar o retorno de Promise).
 	/**
 	 * get the current average file length inside the files range,
 	 * the average file length is based in the (vault.files.length - vault.totalFiles).
