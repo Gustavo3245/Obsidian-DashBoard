@@ -7,12 +7,13 @@ export class VaultEventListener {
 		private processor: StatProcessor
 	) {}
 
-	private debounceTimeout: NodeJS.Timeout;
-	
+	private debounceTimeout: NodeJS.Timeout | null = null;
+
 	public init() {
 
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('modify', (AbstractFile) => {
+				console.log(`event disparado: modify Markdown Event`);
 				this.handleAbstractFileModification(AbstractFile);
 			})
 		);
@@ -28,17 +29,18 @@ export class VaultEventListener {
 				this.handleAbstractFileDeletion(AbstractFile);
 			})
 		);
+
 	}
 
 	private async handleAbstractFileModification(AbstractFile: TAbstractFile) {
 
 		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
-			clearTimeout(this.debounceTimeout);
-
-			this.debounceTimeout = setTimeout(async () => {
-				await this.processor.updateSnapshotLoad(AbstractFile);
-			}, 250);
+			const start = performance.now();
+			await this.processor.updateSnapshotLoad(AbstractFile);
+			const end = performance.now();
+			console.log(`função executada em: ${(end - start).toFixed(2)} ms`)
 		}
+
 	}
 
 	private async handleAbstractFileCreation(AbstractFile: TAbstractFile) {
