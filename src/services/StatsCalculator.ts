@@ -2,7 +2,7 @@ import { VaultService } from "./VaultService";
 import { VaultMetrics } from "models/VaultMetrics";
 import { FileMetrics } from "models/FileMetrics";
 import { TimeRange } from "models/value_objects/TimeRange";
-import { TFile } from "obsidian";
+import { TFile, TFolder } from "obsidian";
 
 export class StatsCalculator {
 	constructor(private vaultService: VaultService){}

@@ -50,7 +50,8 @@ export class VaultEventListener {
 		}
 
 		else if(AbstractFile instanceof TFolder) {
-			await this.processor.processNewFolder();
+			console.log(`Evento disparado, criação de pastas`)
+			await this.processor.processFolders(AbstractFile);
 		}
 	}
 
@@ -61,7 +62,7 @@ export class VaultEventListener {
 		}
 
 		else if(AbstractFile instanceof TFolder){
-			await this.processor.processDeletedFolder();
+			await this.processor.processFolders(AbstractFile);
 		}
 	}
 }
