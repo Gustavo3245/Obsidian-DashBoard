@@ -149,6 +149,7 @@ export class StatProcessor {
 			streak: streak,
 			storageValues: storage
 		});
+		console.log("Inital Value State: ", this.getVaultMetricsState());
 	}
 
 }

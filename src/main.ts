@@ -25,6 +25,7 @@ export default class DashboardPlugin extends Plugin {
 		this.VaultEvent = new VaultEventListener(this, this.statsProcessor);
 		this.VaultEvent.init();
 
+		this.statsProcessor.VaultLoad('all');
 
 		this.vaultCommands.register();
 	}

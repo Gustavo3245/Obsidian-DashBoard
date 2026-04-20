@@ -271,34 +271,35 @@ export class VaultService {
 	 * orphan file is a file that has no connection whatsoever (tags and Hyperlinks).
 	 */
 	getTotalOrphansFiles(files: TFile[]): number {
-		const orphanFiles: TFile[] = [];
+		// const orphanFiles: TFile[] = [];
 
 		if(files.length === 0 || !files){
 			return 0;
 		}
 
-		files.forEach((file) => {
-			const cache = this.app.metadataCache.getFileCache(file);
+		return files.filter(file => this.isOrphanFile(file)).length
+		// files.forEach((file) => {
+		// 	const cache = this.app.metadataCache.getFileCache(file);
 
-			const hasTags = (cache?.tags?.length ?? 0) > 0 || (cache?.frontmatter?.length ?? 0) > 0;
+		// 	const hasTags = (cache?.tags?.length ?? 0) > 0 || (cache?.frontmatter?.length ?? 0) > 0;
 
-			const hasOutlinks = (cache?.links?.length ?? 0) > 0;
+		// 	const hasOutlinks = (cache?.links?.length ?? 0) > 0;
 
-			const backlinks = this.app.metadataCache.resolvedLinks;
-			let hasInlinks = false;
+		// 	const backlinks = this.app.metadataCache.resolvedLinks;
+		// 	let hasInlinks = false;
 
-			for(const sourcePath in backlinks){
-				if(backlinks[sourcePath][file.path]){
-					hasInlinks = true;
-					break;
-				}
-			}
+		// 	for(const sourcePath in backlinks){
+		// 		if(backlinks[sourcePath][file.path]){
+		// 			hasInlinks = true;
+		// 			break;
+		// 		}
+		// 	}
 
-			if(!hasTags && !hasOutlinks && !hasInlinks){
-				orphanFiles.push(file)
-			}
-		});
-		return orphanFiles.length;
+		// 	if(!hasTags && !hasOutlinks && !hasInlinks){
+		// 		orphanFiles.push(file)
+		// 	}
+		// });
+		// return orphanFiles.length;
 	}
 
 	/**
