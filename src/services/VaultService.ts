@@ -128,6 +128,35 @@ export class VaultService {
 		return "Nothing But Wind"
 	}
 
+	getMinorAppearsTagInFrontMatter(files: TFile[]): tagType | string {
+		const tagCount: Record<string, number> = {};
+
+		for (const file of files) { 
+			const cache = this.app.metadataCache.getFileCache(file);
+
+			if (cache?.frontmatter && cache.frontmatter.tags) {
+				let tags = cache.frontmatter.tags;
+
+				if (typeof tags === 'string') {
+					tags = [tags];
+				}
+
+				if (Array.isArray(tags)) {
+					tags.forEach(tag => {
+						tagCount[tag] = (tagCount[tag] || 0) + 1;
+					});
+				}
+			}
+		}
+
+		const minorAppearsTag = Object.entries(tagCount).sort((current, previous) => current[1] - previous[1]);
+
+		return {
+			name: minorAppearsTag[0][0],
+			count: minorAppearsTag[0][1]
+		};
+	}
+
 
 	async getVaultEstimateReadingTime(files: TFile[]): Promise<ReadingTime | string> {
 		const totalWords = await this.getTotalWords(files);

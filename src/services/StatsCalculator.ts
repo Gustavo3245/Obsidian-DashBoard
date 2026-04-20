@@ -102,7 +102,7 @@ export class StatsCalculator {
 		return {
 			mostAppearsTag: this.vaultService.getMostAppearsTagInAllContent(relevantFiles),
 			mostAppearsTagInFrontMatter: this.vaultService.getMostAppearsTagInFrontMatter(relevantFiles),
-			minorAppearsTag: "Nothing but Wind",
+			minorAppearsTag: this.vaultService.getMinorAppearsTagInFrontMatter(relevantFiles),
 			totalUniqueTags: this.vaultService.getTotalUniqueTags(relevantFiles),
 			mostActiveFolder: "Nothing but Wind",
 			lastModifiedFile: this.vaultService.getLastModifiedMarkDownFile(),

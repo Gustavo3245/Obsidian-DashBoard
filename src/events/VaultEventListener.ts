@@ -46,6 +46,7 @@ export class VaultEventListener {
 	private async handleAbstractFileCreation(AbstractFile: TAbstractFile) {
 
 		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
+			console.log(`Evento disparado, criação de arquivo`)
 			await this.processor.processNewMarkdownFile(AbstractFile);
 		}
 
@@ -58,10 +59,12 @@ export class VaultEventListener {
 	private async handleAbstractFileDeletion(AbstractFile: TAbstractFile) {
 
 		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
+			console.log(`Evento disparado, deleteando arquivo`)
 			await this.processor.processDeletedMarkdownFile(AbstractFile);
 		}
 
 		else if(AbstractFile instanceof TFolder){
+			console.log(`Evento disparado, deletando pasta`)
 			await this.processor.processFolders(AbstractFile);
 		}
 	}

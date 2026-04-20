@@ -72,7 +72,7 @@ export class StatProcessor {
 					totalWords: currentVolume.snapshot.totalWords + fileSnapshot.totalWords,
 					totalSentences: currentVolume.snapshot.totalSentences + fileSnapshot.totalSentences
 					},
-				totalMarkdownFiles: currentVolume.totalFiles + 1,
+				totalMarkdownFiles: currentVolume.totalMarkdownFiles + 1,
 				totalFiles: currentVolume.totalFiles + 1,
 				totalFolders: currentVolume.totalFolders, 
 				totalAttachments: currentVolume.totalAttachments, 
@@ -81,12 +81,12 @@ export class StatProcessor {
 				averageWordsPerFile: (currentVolume.snapshot.totalWords / currentVolume.totalFiles)
 			}
 		})
+		console.log("New file created: ", this.getVaultMetricsState().volume);
 	}
 
 
 	async processDeletedMarkdownFile(file: TFile) {
 		const currentVolume = this.VaultMetricsState.volume;
-
 		const cachedFileMetrics = this.fileStatsCache.get(file.path) ?? VaultMapper.getEmptyActiveFileMetrics();
 		
 		// -- NOTE Not every type of markDown file is a orphan file,
@@ -100,7 +100,7 @@ export class StatProcessor {
 					totalCharacters: currentVolume.snapshot.totalCharacters - cachedFileMetrics.characters,
 					totalSentences: currentVolume.snapshot.totalSentences - cachedFileMetrics.sentences
 				},
-				totalMarkdownFiles: currentVolume.totalFiles - 1,
+				totalMarkdownFiles: currentVolume.totalMarkdownFiles - 1,
 				totalFiles: currentVolume.totalFiles - 1,
 				totalFolders: currentVolume.totalFolders,
 				totalAttachments: currentVolume.totalAttachments,
@@ -109,6 +109,8 @@ export class StatProcessor {
 				averageWordsPerFile: (currentVolume.snapshot.totalWords / currentVolume.totalFiles)
 			}
 		})
+
+		console.log("New file created: ", this.getVaultMetricsState().volume);
 	}
 
 	async processFolders(tfolder: TFolder) {
@@ -117,7 +119,7 @@ export class StatProcessor {
 		this.emitNewState({
 			volume: {
 				...currentVolume,
-				totalFolders: this.vaultService.getTotalFoldes(),
+				totalFolders: currentVolume.totalFolders,
 				totalVaultSize: currentVolume.totalVaultSize,
 			}
 		})

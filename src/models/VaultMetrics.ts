@@ -29,7 +29,7 @@ export interface VaultMetrics {
 	appears: {
 		mostAppearsTag: tagType | string; // Done
 		mostAppearsTagInFrontMatter: tagType | string; // Done
-		minorAppearsTag: tagType | string;
+		minorAppearsTag: tagType | string; // Done
 		totalUniqueTags: number; // Done
 		mostActiveFolder: string | undefined;
 		lastModifiedFile: TFile | string; // Done
