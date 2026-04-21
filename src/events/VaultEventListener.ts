@@ -7,13 +7,10 @@ export class VaultEventListener {
 		private processor: StatProcessor
 	) {}
 
-	private debounceTimeout: NodeJS.Timeout | null = null;
-
 	public init() {
 
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('modify', (AbstractFile) => {
-				console.log(`event disparado: modify Markdown Event`);
 				this.handleAbstractFileModification(AbstractFile);
 			})
 		);
@@ -59,7 +56,7 @@ export class VaultEventListener {
 	private async handleAbstractFileDeletion(AbstractFile: TAbstractFile) {
 
 		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
-			console.log(`Evento disparado, deleteando arquivo`)
+			console.log(`Evento disparado, deletando arquivo`)
 			await this.processor.processDeletedMarkdownFile(AbstractFile);
 		}
 

@@ -90,33 +90,33 @@ export class VaultService {
 	}
 
 	/**
-	 * return a type tag with the name and count of the most used tag.
-	 * this calculation uses ONLY frontmatter tags appearances.
+	 * This function return a Tag Record object with the name and the count of
+	 * any tag writes in the frontmatter files.
 	 */
-	getMostAppearsTagInFrontMatter(files: TFile[]): tagType | string {
+	getTagCountsInFrontMatter(files: TFile[]): Record<string, number> {
 		const tagCount: Record<string, number> = {};
 
 		for (const file of files){ 
 			const cache = this.app.metadataCache.getFileCache(file);
 
 			if(cache?.frontmatter && cache.frontmatter.tags) {
-				let tags = cache.frontmatter.tags;
 
-				// a tag pode ser storage dentro do obsidian como uma string tag: "model" ou
-				// um array de tags: [model, backend].
-				if(typeof tags === 'string') {
-					tags = [tags];
-				}
+				const tags = Array.isArray(cache.frontmatter.tags)
+					? cache.frontmatter.tags : [cache.frontmatter.tags];
 
-				if(Array.isArray(tags)) {
-					tags.forEach(tag => {
-						tagCount[tag] = (tagCount[tag] || 0) + 1;
-					});
-				}
+				tags.forEach(tag => { tagCount[tag] = (tagCount[tag] || 0) + 1; });
 			}
 		}
-		// transforma o array em um Array de arrays, compara cada array (current) com o proximo (previous) retornando
-		// o array que possue a maior aparição.
+		return tagCount;
+	}
+
+	/**
+	 * return a type tag with the name and count of the most used tag.
+	 * this calculation uses ONLY frontmatter tags appearances.
+	 */
+	getMostAppearsTagInFrontMatter(files: TFile[]): tagType | string {
+		const tagCount = this.getTagCountsInFrontMatter(files);
+
 		const mostAppearsTag = Object.entries(tagCount).sort((current, previous) => previous[1] - current[1]);
 
 		if(mostAppearsTag?.length > 0 && mostAppearsTag[0]) {
@@ -125,36 +125,25 @@ export class VaultService {
 				count: mostAppearsTag[0][1]
 			}
 		} 
-		return "Nothing But Wind"
+		return "Nothing But Wind";
 	}
 
+	/**
+	 * return a type tag with the name and count of the minor used tag.
+	 * this calculation uses ONLY frontmatter tags appearances.
+	 */
 	getMinorAppearsTagInFrontMatter(files: TFile[]): tagType | string {
-		const tagCount: Record<string, number> = {};
-
-		for (const file of files) { 
-			const cache = this.app.metadataCache.getFileCache(file);
-
-			if (cache?.frontmatter && cache.frontmatter.tags) {
-				let tags = cache.frontmatter.tags;
-
-				if (typeof tags === 'string') {
-					tags = [tags];
-				}
-
-				if (Array.isArray(tags)) {
-					tags.forEach(tag => {
-						tagCount[tag] = (tagCount[tag] || 0) + 1;
-					});
-				}
-			}
-		}
+		const tagCount = this.getTagCountsInFrontMatter(files);
 
 		const minorAppearsTag = Object.entries(tagCount).sort((current, previous) => current[1] - previous[1]);
 
-		return {
-			name: minorAppearsTag[0][0],
-			count: minorAppearsTag[0][1]
-		};
+		if(minorAppearsTag?.length > 0 && minorAppearsTag[0]){
+			return {
+				name: minorAppearsTag[0][0],
+				count: minorAppearsTag[0][1]
+			};
+		}
+		return "Nothing but Wind";
 	}
 
 
