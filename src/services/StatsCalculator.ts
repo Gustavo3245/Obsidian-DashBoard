@@ -7,7 +7,6 @@ import { TFile, TFolder } from "obsidian";
 export class StatsCalculator {
 	constructor(private vaultService: VaultService){}
 	
-	// FIXME Perfomance in check (call 4 time the same file is pretty fuck up)
 	async getFileMetrics(file: TFile): Promise<FileMetrics> {
 		const fileMetrics = await this.vaultService.getFilesMetrics(file);
 
@@ -97,7 +96,7 @@ export class StatsCalculator {
 			mostAppearsTagInFrontMatter: this.vaultService.getMostAppearsTagInFrontMatter(relevantFiles),
 			minorAppearsTag: this.vaultService.getMinorAppearsTagInFrontMatter(relevantFiles),
 			totalUniqueTags: this.vaultService.getTotalUniqueTags(relevantFiles),
-			mostActiveFolder: "Nothing but Wind",
+			mostActiveFolder: this.vaultService.mostActiveFolder(),
 			lastModifiedFile: this.vaultService.getLastModifiedMarkDownFile(),
 			lastModifiedFiles: this.vaultService.getActiveMarkDownFiles(),
 

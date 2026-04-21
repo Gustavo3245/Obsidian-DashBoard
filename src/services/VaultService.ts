@@ -1,4 +1,4 @@
-import { App, getAllTags, TFile} from "obsidian";
+import { App, getAllTags, TFile, TFolder} from "obsidian";
 import { tagType } from "models/value_objects/TagType";
 import { ReadingTime } from "models/value_objects/ReadingTime";
 import { TimeRange } from "models/value_objects/TimeRange";
@@ -450,4 +450,27 @@ export class VaultService {
 		}
 	}
 
+	mostActiveFolder(): string {
+		const tfolders: TFolder[] = this.app.vault.getAllFolders(false);
+
+		if (!tfolders || tfolders.length === 0) {
+			return "Nothing but Wind";
+		}
+
+		let mostActiveFolder: TFolder = tfolders[0];
+		let maxFileCount = -1; // Começamos com -1 para garantir que a primeira pasta será selecionada
+
+		for (const folder of tfolders) {
+			// Conta apenas arquivos (TFile) dentro da pasta atual
+			const fileCount = folder.children.filter(child => child instanceof TFile).length;
+
+			// Compara com a contagem máxima encontrada até agora
+			if (fileCount > maxFileCount) {
+				maxFileCount = fileCount;
+				mostActiveFolder = folder;
+			}
+		}
+
+		return mostActiveFolder.name;
+	}
 }

@@ -26,6 +26,7 @@ export default class DashboardPlugin extends Plugin {
 		this.VaultEvent.init();
 
 		this.statsProcessor.VaultLoad('all');
+		const bla = this.vaultService.mostActiveFolder();
 
 		this.vaultCommands.register();
 	}
