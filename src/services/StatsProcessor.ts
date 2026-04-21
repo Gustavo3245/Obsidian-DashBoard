@@ -151,6 +151,7 @@ export class StatProcessor {
 			storageValues: storage
 		});
 		console.log("Inital Value State: ", this.getVaultMetricsState());
+		console.log("Files Value State: ", this.fileStatsCache);
 	}
 
 }

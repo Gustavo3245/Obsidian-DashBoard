@@ -2,6 +2,7 @@ import { App, getAllTags, TFile} from "obsidian";
 import { tagType } from "models/value_objects/TagType";
 import { ReadingTime } from "models/value_objects/ReadingTime";
 import { TimeRange } from "models/value_objects/TimeRange";
+import { FileMetrics } from "models/FileMetrics";
 
 
 export class VaultService {
@@ -421,6 +422,32 @@ export class VaultService {
 		}
 
 		return !hasTags && !hasOutlinks && !hasInlinks;	
+	}
+
+	async getFilesMetrics(file: TFile): Promise<FileMetrics> {
+		const content = await this.app.vault.cachedRead(file);
+
+
+		const words = content.trim().split(/\s+/).filter(w => w.length > 0).length;
+		
+		const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
+
+		const characters = content.replace(/\s/g, '').length;
+
+		const isOrphan = await this.isOrphanFile(file);
+
+		const readingTime = await this.getVaultEstimateReadingTime([file]);
+
+		return {
+			characters,
+			words,
+			sentences,
+			readingTime,
+			isOrphanFile: isOrphan,
+			name: file.name,
+			path: file.path,
+			fileSize: file.stat.size
+		}
 	}
 
 }

@@ -9,24 +9,17 @@ export class StatsCalculator {
 	
 	// FIXME Perfomance in check (call 4 time the same file is pretty fuck up)
 	async getFileMetrics(file: TFile): Promise<FileMetrics> {
-
-		const [chars, words, sentences, readingTime, oprhanFile] = await Promise.all([
-			this.vaultService.getTotalCharacters([file]),
-			this.vaultService.getTotalWords([file]),
-			this.vaultService.getTotalSentences([file]),
-			this.vaultService.getVaultEstimateReadingTime([file]),
-			this.vaultService.isOrphanFile(file)
-		]);
+		const fileMetrics = await this.vaultService.getFilesMetrics(file);
 
 		return {
 			name: file.name,
 			path: file.path,
 			fileSize: file.stat.size,
-			characters: chars,
-			words: words,
-			sentences: sentences,
-			readingTime: readingTime,
-			isOrphanFile: oprhanFile
+			characters: fileMetrics.characters,
+			words: fileMetrics.words,
+			sentences: fileMetrics.sentences,
+			readingTime: fileMetrics.readingTime,
+			isOrphanFile: fileMetrics.isOrphanFile
 		}
 	}
 
