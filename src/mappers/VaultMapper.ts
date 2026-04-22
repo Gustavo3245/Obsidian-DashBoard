@@ -52,6 +52,19 @@ export class VaultMapper {
 		}
 	}
 
+	static getEmptyDailyMetrics(): DailyMetrics {
+		return {
+			date: "Nothing but Wind",
+			words: 0,
+			characters: 0,
+			sentences: 0,
+			timeMetrics: {
+				activeMinutes: 0,
+				sessions: 0
+			}
+		}
+	}
+
 	static mapToVaultMetrics(data: Partial<VaultMetrics>): VaultMetrics {
 		const empty = this.getEmptyVaultMetrics();
 		
@@ -82,5 +95,19 @@ export class VaultMapper {
 			isOrphanFile: file.isOrphanFile ?? empty.isOrphanFile,
 			readingTime: file.readingTime ?? empty.readingTime
 		};
+	}
+
+	static mapToDailyMetrics(dailyMetrics: Partial<DailyMetrics>): DailyMetrics {
+		const empty = this.getEmptyDailyMetrics();
+
+		return {
+			...empty,
+			...dailyMetrics,
+			date: dailyMetrics.date ?? empty.date,
+			words: dailyMetrics.words ?? empty.words,
+			characters: dailyMetrics.characters ?? empty.characters,
+			sentences: dailyMetrics.sentences ?? empty.sentences,
+			timeMetrics: {...empty.timeMetrics, ...dailyMetrics.timeMetrics}
+		}
 	}
 }
