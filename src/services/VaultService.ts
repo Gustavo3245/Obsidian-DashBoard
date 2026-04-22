@@ -13,17 +13,32 @@ export class VaultService {
 
 		if(range === 'all') return files;
 
-		const ActualDate = Date.now();
+		const now = new Date();
+		const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
-		const setLimits: Record<TimeRange, number> = {
-			'today': ActualDate - (24 * 60 * 60 * 1000),
-			'week': ActualDate - (7 * 24 * 60 * 60 * 1000),
-			'month': ActualDate - (30 * 24 * 60 * 60 * 1000),
-			'all': 0
+		const getThreshold = (): number => {
+			switch(range) {
+				case 'today': return startOfToday;
+				case 'week': return startOfToday - (6 * 24 * 60 * 60 * 1000);
+				case 'month': return startOfToday - (29 * 24 * 60 * 60 * 1000);
+				default: return 0;
+			}
 		}
 		
-		const threshold = setLimits[range];
+		const threshold = getThreshold();
 		return files.filter(file => file.stat.mtime >= threshold);
+	}
+
+	getFilesByCustomRange(start: Date, end: Date = new Date()): TFile[] {
+		const files = this.app.vault.getMarkdownFiles();
+
+		const startTime = start.getTime();
+		const endTime = end.getTime();
+
+		return files.filter(file => {
+			const mtime = file.stat.mtime;
+			return mtime >= startTime && mtime <= endTime;
+		})
 	}
 
 	/**
