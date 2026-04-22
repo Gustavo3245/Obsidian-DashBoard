@@ -427,10 +427,9 @@ export class VaultService {
 	async getFilesMetrics(file: TFile): Promise<FileMetrics> {
 		const content = await this.app.vault.cachedRead(file);
 
+		const words = (content.match(/\S+/g) || []).length;
 
-		const words = content.trim().split(/\s+/).filter(w => w.length > 0).length;
-		
-		const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
+		const sentences = (content.match(/[^.!?]+[.!?]+/g) || []).length;
 
 		const characters = content.replace(/\s/g, '').length;
 
@@ -458,13 +457,11 @@ export class VaultService {
 		}
 
 		let mostActiveFolder: TFolder = tfolders[0];
-		let maxFileCount = -1; // Começamos com -1 para garantir que a primeira pasta será selecionada
+		let maxFileCount = -1; 
 
 		for (const folder of tfolders) {
-			// Conta apenas arquivos (TFile) dentro da pasta atual
 			const fileCount = folder.children.filter(child => child instanceof TFile).length;
 
-			// Compara com a contagem máxima encontrada até agora
 			if (fileCount > maxFileCount) {
 				maxFileCount = fileCount;
 				mostActiveFolder = folder;

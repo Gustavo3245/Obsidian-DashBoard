@@ -36,6 +36,14 @@ export default class DashboardPlugin extends Plugin {
 		this.VaultEvent = null as any;
 	    
 	}
+
+	async loadSettings() {
+
+	}
+
+	async saveData(data: any): Promise<void> {
+	    
+	}
 }
 
 //class SampleModal extends Modal {}
