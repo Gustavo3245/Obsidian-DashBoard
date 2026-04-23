@@ -22,6 +22,36 @@ export class StatsCalculator {
 		}
 	}
 
+	async getDailyMetrics(range: TimeRange): Promise<DailyMetrics> {
+		const snapshotValues = await this.getSnapshot(range);
+
+		return {
+			date: new Date().toLocaleDateString('pt-BR'),
+			words: snapshotValues.totalWords,
+			characters: snapshotValues.totalCharacters,
+			sentences: snapshotValues.totalSentences,
+			timeMetrics: {
+				activeMinutes: 1,
+				sessions: 1
+			}
+		}
+	}
+
+	async updateDailyMetrics(file: TFile): Promise<DailyMetrics> {
+		const updateSnapshot = await this.updateSnapshotMetrics(file);
+
+		return {
+			date: new Date().toLocaleDateString('pt-BR'),
+			words: updateSnapshot.totalWords,
+			characters: updateSnapshot.totalCharacters,
+			sentences: updateSnapshot.totalSentences,
+			timeMetrics: {
+				activeMinutes: 1,
+				sessions: 1
+			}
+		}
+	}
+
 	async getSnapshot(range: TimeRange): Promise<VaultMetrics['volume']['snapshot']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
 
