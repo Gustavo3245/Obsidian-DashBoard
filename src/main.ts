@@ -25,6 +25,8 @@ export default class DashboardPlugin extends Plugin {
 		this.VaultEvent = new VaultEventListener(this, this.statsProcessor);
 		this.VaultEvent.init();
 
+		this.statsProcessor.VaultLoad('all');
+		const bla = this.vaultService.mostActiveFolder();
 
 		this.vaultCommands.register();
 	}
@@ -32,6 +34,14 @@ export default class DashboardPlugin extends Plugin {
 		this.vaultService = null as any;
 		this.statsProcessor = null as any;
 		this.VaultEvent = null as any;
+	    
+	}
+
+	async loadSettings() {
+
+	}
+
+	async saveData(data: any): Promise<void> {
 	    
 	}
 }

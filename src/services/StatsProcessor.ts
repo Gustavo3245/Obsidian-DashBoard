@@ -67,36 +67,26 @@ export class StatProcessor {
 		this.emitNewState({
 			volume: {
 				...currentVolume,
-				totalMarkdownFiles: currentVolume.totalFiles + 1, // Done
-				totalFiles: currentVolume.totalFiles + 1, // Done
-				totalFolders: currentVolume.totalFolders, // Done
-				totalAttachments: currentVolume.totalAttachments, // Done
-				totalOrphansFiles: currentVolume.totalOrphansFiles + (this.vaultService.isOrphanFile(file) ? 1 : 0), // Done
-				totalVaultSize: currentVolume.totalVaultSize + file.stat.size, // Done
-				averageWordsPerFile: currentVolume.averageWordsPerFile, // need to be fixed
-				snapshot: { // Done
+				snapshot: { 
 					totalCharacters: currentVolume.snapshot.totalCharacters + fileSnapshot.totalCharacters,
 					totalWords: currentVolume.snapshot.totalWords + fileSnapshot.totalWords,
 					totalSentences: currentVolume.snapshot.totalSentences + fileSnapshot.totalSentences
-				}
+					},
+				totalMarkdownFiles: currentVolume.totalMarkdownFiles + 1,
+				totalFiles: currentVolume.totalFiles + 1,
+				totalFolders: currentVolume.totalFolders, 
+				totalAttachments: currentVolume.totalAttachments, 
+				totalOrphansFiles: currentVolume.totalOrphansFiles + (this.vaultService.isOrphanFile(file) ? 1 : 0),
+				totalVaultSize: currentVolume.totalVaultSize + file.stat.size, 
+				averageWordsPerFile: (currentVolume.snapshot.totalWords / currentVolume.totalFiles)
 			}
 		})
+		console.log("New file created: ", this.getVaultMetricsState().volume);
 	}
 
-	async processNewFolder() {
-		const currentVolume = this.VaultMetricsState.volume;
-
-		this.emitNewState({
-			volume: {
-				...currentVolume,
-				totalFolders: currentVolume.totalFolders + 1,
-			}
-		})
-	}
 
 	async processDeletedMarkdownFile(file: TFile) {
 		const currentVolume = this.VaultMetricsState.volume;
-
 		const cachedFileMetrics = this.fileStatsCache.get(file.path) ?? VaultMapper.getEmptyActiveFileMetrics();
 		
 		// -- NOTE Not every type of markDown file is a orphan file,
@@ -105,24 +95,35 @@ export class StatProcessor {
 		this.emitNewState({
 			volume: {
 				...currentVolume,
-				totalMarkdownFiles: currentVolume.totalFiles - 1, // Done
-				totalFiles: currentVolume.totalFiles - 1, // Done
-				totalFolders: currentVolume.totalFolders, // Done
-				totalAttachments: currentVolume.totalAttachments, // Done
-				totalOrphansFiles: currentVolume.totalOrphansFiles - (cachedFileMetrics.isOrphanFile ? 1 : 0), // Done
-				totalVaultSize: currentVolume.totalVaultSize - cachedFileMetrics.fileSize, // Done
-				averageWordsPerFile: currentVolume.averageWordsPerFile, // need to be fixed
 				snapshot: {
 					totalWords: currentVolume.snapshot.totalWords - cachedFileMetrics.words,
 					totalCharacters: currentVolume.snapshot.totalCharacters - cachedFileMetrics.characters,
 					totalSentences: currentVolume.snapshot.totalSentences - cachedFileMetrics.sentences
-				}
+				},
+				totalMarkdownFiles: currentVolume.totalMarkdownFiles - 1,
+				totalFiles: currentVolume.totalFiles - 1,
+				totalFolders: currentVolume.totalFolders,
+				totalAttachments: currentVolume.totalAttachments,
+				totalOrphansFiles: currentVolume.totalOrphansFiles - (cachedFileMetrics.isOrphanFile ? 1 : 0),
+				totalVaultSize: currentVolume.totalVaultSize - cachedFileMetrics.fileSize, 
+				averageWordsPerFile: (currentVolume.snapshot.totalWords / currentVolume.totalFiles)
 			}
 		})
+
+		console.log("New file created: ", this.getVaultMetricsState().volume);
 	}
 
-	async processDeletedFolder() {
+	async processFolders(tfolder: TFolder) {
+		const currentVolume = this.VaultMetricsState.volume;
 
+		this.emitNewState({
+			volume: {
+				...currentVolume,
+				totalFolders: currentVolume.totalFolders,
+				totalVaultSize: currentVolume.totalVaultSize,
+			}
+		})
+		console.log("New folder state: ", this.getVaultMetricsState().volume);
 	}
 
 	async VaultLoad(range: TimeRange) {
@@ -149,6 +150,8 @@ export class StatProcessor {
 			streak: streak,
 			storageValues: storage
 		});
+		console.log("Inital Value State: ", this.getVaultMetricsState());
+		console.log("Files Value State: ", this.fileStatsCache);
 	}
 
 }

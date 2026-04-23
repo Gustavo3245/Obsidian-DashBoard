@@ -7,13 +7,10 @@ export class VaultEventListener {
 		private processor: StatProcessor
 	) {}
 
-	private debounceTimeout: NodeJS.Timeout | null = null;
-
 	public init() {
 
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('modify', (AbstractFile) => {
-				console.log(`event disparado: modify Markdown Event`);
 				this.handleAbstractFileModification(AbstractFile);
 			})
 		);
@@ -46,22 +43,26 @@ export class VaultEventListener {
 	private async handleAbstractFileCreation(AbstractFile: TAbstractFile) {
 
 		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
+			console.log(`Evento disparado, criação de arquivo`)
 			await this.processor.processNewMarkdownFile(AbstractFile);
 		}
 
 		else if(AbstractFile instanceof TFolder) {
-			await this.processor.processNewFolder();
+			console.log(`Evento disparado, criação de pastas`)
+			await this.processor.processFolders(AbstractFile);
 		}
 	}
 
 	private async handleAbstractFileDeletion(AbstractFile: TAbstractFile) {
 
 		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
+			console.log(`Evento disparado, deletando arquivo`)
 			await this.processor.processDeletedMarkdownFile(AbstractFile);
 		}
 
 		else if(AbstractFile instanceof TFolder){
-			await this.processor.processDeletedFolder();
+			console.log(`Evento disparado, deletando pasta`)
+			await this.processor.processFolders(AbstractFile);
 		}
 	}
 }

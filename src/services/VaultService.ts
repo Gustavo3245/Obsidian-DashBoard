@@ -1,7 +1,8 @@
-import { App, getAllTags, TFile} from "obsidian";
+import { App, getAllTags, TFile, TFolder} from "obsidian";
 import { tagType } from "models/value_objects/TagType";
 import { ReadingTime } from "models/value_objects/ReadingTime";
 import { TimeRange } from "models/value_objects/TimeRange";
+import { FileMetrics } from "models/FileMetrics";
 
 
 export class VaultService {
@@ -12,17 +13,32 @@ export class VaultService {
 
 		if(range === 'all') return files;
 
-		const ActualDate = Date.now();
+		const now = new Date();
+		const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
-		const setLimits: Record<TimeRange, number> = {
-			'today': ActualDate - (24 * 60 * 60 * 1000),
-			'week': ActualDate - (7 * 24 * 60 * 60 * 1000),
-			'month': ActualDate - (30 * 24 * 60 * 60 * 1000),
-			'all': 0
+		const getThreshold = (): number => {
+			switch(range) {
+				case 'today': return startOfToday;
+				case 'week': return startOfToday - (6 * 24 * 60 * 60 * 1000);
+				case 'month': return startOfToday - (29 * 24 * 60 * 60 * 1000);
+				default: return 0;
+			}
 		}
 		
-		const threshold = setLimits[range];
+		const threshold = getThreshold();
 		return files.filter(file => file.stat.mtime >= threshold);
+	}
+
+	getFilesByCustomRange(start: Date, end: Date = new Date()): TFile[] {
+		const files = this.app.vault.getMarkdownFiles();
+
+		const startTime = start.getTime();
+		const endTime = end.getTime();
+
+		return files.filter(file => {
+			const mtime = file.stat.mtime;
+			return mtime >= startTime && mtime <= endTime;
+		})
 	}
 
 	/**
@@ -90,33 +106,33 @@ export class VaultService {
 	}
 
 	/**
-	 * return a type tag with the name and count of the most used tag.
-	 * this calculation uses ONLY frontmatter tags appearances.
+	 * This function return a Tag Record object with the name and the count of
+	 * any tag writes in the frontmatter files.
 	 */
-	getMostAppearsTagInFrontMatter(files: TFile[]): tagType | string {
+	getTagCountsInFrontMatter(files: TFile[]): Record<string, number> {
 		const tagCount: Record<string, number> = {};
 
 		for (const file of files){ 
 			const cache = this.app.metadataCache.getFileCache(file);
 
 			if(cache?.frontmatter && cache.frontmatter.tags) {
-				let tags = cache.frontmatter.tags;
 
-				// a tag pode ser storage dentro do obsidian como uma string tag: "model" ou
-				// um array de tags: [model, backend].
-				if(typeof tags === 'string') {
-					tags = [tags];
-				}
+				const tags = Array.isArray(cache.frontmatter.tags)
+					? cache.frontmatter.tags : [cache.frontmatter.tags];
 
-				if(Array.isArray(tags)) {
-					tags.forEach(tag => {
-						tagCount[tag] = (tagCount[tag] || 0) + 1;
-					});
-				}
+				tags.forEach(tag => { tagCount[tag] = (tagCount[tag] || 0) + 1; });
 			}
 		}
-		// transforma o array em um Array de arrays, compara cada array (current) com o proximo (previous) retornando
-		// o array que possue a maior aparição.
+		return tagCount;
+	}
+
+	/**
+	 * return a type tag with the name and count of the most used tag.
+	 * this calculation uses ONLY frontmatter tags appearances.
+	 */
+	getMostAppearsTagInFrontMatter(files: TFile[]): tagType | string {
+		const tagCount = this.getTagCountsInFrontMatter(files);
+
 		const mostAppearsTag = Object.entries(tagCount).sort((current, previous) => previous[1] - current[1]);
 
 		if(mostAppearsTag?.length > 0 && mostAppearsTag[0]) {
@@ -125,7 +141,25 @@ export class VaultService {
 				count: mostAppearsTag[0][1]
 			}
 		} 
-		return "Nothing But Wind"
+		return "Nothing But Wind";
+	}
+
+	/**
+	 * return a type tag with the name and count of the minor used tag.
+	 * this calculation uses ONLY frontmatter tags appearances.
+	 */
+	getMinorAppearsTagInFrontMatter(files: TFile[]): tagType | string {
+		const tagCount = this.getTagCountsInFrontMatter(files);
+
+		const minorAppearsTag = Object.entries(tagCount).sort((current, previous) => current[1] - previous[1]);
+
+		if(minorAppearsTag?.length > 0 && minorAppearsTag[0]){
+			return {
+				name: minorAppearsTag[0][0],
+				count: minorAppearsTag[0][1]
+			};
+		}
+		return "Nothing but Wind";
 	}
 
 
@@ -271,34 +305,35 @@ export class VaultService {
 	 * orphan file is a file that has no connection whatsoever (tags and Hyperlinks).
 	 */
 	getTotalOrphansFiles(files: TFile[]): number {
-		const orphanFiles: TFile[] = [];
+		// const orphanFiles: TFile[] = [];
 
 		if(files.length === 0 || !files){
 			return 0;
 		}
 
-		files.forEach((file) => {
-			const cache = this.app.metadataCache.getFileCache(file);
+		return files.filter(file => this.isOrphanFile(file)).length
+		// files.forEach((file) => {
+		// 	const cache = this.app.metadataCache.getFileCache(file);
 
-			const hasTags = (cache?.tags?.length ?? 0) > 0 || (cache?.frontmatter?.length ?? 0) > 0;
+		// 	const hasTags = (cache?.tags?.length ?? 0) > 0 || (cache?.frontmatter?.length ?? 0) > 0;
 
-			const hasOutlinks = (cache?.links?.length ?? 0) > 0;
+		// 	const hasOutlinks = (cache?.links?.length ?? 0) > 0;
 
-			const backlinks = this.app.metadataCache.resolvedLinks;
-			let hasInlinks = false;
+		// 	const backlinks = this.app.metadataCache.resolvedLinks;
+		// 	let hasInlinks = false;
 
-			for(const sourcePath in backlinks){
-				if(backlinks[sourcePath][file.path]){
-					hasInlinks = true;
-					break;
-				}
-			}
+		// 	for(const sourcePath in backlinks){
+		// 		if(backlinks[sourcePath][file.path]){
+		// 			hasInlinks = true;
+		// 			break;
+		// 		}
+		// 	}
 
-			if(!hasTags && !hasOutlinks && !hasInlinks){
-				orphanFiles.push(file)
-			}
-		});
-		return orphanFiles.length;
+		// 	if(!hasTags && !hasOutlinks && !hasInlinks){
+		// 		orphanFiles.push(file)
+		// 	}
+		// });
+		// return orphanFiles.length;
 	}
 
 	/**
@@ -404,4 +439,50 @@ export class VaultService {
 		return !hasTags && !hasOutlinks && !hasInlinks;	
 	}
 
+	async getFilesMetrics(file: TFile): Promise<FileMetrics> {
+		const content = await this.app.vault.cachedRead(file);
+
+		const words = (content.match(/\S+/g) || []).length;
+
+		const sentences = (content.match(/[^.!?]+[.!?]+/g) || []).length;
+
+		const characters = content.replace(/\s/g, '').length;
+
+		const isOrphan = await this.isOrphanFile(file);
+
+		const readingTime = await this.getVaultEstimateReadingTime([file]);
+
+		return {
+			characters,
+			words,
+			sentences,
+			readingTime,
+			isOrphanFile: isOrphan,
+			name: file.name,
+			path: file.path,
+			fileSize: file.stat.size
+		}
+	}
+
+	mostActiveFolder(): string {
+		const tfolders: TFolder[] = this.app.vault.getAllFolders(false);
+
+		if (!tfolders || tfolders.length === 0) {
+			return "Nothing but Wind";
+		}
+
+		let mostActiveFolder: TFolder = tfolders[0];
+		let maxFileCount = -1; 
+
+		for (const folder of tfolders) {
+			const fileCount = folder.children.filter(child => child instanceof TFile).length;
+
+			if (fileCount > maxFileCount) {
+				maxFileCount = fileCount;
+				mostActiveFolder = folder;
+			}
+		}
+
+		return mostActiveFolder.name;
+	}
 }

@@ -2,31 +2,53 @@ import { VaultService } from "./VaultService";
 import { VaultMetrics } from "models/VaultMetrics";
 import { FileMetrics } from "models/FileMetrics";
 import { TimeRange } from "models/value_objects/TimeRange";
-import { TFile } from "obsidian";
+import { TFile, TFolder } from "obsidian";
 
 export class StatsCalculator {
 	constructor(private vaultService: VaultService){}
 	
-	// FIXME Perfomance in check (call 4 time the same file is pretty fuck up)
 	async getFileMetrics(file: TFile): Promise<FileMetrics> {
-
-		const [chars, words, sentences, readingTime, oprhanFile] = await Promise.all([
-			this.vaultService.getTotalCharacters([file]),
-			this.vaultService.getTotalWords([file]),
-			this.vaultService.getTotalSentences([file]),
-			this.vaultService.getVaultEstimateReadingTime([file]),
-			this.vaultService.isOrphanFile(file)
-		]);
+		const fileMetrics = await this.vaultService.getFilesMetrics(file);
 
 		return {
 			name: file.name,
 			path: file.path,
 			fileSize: file.stat.size,
-			characters: chars,
-			words: words,
-			sentences: sentences,
-			readingTime: readingTime,
-			isOrphanFile: oprhanFile
+			characters: fileMetrics.characters,
+			words: fileMetrics.words,
+			sentences: fileMetrics.sentences,
+			readingTime: fileMetrics.readingTime,
+			isOrphanFile: fileMetrics.isOrphanFile
+		}
+	}
+
+	async getDailyMetrics(range: TimeRange): Promise<DailyMetrics> {
+		const snapshotValues = await this.getSnapshot(range);
+
+		return {
+			date: new Date().toLocaleDateString('pt-BR'),
+			words: snapshotValues.totalWords,
+			characters: snapshotValues.totalCharacters,
+			sentences: snapshotValues.totalSentences,
+			timeMetrics: {
+				activeMinutes: 1,
+				sessions: 1
+			}
+		}
+	}
+
+	async updateDailyMetrics(file: TFile): Promise<DailyMetrics> {
+		const updateSnapshot = await this.updateSnapshotMetrics(file);
+
+		return {
+			date: new Date().toLocaleDateString('pt-BR'),
+			words: updateSnapshot.totalWords,
+			characters: updateSnapshot.totalCharacters,
+			sentences: updateSnapshot.totalSentences,
+			timeMetrics: {
+				activeMinutes: 1,
+				sessions: 1
+			}
 		}
 	}
 
@@ -102,9 +124,9 @@ export class StatsCalculator {
 		return {
 			mostAppearsTag: this.vaultService.getMostAppearsTagInAllContent(relevantFiles),
 			mostAppearsTagInFrontMatter: this.vaultService.getMostAppearsTagInFrontMatter(relevantFiles),
-			minorAppearsTag: "Nothing but Wind",
+			minorAppearsTag: this.vaultService.getMinorAppearsTagInFrontMatter(relevantFiles),
 			totalUniqueTags: this.vaultService.getTotalUniqueTags(relevantFiles),
-			mostActiveFolder: "Nothing but Wind",
+			mostActiveFolder: this.vaultService.mostActiveFolder(),
 			lastModifiedFile: this.vaultService.getLastModifiedMarkDownFile(),
 			lastModifiedFiles: this.vaultService.getActiveMarkDownFiles(),
 
