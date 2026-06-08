@@ -2,30 +2,32 @@ import { App } from "obsidian";
 
 export class SessionService {
 	private lastActivity: number = Date.now();
-	private readonly IDLE_THRESHOLD = 5 * 60 * 1000;
-	private sessionStartTime: number = Date.now();
+	private timer: NodeJS.Timeout | null = null;
 
+	private readonly IDLE_THRESHOLD = 15 * 1000;
 	constructor(private app: App) {
-		this.sessionStartTime = Date.now();
         this.lastActivity = Date.now();
 	}
 
-	public getActiveMinutes(): number {
+	public getActiveMinutes() {
+		console.log("Tracker de tempo iniciado!");
 
-		const now = Date.now();
+		// TEMPORÁRIO PARA TESTE:
+		this.timer = setInterval(() => {
+			const now = Date.now();
+			const timeSinceLastActivity = now - this.lastActivity;
 
-		if(now - this.lastActivity > this.IDLE_THRESHOLD) {
-			return Math.floor((this.lastActivity - this.sessionStartTime) / 60000);
-		}
-
-		return Math.floor((now - this.sessionStartTime) / 60000);
+			if (timeSinceLastActivity < this.IDLE_THRESHOLD) {
+				console.log(` Usuário ATIVO. Tempo sem mexer: ${Math.floor(timeSinceLastActivity/1000)}s. Adicionando tempo...`);
+				// this.stateManager.dispatchTimeUpdate(1);
+			} else {
+				console.log(` Usuário OCIOSO. Tempo sem mexer: ${Math.floor(timeSinceLastActivity/1000)}s. Pausando contagem.`);
+			}
+		}, 5000); 
 	}
 
 	public pingActivity() {
         this.lastActivity = Date.now();
     }
 
-	public getSessionDurationMinutes(): number {
-		return Math.floor((Date.now() - this.sessionStartTime) / 60000);
-	}
 }

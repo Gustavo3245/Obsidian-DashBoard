@@ -1,28 +1,34 @@
 import { TAbstractFile, TFile, TFolder } from "obsidian";
 import DashboardPlugin from "../main";
 import { StatProcessor } from "services/StatsProcessor";
+import { SessionService } from "services/SessionService";
 
 export class VaultEventListener {
+
 	constructor(private plugin: DashboardPlugin,
+		private sessionService: SessionService,
 		private processor: StatProcessor
-	) {}
+) {}
 
 	public init() {
 
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('modify', (AbstractFile) => {
+				this.sessionService.pingActivity();
 				this.handleAbstractFileModification(AbstractFile);
 			})
 		);
 
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('create', (AbstractFile) => {
+				this.sessionService.pingActivity();
 				this.handleAbstractFileCreation(AbstractFile);
 			})
 		);
 
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('delete', (AbstractFile) => {
+				this.sessionService.pingActivity();
 				this.handleAbstractFileDeletion(AbstractFile);
 			})
 		);

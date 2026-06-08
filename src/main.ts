@@ -6,6 +6,7 @@ import { StatProcessor } from 'services/StatsProcessor';
 import { VaultCommands } from 'commands/VaultCommands';
 import { VaultMapper } from 'mappers/VaultMapper';
 import { VaultEventListener } from './events/VaultEventListener';
+import { SessionService } from 'services/SessionService';
 
 
 // Remember to rename these classes and interfaces!
@@ -16,19 +17,19 @@ export default class DashboardPlugin extends Plugin {
 	private vaultCommands: VaultCommands;
 	private VaultMapper: VaultMapper;
 	private VaultEvent: VaultEventListener;
+	private sessionService: SessionService
 
 	async onload() {
 
 		this.vaultService = new VaultService(this.app);
 		this.statsProcessor = new StatProcessor(this.vaultService);	
 		this.vaultCommands = new VaultCommands(this, this.statsProcessor);
-		this.VaultEvent = new VaultEventListener(this, this.statsProcessor);
-		this.VaultEvent.init();
+		this.sessionService = new SessionService(this.app);
+		this.VaultEvent = new VaultEventListener(this, this.sessionService, this.statsProcessor);
 
+		this.VaultEvent.init();	
+		this.sessionService.getActiveMinutes();
 		this.statsProcessor.VaultLoad('all');
-		const bla = this.vaultService.mostActiveFolder();
-
-		this.vaultCommands.register();
 	}
 	async unload() {
 		this.vaultService = null as any;
