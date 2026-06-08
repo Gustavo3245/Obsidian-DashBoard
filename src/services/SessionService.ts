@@ -1,33 +1,47 @@
 import { App } from "obsidian";
 
 export class SessionService {
-	private lastActivity: number = Date.now();
-	private timer: NodeJS.Timeout | null = null;
+    private accumulatedMs: number = 0;
+    private lastActivityTimestamp: number = Date.now();
+    private lastTickTimestamp: number = Date.now();     
+    private heartbeatInterval: NodeJS.Timeout | null = null;
+    private readonly IDLE_LIMIT_MS = 5 * 60 * 1000;
 
-	private readonly IDLE_THRESHOLD = 15 * 1000;
-	constructor(private app: App) {
-        this.lastActivity = Date.now();
+	constructor(private app: App){
+		this.app = app;
 	}
 
-	public getActiveMinutes() {
-		console.log("Tracker de tempo iniciado!");
+    public startTracking() {
+        this.lastActivityTimestamp = Date.now();
+        this.lastTickTimestamp = Date.now();
 
-		// TEMPORÁRIO PARA TESTE:
-		this.timer = setInterval(() => {
-			const now = Date.now();
-			const timeSinceLastActivity = now - this.lastActivity;
+        this.heartbeatInterval = setInterval(() => {
+			console.log("Tracking!");
+            const now = Date.now();
+            const timeSinceLastActivity = now - this.lastActivityTimestamp;
+            
+            const delta = now - this.lastTickTimestamp; 
 
-			if (timeSinceLastActivity < this.IDLE_THRESHOLD) {
-				console.log(` Usuário ATIVO. Tempo sem mexer: ${Math.floor(timeSinceLastActivity/1000)}s. Adicionando tempo...`);
-				// this.stateManager.dispatchTimeUpdate(1);
-			} else {
-				console.log(` Usuário OCIOSO. Tempo sem mexer: ${Math.floor(timeSinceLastActivity/1000)}s. Pausando contagem.`);
-			}
-		}, 5000); 
-	}
+            if (timeSinceLastActivity <= this.IDLE_LIMIT_MS) {
+                this.accumulatedMs += delta;
+				console.log(`tempo acumulado: ${this.accumulatedMs}`)
+            }
 
-	public pingActivity() {
-        this.lastActivity = Date.now();
+            this.lastTickTimestamp = now;
+        }, 10000);
     }
 
+    public pingActivity() {
+        const now = Date.now();
+
+        if (now - this.lastActivityTimestamp > this.IDLE_LIMIT_MS) {
+            this.lastTickTimestamp = now;
+        }
+
+        this.lastActivityTimestamp = now;
+    }
+
+    public getActiveMinutes(): number {
+        return Math.floor(this.accumulatedMs / 60000);
+    }
 }
