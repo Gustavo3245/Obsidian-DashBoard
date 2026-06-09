@@ -42,6 +42,19 @@ export class StatProcessor {
 		})
 	}
 
+	async updatePreviewMetrics(path: string, characters: number, words: number) {
+		const currentFilePreview = this.fileStatsCache.get(path);
+
+		const updatedFilePreview = VaultMapper.mapToFileMetrics({
+			...currentFilePreview,
+			characters: characters,
+			words: words
+			}
+		)
+		this.fileStatsCache.set(path, updatedFilePreview);
+		console.log(this.fileStatsCache.get(path));
+	}
+
 	async dailyMetricsLoad(range: TimeRange) {
 		const dailyMetricsLoad = await this.calculator.getDailyMetrics(range);
 

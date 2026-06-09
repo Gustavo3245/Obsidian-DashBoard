@@ -30,6 +30,7 @@ export default class DashboardPlugin extends Plugin {
 		this.VaultEvent.init();	
 		this.sessionService.startTracking();
 		this.statsProcessor.VaultLoad('all');
+		console.log(this.statsProcessor.getVaultMetricsState())
 	}
 	async unload() {
 		this.vaultService = null as any;

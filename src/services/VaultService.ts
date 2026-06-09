@@ -448,7 +448,7 @@ export class VaultService {
 
 		const characters = content.replace(/\s/g, '').length;
 
-		const isOrphan = await this.isOrphanFile(file);
+		const isOrphan = this.isOrphanFile(file);
 
 		const readingTime = await this.getVaultEstimateReadingTime([file]);
 

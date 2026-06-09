@@ -3,13 +3,13 @@ import { VaultMetrics } from "models/VaultMetrics";
 import { FileMetrics } from "models/FileMetrics";
 import { DailyMetrics } from "models/DailyMetrics";
 import { TimeRange } from "models/value_objects/TimeRange";
-import { TFile, TFolder } from "obsidian";
+import { TFile,  } from "obsidian";
 import { SessionService } from "./SessionService";
 
 export class StatsCalculator {
 	constructor(private vaultService: VaultService,
 				private sessionService: SessionService){}
-	
+	 
 	async getFileMetrics(file: TFile): Promise<FileMetrics> {
 		const fileMetrics = await this.vaultService.getFilesMetrics(file);
 
