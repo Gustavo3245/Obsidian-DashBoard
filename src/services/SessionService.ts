@@ -7,6 +7,8 @@ export class SessionService {
     private heartbeatInterval: NodeJS.Timeout | null = null;
     private readonly IDLE_LIMIT_MS = 5 * 60 * 1000;
 
+	private heartBeatTimer: number = 10000;
+
 	constructor(private app: App){
 		this.app = app;
 	}
@@ -28,7 +30,7 @@ export class SessionService {
             }
 
             this.lastTickTimestamp = now;
-        }, 10000);
+        }, this.heartBeatTimer);
     }
 
     public pingActivity() {
@@ -42,6 +44,6 @@ export class SessionService {
     }
 
     public getActiveMinutes(): number {
-        return Math.floor(this.accumulatedMs / 60000);
+        return Math.floor(this.accumulatedMs / this.heartBeatTimer);
     }
 }

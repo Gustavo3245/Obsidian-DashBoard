@@ -5,15 +5,22 @@ import { TimeRange } from "models/value_objects/TimeRange";
 import { VaultMapper } from "mappers/VaultMapper";
 import { TFile, TFolder } from "obsidian";
 import { StatsCalculator } from "./StatsCalculator";
+import { SessionService } from "./SessionService";
+import { DailyMetrics } from "models/DailyMetrics";
 
 export class StatProcessor {
 	private VaultMetricsState: VaultMetrics;
+	private dailyMetrics: DailyMetrics;
 	private calculator: StatsCalculator;
 	private fileStatsCache: Map<string, FileMetrics> = new Map();
 
-	constructor(private vaultService: VaultService) {
-		this.calculator = new StatsCalculator(vaultService);
+	constructor(private vaultService: VaultService,
+		private sessionService: SessionService) {
+
+		this.calculator = new StatsCalculator(vaultService, sessionService);
 		this.VaultMetricsState = VaultMapper.getEmptyVaultMetrics();
+		this.dailyMetrics = VaultMapper.getEmptyDailyMetrics();
+
 	}
 
 	getVaultMetricsState() {
@@ -26,6 +33,29 @@ export class StatProcessor {
 			...patch
 		});
 
+	}
+
+	private emitNewDailyState(patch: Partial<DailyMetrics>) {
+		this.dailyMetrics = VaultMapper.mapToDailyMetrics({
+			...this.dailyMetrics,
+			...patch
+		})
+	}
+
+	async dailyMetricsLoad(range: TimeRange) {
+		const dailyMetricsLoad = await this.calculator.getDailyMetrics(range);
+
+		this.emitNewDailyState({
+			...this.dailyMetrics,
+			date: dailyMetricsLoad.date,
+			words: dailyMetricsLoad.words,
+			sentences: dailyMetricsLoad.sentences,
+			characters: dailyMetricsLoad.characters,
+			timeMetrics: {
+				activeMinutes: dailyMetricsLoad.timeMetrics.activeMinutes,
+				sessions: dailyMetricsLoad.timeMetrics.sessions
+			}
+		})
 	}
 
 	async snapshotLoad(range: TimeRange) {

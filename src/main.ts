@@ -22,9 +22,9 @@ export default class DashboardPlugin extends Plugin {
 	async onload() {
 
 		this.vaultService = new VaultService(this.app);
-		this.statsProcessor = new StatProcessor(this.vaultService);	
-		this.vaultCommands = new VaultCommands(this, this.statsProcessor);
 		this.sessionService = new SessionService(this.app);
+		this.statsProcessor = new StatProcessor(this.vaultService, this.sessionService);	
+		this.vaultCommands = new VaultCommands(this, this.statsProcessor);
 		this.VaultEvent = new VaultEventListener(this, this.sessionService, this.statsProcessor);
 
 		this.VaultEvent.init();	

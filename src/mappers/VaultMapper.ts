@@ -1,5 +1,6 @@
 import { VaultMetrics } from "models/VaultMetrics";
 import { FileMetrics } from "models/FileMetrics";
+import { DailyMetrics } from "models/DailyMetrics";
 
 export class VaultMapper {
 	
