@@ -20,7 +20,6 @@ export default class DashboardPlugin extends Plugin {
 	private sessionService: SessionService
 
 	async onload() {
-
 		this.vaultService = new VaultService(this.app);
 		this.sessionService = new SessionService(this.app);
 		this.statsProcessor = new StatProcessor(this.vaultService, this.sessionService);	

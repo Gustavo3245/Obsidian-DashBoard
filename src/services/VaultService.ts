@@ -416,6 +416,16 @@ export class VaultService {
 		return totalSentences;
 	}
 
+	getTotalWordsFromMemory(data: string): number {
+		if (!data || data.trim() === '') return 0;
+
+		const textWithoutFrontmatter = data.replace(/^---[\s\S]+?---\n/, '');
+
+		const wordsArray = textWithoutFrontmatter.match(/[\p{L}\p{N}]+/gu);
+
+		return wordsArray ? wordsArray.length : 0;
+	}
+
 	isOrphanFile(file: TFile): Boolean {
 		const cache = this.app.metadataCache.getFileCache(file);
 

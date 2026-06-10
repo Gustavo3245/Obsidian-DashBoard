@@ -42,13 +42,16 @@ export class StatProcessor {
 		})
 	}
 
-	async updatePreviewMetrics(path: string, characters: number, words: number) {
+	async updatePreviewMetrics(path: string, data: string) {
 		const currentFilePreview = this.fileStatsCache.get(path);
+
+		const charactersPreview = data.length;
+		const wordsPreview = this.vaultService.getTotalWordsFromMemory(data);
 
 		const updatedFilePreview = VaultMapper.mapToFileMetrics({
 			...currentFilePreview,
-			characters: characters,
-			words: words
+			characters: charactersPreview,
+			words: wordsPreview
 			}
 		)
 		this.fileStatsCache.set(path, updatedFilePreview);

@@ -16,18 +16,16 @@ export class VaultEventListener {
 		this.plugin.registerEvent(
 				this.plugin.app.workspace.on('quick-preview', (AbstractFile: TFile, data: string) => {
 				this.sessionService.pingActivity();
-
-				const instantCharacters = data.length;
-				this.processor.updatePreviewMetrics(AbstractFile.path, instantCharacters, instantCharacters);
+				this.handlePreviewAbsctractFile(AbstractFile, data);
 			})
 		)
 		
-		// this.plugin.registerEvent(
-		// 	this.plugin.app.vault.on('modify', (AbstractFile) => {
-		// 		this.sessionService.pingActivity();
-		// 		this.handleAbstractFileModification(AbstractFile);
-		// 	})
-		// );
+		this.plugin.registerEvent(
+			this.plugin.app.vault.on('modify', (AbstractFile) => {
+				this.sessionService.pingActivity();
+				this.handleAbstractFileModification(AbstractFile);
+			})
+		);
 
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('create', (AbstractFile) => {
@@ -45,16 +43,16 @@ export class VaultEventListener {
 
 	}
 
-	// private async handleAbstractFileModification(AbstractFile: TAbstractFile) {
+	private async handleAbstractFileModification(AbstractFile: TAbstractFile) {
 
-	// 	if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
-	// 		const start = performance.now();
-	// 		await this.processor.updateSnapshotLoad(AbstractFile);
-	// 		const end = performance.now();
-	// 		console.log(`função executada em: ${(end - start).toFixed(2)} ms`)
-	// 	}
+		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
+			const start = performance.now();
+			await this.processor.updateSnapshotLoad(AbstractFile);
+			const end = performance.now();
+			console.log(`função executada em: ${(end - start).toFixed(2)} ms`)
+		}
 
-	// }
+	}
 
 	private async handleAbstractFileCreation(AbstractFile: TAbstractFile) {
 
@@ -82,9 +80,9 @@ export class VaultEventListener {
 		}
 	}
 
-	private async handlePreviewAbsctractFile(AbstractFile: TAbstractFile) {
+	private async handlePreviewAbsctractFile(AbstractFile: TAbstractFile, data: string) {
 		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
-
+			this.processor.updatePreviewMetrics(AbstractFile.path, data);
 		}
 		
 	}
