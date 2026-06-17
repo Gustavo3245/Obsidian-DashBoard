@@ -30,8 +30,15 @@ export class VaultMapper {
 				lastModifiedFile: "Nothing but Wind",
 				lastModifiedFiles: "Nothing but Wind",
 			},
-			streak: { streakCount: null, longestStreak: null },
-			storageValues: { mostActiveDay: null, mostActiveWeek: null, mostActiveMonth: null }
+			streak: {
+				streakCount: null,
+				longestStreak: null 
+			},
+			storageValues: { 
+				mostActiveDay: null,
+				mostActiveWeek: null,
+				mostActiveMonth: null
+			}
 		};
 	}
 

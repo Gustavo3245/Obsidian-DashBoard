@@ -1,5 +1,4 @@
 import { TAbstractFile, TFile, TFolder } from "obsidian";
-import { Workspace } from "obsidian";
 import DashboardPlugin from "../main";
 import { StatProcessor } from "services/StatsProcessor";
 import { SessionService } from "services/SessionService";
@@ -9,7 +8,7 @@ export class VaultEventListener {
 	constructor(private plugin: DashboardPlugin,
 		private sessionService: SessionService,
 		private processor: StatProcessor
-) {}
+	) {}
 
 	public init() {
 

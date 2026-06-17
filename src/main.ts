@@ -7,6 +7,7 @@ import { VaultCommands } from 'commands/VaultCommands';
 import { VaultMapper } from 'mappers/VaultMapper';
 import { VaultEventListener } from './events/VaultEventListener';
 import { SessionService } from 'services/SessionService';
+import { StateManager } from 'services/StateManager';
 
 
 // Remember to rename these classes and interfaces!
@@ -17,19 +18,21 @@ export default class DashboardPlugin extends Plugin {
 	private vaultCommands: VaultCommands;
 	private VaultMapper: VaultMapper;
 	private VaultEvent: VaultEventListener;
-	private sessionService: SessionService
+	private sessionService: SessionService;
+	private stateManager: StateManager;
 
 	async onload() {
 		this.vaultService = new VaultService(this.app);
 		this.sessionService = new SessionService(this.app);
-		this.statsProcessor = new StatProcessor(this.vaultService, this.sessionService);	
+		this.stateManager = new StateManager();
+		this.statsProcessor = new StatProcessor(this.vaultService, this.sessionService, this.stateManager);	
 		this.vaultCommands = new VaultCommands(this, this.statsProcessor);
 		this.VaultEvent = new VaultEventListener(this, this.sessionService, this.statsProcessor);
 
 		this.VaultEvent.init();	
 		this.sessionService.startTracking();
 		this.statsProcessor.VaultLoad('all');
-		console.log(this.statsProcessor.getVaultMetricsState())
+		console.log(this.stateManager.getVaultMetricsState());
 	}
 	async unload() {
 		this.vaultService = null as any;
