@@ -5,35 +5,57 @@ import { TimeRange } from "models/value_objects/TimeRange";
 import { VaultMapper } from "mappers/VaultMapper";
 import { TFile, TFolder } from "obsidian";
 import { StatsCalculator } from "./StatsCalculator";
+import { SessionService } from "./SessionService";
+import { DailyMetrics } from "models/DailyMetrics";
+import { StateManager } from "./StateManager";
 
 export class StatProcessor {
-	private VaultMetricsState: VaultMetrics;
 	private calculator: StatsCalculator;
-	private fileStatsCache: Map<string, FileMetrics> = new Map();
 
-	constructor(private vaultService: VaultService) {
-		this.calculator = new StatsCalculator(vaultService);
-		this.VaultMetricsState = VaultMapper.getEmptyVaultMetrics();
+	constructor(private vaultService: VaultService,
+				private sessionService: SessionService,
+				private stateManager: StateManager) {
+		this.calculator = new StatsCalculator(vaultService, sessionService);
 	}
 
-	getVaultMetricsState() {
-		return this.VaultMetricsState;
-	}
-	
-	private emitNewState(patch: Partial<VaultMetrics>) {
-		this.VaultMetricsState = VaultMapper.mapToVaultMetrics({
-			...this.VaultMetricsState,
-			...patch
-		});
+	async updatePreviewMetrics(path: string, data: string) {
+		const currentFilePreview = this.stateManager.getFileStatsPerPath(path);
 
+		const charactersPreview = data.length;
+		const wordsPreview = this.vaultService.getTotalWordsFromMemory(data);
+
+		const updatedFilePreview = VaultMapper.mapToFileMetrics({
+			...currentFilePreview,
+			characters: charactersPreview,
+			words: wordsPreview
+			}
+		)
+		this.stateManager.setFileCache(path, updatedFilePreview);
+		console.log(this.stateManager.getFileStatsPerPath(path));
+	}
+
+	async dailyMetricsLoad(range: TimeRange) {
+		const dailyMetricsLoad = await this.calculator.getDailyMetrics(range);
+
+		this.stateManager.emitNewDailyState({
+			...this.stateManager.getDailyMetricsState,
+			date: dailyMetricsLoad.date,
+			words: dailyMetricsLoad.words,
+			sentences: dailyMetricsLoad.sentences,
+			characters: dailyMetricsLoad.characters,
+			timeMetrics: {
+				activeMinutes: dailyMetricsLoad.timeMetrics.activeMinutes,
+				sessions: dailyMetricsLoad.timeMetrics.sessions
+			}
+		})
 	}
 
 	async snapshotLoad(range: TimeRange) {
 		const snapshot = await this.calculator.getSnapshot(range);
 
-		this.emitNewState({
+		this.stateManager.emitNewState({
 			volume: {
-				...this.VaultMetricsState.volume,
+				...this.stateManager.getVaultMetricsState().volume,
 				snapshot: snapshot
 			}
 		})
@@ -42,29 +64,29 @@ export class StatProcessor {
 	async updateSnapshotLoad(file: TFile) {
 		const updatedSnapshot = await this.calculator.updateSnapshotMetrics(file);
 
-		this.emitNewState({
+		this.stateManager.emitNewState({
 			volume: {
-				...this.VaultMetricsState.volume,
+				...this.stateManager.getVaultMetricsState().volume,
 				snapshot: updatedSnapshot
 			}
 		})
-		console.log("new file state: ", this.getVaultMetricsState().volume.snapshot);
+		console.log("new file state: ", this.stateManager.getVaultMetricsState().volume.snapshot);
 	}
 
 	async volumesLoad(range: TimeRange) {
 		const volumeMetrics = await this.calculator.getVolumeMetrics(range);
 
-		this.emitNewState({
-			...this.VaultMetricsState.volume,
+		this.stateManager.emitNewState({
+			...this.stateManager.getVaultMetricsState().volume,
 			volume: volumeMetrics
 		})
 	}
 
 	async processNewMarkdownFile(file: TFile) {
-		const currentVolume = this.VaultMetricsState.volume;
+		const currentVolume = this.stateManager.getVaultMetricsState().volume;
 		const fileSnapshot = await this.calculator.updateSnapshotMetrics(file);
 
-		this.emitNewState({
+		this.stateManager.emitNewState({
 			volume: {
 				...currentVolume,
 				snapshot: { 
@@ -81,18 +103,18 @@ export class StatProcessor {
 				averageWordsPerFile: (currentVolume.snapshot.totalWords / currentVolume.totalFiles)
 			}
 		})
-		console.log("New file created: ", this.getVaultMetricsState().volume);
+		console.log("New file created: ", this.stateManager.getVaultMetricsState().volume);
 	}
 
 
 	async processDeletedMarkdownFile(file: TFile) {
-		const currentVolume = this.VaultMetricsState.volume;
-		const cachedFileMetrics = this.fileStatsCache.get(file.path) ?? VaultMapper.getEmptyActiveFileMetrics();
+		const currentVolume = this.stateManager.getVaultMetricsState().volume;
+		const cachedFileMetrics = this.stateManager.getFileStatsPerPath(file.path) ?? VaultMapper.getEmptyActiveFileMetrics();
 		
 		// -- NOTE Not every type of markDown file is a orphan file,
 		// to fix this problem, (I have to repass the getTotalOrphanFiles again).
 	
-		this.emitNewState({
+		this.stateManager.emitNewState({
 			volume: {
 				...currentVolume,
 				snapshot: {
@@ -110,29 +132,28 @@ export class StatProcessor {
 			}
 		})
 
-		console.log("New file created: ", this.getVaultMetricsState().volume);
+		console.log("New file created: ", this.stateManager.getVaultMetricsState().volume);
 	}
 
 	async processFolders(tfolder: TFolder) {
-		const currentVolume = this.VaultMetricsState.volume;
+		const currentVolume = this.stateManager.getVaultMetricsState().volume;
 
-		this.emitNewState({
+		this.stateManager.emitNewState({
 			volume: {
 				...currentVolume,
 				totalFolders: currentVolume.totalFolders,
 				totalVaultSize: currentVolume.totalVaultSize,
 			}
 		})
-		console.log("New folder state: ", this.getVaultMetricsState().volume);
+		console.log("New folder state: ", this.stateManager.getVaultMetricsState().volume);
 	}
 
 	async VaultLoad(range: TimeRange) {
-
 		const files = this.vaultService.getFilesByRange(range);
 
 		await Promise.all(files.map(async (file) => {
 			const stats = await this.calculator.getFileMetrics(file);
-			this.fileStatsCache.set(file.path, stats);
+			this.stateManager.setFileCache(file.path, stats);
 		}))
 		
 		const [volume, estimates, appears, streak, storage] = await Promise.all([
@@ -143,15 +164,15 @@ export class StatProcessor {
 			this.calculator.storageValuesMetrics(range)
 		])
 
-		this.emitNewState({
+		this.stateManager.emitNewState({
 			volume: volume,
 			estimates: estimates,
 			appears: appears,
 			streak: streak,
 			storageValues: storage
 		});
-		console.log("Inital Value State: ", this.getVaultMetricsState());
-		console.log("Files Value State: ", this.fileStatsCache);
+		console.log("Inital Value State: ", this.stateManager.getVaultMetricsState());
+		console.log("Files Value State: ", this.stateManager.getFilesStats());
 	}
 
 }

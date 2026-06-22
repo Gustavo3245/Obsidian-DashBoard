@@ -29,6 +29,10 @@ export class VaultService {
 		return files.filter(file => file.stat.mtime >= threshold);
 	}
 
+	/**
+	 *	Get Tfile[] Array with custom time range, using (start time, end time).
+	 *	This function use the file.stat.mtime with filter passing the entire vault.
+	 */
 	getFilesByCustomRange(start: Date, end: Date = new Date()): TFile[] {
 		const files = this.app.vault.getMarkdownFiles();
 
@@ -42,9 +46,11 @@ export class VaultService {
 	}
 
 	/**
-	 * get the total caracters bases in the current relevant files (parameter files).
-	 * //FIXME this function is much heaved to is should be.
+	 * Get the number of characters based in a Array range, Tfile[].
+	 * this function uses a map passing the entire vault using the vault.cacheRead() 
+	 * function for catch the content: string with the caracters.
 	 */
+	//  FIXME: This function is much much heavier that should be.
 	async getTotalCharacters(files: TFile[]): Promise<number> {
 		
 		const characterCount = await Promise.all(
@@ -57,9 +63,9 @@ export class VaultService {
 	}
 
 	/**
-	 * get the total words based in the current relevant files.
-	 * Something is considered a word if there is a space 
-	 * or punctuation at the end of it.
+	 * Get the number of words based in a Array range of Tfiles[].
+	 * Something is considered a word if there is a space or 
+	 * punctuation at the end of it.
 	 */
 	async getTotalWords(files: TFile[]): Promise<number> {
 
@@ -68,17 +74,17 @@ export class VaultService {
 
 				// split the actual content of this complete file created a list
 				// where every item divide by a space/colon or ponctuation is a item
-				// ifs the length of the item is > 2 caracters is considered a word.
+				// ifs the length of the item is >= 1 caracters is considered a word.
 				const content = await this.app.vault.cachedRead(file);
-				return content.split(/\s+/).filter(word => word.length > 0).length;
+				return content.split(/\s+/).filter(word => word.length >= 1).length;
 			})
 		);
 		return wordCount.reduce((total, count) => total + count, 0);
 	}
 
 	/**
-	 * return a type tag with the name and count of the most used tag.
-	 * this calculation uses all tag appearances.
+	 * Return a type tag with the name and count of the most used tag.
+	 * this calculation uses all tag appearances in the entire vault (content and FrontMatter).
 	 */
 	getMostAppearsTagInAllContent(files: TFile[]): tagType | string {
 		const tagCount: Record<string, number> = {};
@@ -94,7 +100,8 @@ export class VaultService {
 			
 		}
 
-		const mostAppearsTag = Object.entries(tagCount).sort((current, previous) => previous[1] - current[1]);
+		const mostAppearsTag = Object.entries(tagCount)
+									.sort((current, previous) => previous[1] - current[1]);
 
 		if(mostAppearsTag.length > 0 && mostAppearsTag[0]) {
 			return {
@@ -107,7 +114,7 @@ export class VaultService {
 
 	/**
 	 * This function return a Tag Record object with the name and the count of
-	 * any tag writes in the frontmatter files.
+	 * the write tag in the frontmatter files.
 	 */
 	getTagCountsInFrontMatter(files: TFile[]): Record<string, number> {
 		const tagCount: Record<string, number> = {};
@@ -120,7 +127,10 @@ export class VaultService {
 				const tags = Array.isArray(cache.frontmatter.tags)
 					? cache.frontmatter.tags : [cache.frontmatter.tags];
 
-				tags.forEach(tag => { tagCount[tag] = (tagCount[tag] || 0) + 1; });
+				tags.forEach(tag => {
+					const normalized = tag.startsWith('#') ? tag : `#${tag}`;
+					tagCount[normalized] = (tagCount[normalized] || 0) + 1; 
+				});
 			}
 		}
 		return tagCount;
@@ -162,7 +172,11 @@ export class VaultService {
 		return "Nothing but Wind";
 	}
 
-
+	/**
+	 * Get the Estimated Reading Time based in medium per word readtime
+	 * using a Array range of Tfiles[]. This function uses the number 200 for
+	 * the medium Per minute readtime.
+	 */
 	async getVaultEstimateReadingTime(files: TFile[]): Promise<ReadingTime | string> {
 		const totalWords = await this.getTotalWords(files);
 		const WORD_PER_MINUTE_READTIME = 200;
@@ -186,9 +200,9 @@ export class VaultService {
 	}
 
 	/*
-	 * get the current last modified MarkDown file in the vault.
+	 * Get the current last modified MarkDown file in the vault.
 	 * Typically, the last modified file is the active one at the moment.
-	 * DEPRECITED // Not used
+	 * / ERROR: 
 	 */
 	getLastModifiedMarkDownFile(): TFile | string { 
 		const files = this.app.vault.getMarkdownFiles();
@@ -416,6 +430,16 @@ export class VaultService {
 		return totalSentences;
 	}
 
+	getTotalWordsFromMemory(data: string): number {
+		if (!data || data.trim() === '') return 0;
+
+		const textWithoutFrontmatter = data.replace(/^---[\s\S]+?---\n/, '');
+
+		const wordsArray = textWithoutFrontmatter.match(/[\p{L}\p{N}]+/gu);
+
+		return wordsArray ? wordsArray.length : 0;
+	}
+
 	isOrphanFile(file: TFile): Boolean {
 		const cache = this.app.metadataCache.getFileCache(file);
 
@@ -448,7 +472,7 @@ export class VaultService {
 
 		const characters = content.replace(/\s/g, '').length;
 
-		const isOrphan = await this.isOrphanFile(file);
+		const isOrphan = this.isOrphanFile(file);
 
 		const readingTime = await this.getVaultEstimateReadingTime([file]);
 

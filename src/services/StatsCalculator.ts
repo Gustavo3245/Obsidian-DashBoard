@@ -1,12 +1,15 @@
 import { VaultService } from "./VaultService";
 import { VaultMetrics } from "models/VaultMetrics";
 import { FileMetrics } from "models/FileMetrics";
+import { DailyMetrics } from "models/DailyMetrics";
 import { TimeRange } from "models/value_objects/TimeRange";
-import { TFile, TFolder } from "obsidian";
+import { TFile,  } from "obsidian";
+import { SessionService } from "./SessionService";
 
 export class StatsCalculator {
-	constructor(private vaultService: VaultService){}
-	
+	constructor(private vaultService: VaultService,
+				private sessionService: SessionService){}
+	 
 	async getFileMetrics(file: TFile): Promise<FileMetrics> {
 		const fileMetrics = await this.vaultService.getFilesMetrics(file);
 
@@ -31,7 +34,7 @@ export class StatsCalculator {
 			characters: snapshotValues.totalCharacters,
 			sentences: snapshotValues.totalSentences,
 			timeMetrics: {
-				activeMinutes: 1,
+				activeMinutes: this.sessionService.getActiveMinutes(),
 				sessions: 1
 			}
 		}
@@ -46,7 +49,7 @@ export class StatsCalculator {
 			characters: updateSnapshot.totalCharacters,
 			sentences: updateSnapshot.totalSentences,
 			timeMetrics: {
-				activeMinutes: 1,
+				activeMinutes: this.sessionService.getActiveMinutes(),
 				sessions: 1
 			}
 		}

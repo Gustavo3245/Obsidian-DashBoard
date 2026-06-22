@@ -1,28 +1,41 @@
 import { TAbstractFile, TFile, TFolder } from "obsidian";
 import DashboardPlugin from "../main";
 import { StatProcessor } from "services/StatsProcessor";
+import { SessionService } from "services/SessionService";
 
 export class VaultEventListener {
+
 	constructor(private plugin: DashboardPlugin,
+		private sessionService: SessionService,
 		private processor: StatProcessor
 	) {}
 
 	public init() {
 
 		this.plugin.registerEvent(
+				this.plugin.app.workspace.on('quick-preview', (AbstractFile: TFile, data: string) => {
+				this.sessionService.pingActivity();
+				this.handlePreviewAbsctractFile(AbstractFile, data);
+			})
+		)
+		
+		this.plugin.registerEvent(
 			this.plugin.app.vault.on('modify', (AbstractFile) => {
+				this.sessionService.pingActivity();
 				this.handleAbstractFileModification(AbstractFile);
 			})
 		);
 
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('create', (AbstractFile) => {
+				this.sessionService.pingActivity();
 				this.handleAbstractFileCreation(AbstractFile);
 			})
 		);
 
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('delete', (AbstractFile) => {
+				this.sessionService.pingActivity();
 				this.handleAbstractFileDeletion(AbstractFile);
 			})
 		);
@@ -64,5 +77,12 @@ export class VaultEventListener {
 			console.log(`Evento disparado, deletando pasta`)
 			await this.processor.processFolders(AbstractFile);
 		}
+	}
+
+	private async handlePreviewAbsctractFile(AbstractFile: TAbstractFile, data: string) {
+		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
+			this.processor.updatePreviewMetrics(AbstractFile.path, data);
+		}
+		
 	}
 }

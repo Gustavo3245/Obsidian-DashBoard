@@ -1,4 +1,4 @@
-interface DailyMetrics {
+export interface DailyMetrics {
 	date: string;
 	words: number;
 	characters: number;
