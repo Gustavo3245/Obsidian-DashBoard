@@ -4,7 +4,8 @@ export class SessionService {
     private accumulatedMs: number = 0;
     private lastActivityTimestamp: number = Date.now();
     private lastTickTimestamp: number = Date.now();     
-    private heartbeatInterval: NodeJS.Timeout | null = null;
+    
+	private heartbeatInterval: NodeJS.Timeout | null = null;
     private readonly IDLE_LIMIT_MS = 5 * 60 * 1000;
 
 	private heartBeatTimer: number = 10000;
