@@ -5,6 +5,10 @@
 *.iml
 .idea
 
+# data objects
+data.json
+.~lock.data.json#
+
 # npm
 node_modules
 

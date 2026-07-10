@@ -28,45 +28,39 @@ export default class DashboardPlugin extends Plugin {
 
 		this.vaultService = new VaultService(this.app);
 		this.sessionService = new SessionService(this.app);
-		this.stateManager = new StateManager();
+		
+		this.stateManager = new StateManager(
+			this.vaultMetricData.vaultMetrics,
+			this.vaultMetricData.dailyHistory,
+			async () => { await this.saveSettings();}
+		);
+
 		this.statsProcessor = new StatProcessor(this.vaultService, this.sessionService, this.stateManager);	
 		this.vaultCommands = new VaultCommands(this, this.statsProcessor);
 		this.vaultEvent = new VaultEventListener(this, this.sessionService, this.statsProcessor);
 
 		this.vaultEvent.init();	
 		this.sessionService.startTracking();
-		this.statsProcessor.VaultLoad('all');
-		console.log(this.stateManager.getVaultMetricsState());
+		await this.statsProcessor.VaultLoad('all');
+
 		await this.saveSettings();
 	}
 
-	async unload() {
-		this.vaultService = null as any;
-		this.statsProcessor = null as any;
-		this.vaultEvent = null as any;
-	    
-	}
-
 	async loadSettings() {
-		this.vaultMetricData = Object.assign({}, DEFAULT_STORAGE_DATA, await this.loadData());
+		const dataFromDisk = await this.loadData();
+		this.vaultMetricData = Object.assign({}, DEFAULT_STORAGE_DATA, dataFromDisk);
 	}
 
 	async saveSettings(){
-		console.log("Data Salva nos arquivos de data.json")
+
 		const dataToSave: StorageData = {
 			vaultMetrics: this.stateManager.getVaultMetricsState(),
-			dailyHistory: {
-				"Date to implement": this.stateManager.getDailyMetricsState()
-			},
+			dailyHistory: this.stateManager.getDailyMetricsState(),
 			settings: this.vaultMetricData.settings
 		};
 
 		await this.saveData(dataToSave);
 	}
 
-	async saveData(data: any): Promise<void> {
-	    
-	}
 }
 
-//class SampleModal extends Modal {}
