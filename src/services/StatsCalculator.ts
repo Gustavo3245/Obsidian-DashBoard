@@ -2,12 +2,14 @@ import { VaultMetrics } from "models/VaultMetrics";
 import { FileMetrics } from "models/FileMetrics";
 import { DailyMetrics } from "models/DailyMetrics";
 import { TimeRange } from "models/value_objects/TimeRange";
-import { TFile,  } from "obsidian";
+import { TFile} from "obsidian";
 import { SessionService } from "./SessionService";
 import { VaultService } from "./VaultService";
+import { MetadataAnalyzer } from "analyzer/MetadataAnalyzer";
 
 export class StatsCalculator {
 	constructor(private vaultService: VaultService,
+				private metadataAnalyzer: MetadataAnalyzer,
 				private sessionService: SessionService){}
 	 
 	async getFileMetrics(file: TFile): Promise<FileMetrics> {
@@ -126,9 +128,9 @@ export class StatsCalculator {
 
 		return {
 			mostAppearsTag: this.vaultService.getMostAppearsTagInAllContent(relevantFiles),
-			mostAppearsTagInFrontMatter: this.vaultService.getMostAppearsTagInFrontMatter(relevantFiles),
-			minorAppearsTag: this.vaultService.getMinorAppearsTagInFrontMatter(relevantFiles),
-			totalUniqueTags: this.vaultService.getTotalUniqueTags(relevantFiles),
+			mostAppearsTagInFrontMatter: this.metadataAnalyzer.getMostAppearsTagInFrontMatter(relevantFiles),
+			minorAppearsTag: this.metadataAnalyzer.getMinorAppearsTagInFrontMatter(relevantFiles),
+			totalUniqueTags: this.metadataAnalyzer.getTotalUniqueTags(relevantFiles),
 			mostActiveFolder: this.vaultService.mostActiveFolder(),
 			lastModifiedFile: this.vaultService.getLastModifiedMarkDownFile(),
 			lastModifiedFiles: this.vaultService.getActiveMarkDownFiles(),

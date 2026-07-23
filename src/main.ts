@@ -8,7 +8,9 @@ import { VaultMapper } from 'mappers/VaultMapper';
 import { VaultEventListener } from './events/VaultEventListener';
 import { SessionService } from 'services/SessionService';
 import { StateManager } from 'state/StateManager';
+import { StatsCalculator } from 'services/StatsCalculator';
 import { DEFAULT_STORAGE_DATA, StorageData } from 'datas/VaultMetricData';
+import { MetadataAnalyzer } from 'analyzer/MetadataAnalyzer';
 
 
 // Remember to rename these classes and interfaces!
@@ -20,14 +22,18 @@ export default class DashboardPlugin extends Plugin {
 	private vaultMapper: VaultMapper;
 	private vaultEvent: VaultEventListener;
 	private sessionService: SessionService;
+	private StatsCalculator: StatsCalculator;
 	private stateManager: StateManager;
 	private vaultMetricData: StorageData;
+	private metadataAnalyzer: MetadataAnalyzer;
+
 
 	async onload() {
 		await this.loadSettings();
 
 		this.vaultService = new VaultService(this.app);
 		this.sessionService = new SessionService(this.app);
+		this.metadataAnalyzer = new MetadataAnalyzer(this.app);
 		
 		this.stateManager = new StateManager(
 			this.vaultMetricData.vaultMetrics,
@@ -35,7 +41,13 @@ export default class DashboardPlugin extends Plugin {
 			async () => { await this.saveSettings();}
 		);
 
-		this.statsProcessor = new StatProcessor(this.vaultService, this.sessionService, this.stateManager);	
+		this.StatsCalculator = new StatsCalculator(
+			this.vaultService,
+			this.metadataAnalyzer,
+			this.sessionService
+		)
+
+		this.statsProcessor = new StatProcessor(this.StatsCalculator, this.vaultService, this.stateManager);	
 		this.vaultCommands = new VaultCommands(this, this.statsProcessor);
 		this.vaultEvent = new VaultEventListener(this, this.sessionService, this.statsProcessor);
 

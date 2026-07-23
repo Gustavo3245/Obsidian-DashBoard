@@ -113,66 +113,6 @@ export class VaultService {
 	}
 
 	/**
-	 * This function return a Tag Record object with the name and the count of
-	 * the write tag in the frontmatter files.
-	 */
-	getTagCountsInFrontMatter(files: TFile[]): Record<string, number> {
-		const tagCount: Record<string, number> = {};
-
-		for (const file of files){ 
-			const cache = this.app.metadataCache.getFileCache(file);
-
-			if(cache?.frontmatter && cache.frontmatter.tags) {
-
-				const tags = Array.isArray(cache.frontmatter.tags)
-					? cache.frontmatter.tags : [cache.frontmatter.tags];
-
-				tags.forEach(tag => {
-					const normalized = tag.startsWith('#') ? tag : `#${tag}`;
-					tagCount[normalized] = (tagCount[normalized] || 0) + 1; 
-				});
-			}
-		}
-		return tagCount;
-	}
-
-	/**
-	 * return a type tag with the name and count of the most used tag.
-	 * this calculation uses ONLY frontmatter tags appearances.
-	 */
-	getMostAppearsTagInFrontMatter(files: TFile[]): tagType | string {
-		const tagCount = this.getTagCountsInFrontMatter(files);
-
-		const mostAppearsTag = Object.entries(tagCount).sort((current, previous) => previous[1] - current[1]);
-
-		if(mostAppearsTag?.length > 0 && mostAppearsTag[0]) {
-			return {
-				name: mostAppearsTag[0][0],
-				count: mostAppearsTag[0][1]
-			}
-		} 
-		return "Nothing But Wind";
-	}
-
-	/**
-	 * return a type tag with the name and count of the minor used tag.
-	 * this calculation uses ONLY frontmatter tags appearances.
-	 */
-	getMinorAppearsTagInFrontMatter(files: TFile[]): tagType | string {
-		const tagCount = this.getTagCountsInFrontMatter(files);
-
-		const minorAppearsTag = Object.entries(tagCount).sort((current, previous) => current[1] - previous[1]);
-
-		if(minorAppearsTag?.length > 0 && minorAppearsTag[0]){
-			return {
-				name: minorAppearsTag[0][0],
-				count: minorAppearsTag[0][1]
-			};
-		}
-		return "Nothing but Wind";
-	}
-
-	/**
 	 * Get the Estimated Reading Time based in medium per word readtime
 	 * using a Array range of Tfiles[]. This function uses the number 200 for
 	 * the medium Per minute readtime.
@@ -390,26 +330,6 @@ export class VaultService {
 			totalSeconds
 		};
 
-	}
-
-	getTotalUniqueTags(files: TFile[]): number {
-
-		if(files.length === 0 || !files){
-			return 0;
-		}
-
-		const uniqueTags = new Set<string>();
-
-		files.forEach((file) => {
-			const cache = this.app.metadataCache.getFileCache(file);
-			const fileTags = cache ? getAllTags(cache) : null;
-
-			fileTags?.forEach(tag => {
-				uniqueTags.add(tag.toLowerCase());
-			});
-		});
-
-		return uniqueTags.size;
 	}
 
 	/**

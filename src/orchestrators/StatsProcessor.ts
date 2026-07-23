@@ -1,20 +1,15 @@
 import { TimeRange } from "models/value_objects/TimeRange";
-import { VaultMapper } from "mappers/VaultMapper";
 import { DailyMapper } from "mappers/DailyMapper";
 import { moment, TFile, TFolder } from "obsidian";
 import { StateManager } from "state/StateManager";
 import { VaultService } from "services/VaultService";
-import { SessionService } from "services/SessionService";
 import { StatsCalculator } from "services/StatsCalculator";
 
 export class StatProcessor {
-	private calculator: StatsCalculator;
 
-	constructor(private vaultService: VaultService,
-		private sessionService: SessionService,
-		private stateManager: StateManager) {
-		this.calculator = new StatsCalculator(vaultService, sessionService);
-	}
+	constructor(private calculator: StatsCalculator,
+				private vaultService: VaultService,
+				private stateManager: StateManager) {} 
 
 	async updatePreviewMetrics(path: string, data: string) {
 		const currentFilePreview = this.stateManager.getFileStatsPerPath(path);
