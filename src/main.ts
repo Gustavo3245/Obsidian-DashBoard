@@ -2,7 +2,7 @@ import {addIcon, App, Editor, MarkdownView, Modal, Notice, Plugin, TFile, Vault}
 import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
 
 import { VaultService } from 'services/VaultService';
-import { StatProcessor } from 'services/StatsProcessor';
+import { StatProcessor } from 'orchestrators/StatsProcessor';
 import { VaultCommands } from 'commands/VaultCommands';
 import { VaultMapper } from 'mappers/VaultMapper';
 import { VaultEventListener } from './events/VaultEventListener';

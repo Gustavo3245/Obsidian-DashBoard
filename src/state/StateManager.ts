@@ -2,6 +2,7 @@ import { VaultMetrics } from "models/VaultMetrics";
 import { DailyMetrics } from "models/DailyMetrics";
 import { FileMetrics } from "models/FileMetrics";
 import { VaultMapper } from "mappers/VaultMapper";
+import { DailyMapper } from "mappers/DailyMapper";
 
 export type StateListener = () => void;
 
@@ -55,13 +56,13 @@ export class StateManager {
 	}
 
 	public getDailyMetricsByDate(date: string): DailyMetrics {
-		return this.dailyMetricsHistory[date] ?? VaultMapper.getEmptyDailyMetrics();
+		return this.dailyMetricsHistory[date] ?? DailyMapper.getEmptyDailyMetrics();
 	}
 
 	public emitNewDailyMetrics(date: string, patch: Partial<DailyMetrics>) {
 		const dailyHistory = this.getDailyMetricsByDate(date);
 
-		this.dailyMetricsHistory[date] = VaultMapper.mapToDailyMetrics({
+		this.dailyMetricsHistory[date] = DailyMapper.mapToDailyMetrics({
 			...dailyHistory,
 			...patch,
 			date: date

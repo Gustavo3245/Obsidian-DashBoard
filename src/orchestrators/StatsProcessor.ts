@@ -1,11 +1,11 @@
 import { TimeRange } from "models/value_objects/TimeRange";
 import { VaultMapper } from "mappers/VaultMapper";
+import { DailyMapper } from "mappers/DailyMapper";
 import { moment, TFile, TFolder } from "obsidian";
-import { StatsCalculator } from "./StatsCalculator";
-import { SessionService } from "./SessionService";
 import { StateManager } from "state/StateManager";
-import { VaultService } from "./VaultService";
-
+import { VaultService } from "services/VaultService";
+import { SessionService } from "services/SessionService";
+import { StatsCalculator } from "services/StatsCalculator";
 
 export class StatProcessor {
 	private calculator: StatsCalculator;
@@ -22,7 +22,7 @@ export class StatProcessor {
 		const charactersPreview = data.length;
 		const wordsPreview = this.vaultService.getTotalWordsFromMemory(data);
 
-		const updatedFilePreview = VaultMapper.mapToFileMetrics({
+		const updatedFilePreview = DailyMapper.mapToFileMetrics({
 			...currentFilePreview,
 			characters: charactersPreview,
 			words: wordsPreview
@@ -108,7 +108,7 @@ export class StatProcessor {
 
 	async processDeletedMarkdownFile(file: TFile) {
 		const currentVolume = this.stateManager.getVaultMetricsState().volume;
-		const cachedFileMetrics = this.stateManager.getFileStatsPerPath(file.path) ?? VaultMapper.getEmptyActiveFileMetrics();
+		const cachedFileMetrics = this.stateManager.getFileStatsPerPath(file.path) ?? DailyMapper.getEmptyActiveFileMetrics();
 		
 		// -- NOTE Not every type of markDown file is a orphan file,
 		// to fix this problem, (I have to repass the getTotalOrphanFiles again).
