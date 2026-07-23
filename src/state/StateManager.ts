@@ -2,7 +2,6 @@ import { VaultMetrics } from "models/VaultMetrics";
 import { DailyMetrics } from "models/DailyMetrics";
 import { FileMetrics } from "models/FileMetrics";
 import { VaultMapper } from "mappers/VaultMapper";
-import { listeners } from "process";
 
 export type StateListener = () => void;
 

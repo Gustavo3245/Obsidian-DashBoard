@@ -1,13 +1,13 @@
 import {addIcon, App, Editor, MarkdownView, Modal, Notice, Plugin, TFile, Vault} from 'obsidian';
 import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
 
-import { VaultService } from "./services/VaultService";
+import { VaultService } from 'services/VaultService';
 import { StatProcessor } from 'services/StatsProcessor';
 import { VaultCommands } from 'commands/VaultCommands';
 import { VaultMapper } from 'mappers/VaultMapper';
 import { VaultEventListener } from './events/VaultEventListener';
 import { SessionService } from 'services/SessionService';
-import { StateManager } from 'services/StateManager';
+import { StateManager } from 'state/StateManager';
 import { DEFAULT_STORAGE_DATA, StorageData } from 'datas/VaultMetricData';
 
 

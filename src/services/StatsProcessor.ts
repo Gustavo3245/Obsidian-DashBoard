@@ -1,10 +1,11 @@
-import { VaultService } from "./VaultService";
 import { TimeRange } from "models/value_objects/TimeRange";
 import { VaultMapper } from "mappers/VaultMapper";
 import { moment, TFile, TFolder } from "obsidian";
 import { StatsCalculator } from "./StatsCalculator";
 import { SessionService } from "./SessionService";
-import { StateManager } from "./StateManager";
+import { StateManager } from "state/StateManager";
+import { VaultService } from "./VaultService";
+
 
 export class StatProcessor {
 	private calculator: StatsCalculator;
