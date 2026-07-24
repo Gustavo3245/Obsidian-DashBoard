@@ -1,22 +1,15 @@
-import { FileMetrics } from "models/FileMetrics";
-import { VaultService } from "./VaultService";
-import { VaultMetrics } from "models/VaultMetrics";
 import { TimeRange } from "models/value_objects/TimeRange";
-import { VaultMapper } from "mappers/VaultMapper";
-import { TFile, TFolder } from "obsidian";
-import { StatsCalculator } from "./StatsCalculator";
-import { SessionService } from "./SessionService";
-import { DailyMetrics } from "models/DailyMetrics";
-import { StateManager } from "./StateManager";
+import { DailyMapper } from "mappers/DailyMapper";
+import { moment, TFile, TFolder } from "obsidian";
+import { StateManager } from "state/StateManager";
+import { VaultService } from "services/VaultService";
+import { StatsCalculator } from "services/StatsCalculator";
 
 export class StatProcessor {
-	private calculator: StatsCalculator;
 
-	constructor(private vaultService: VaultService,
-				private sessionService: SessionService,
-				private stateManager: StateManager) {
-		this.calculator = new StatsCalculator(vaultService, sessionService);
-	}
+	constructor(private calculator: StatsCalculator,
+				private vaultService: VaultService,
+				private stateManager: StateManager) {} 
 
 	async updatePreviewMetrics(path: string, data: string) {
 		const currentFilePreview = this.stateManager.getFileStatsPerPath(path);
@@ -24,7 +17,7 @@ export class StatProcessor {
 		const charactersPreview = data.length;
 		const wordsPreview = this.vaultService.getTotalWordsFromMemory(data);
 
-		const updatedFilePreview = VaultMapper.mapToFileMetrics({
+		const updatedFilePreview = DailyMapper.mapToFileMetrics({
 			...currentFilePreview,
 			characters: charactersPreview,
 			words: wordsPreview
@@ -35,10 +28,11 @@ export class StatProcessor {
 	}
 
 	async dailyMetricsLoad(range: TimeRange) {
+
+		const today = moment().format("YYYY-MM-DD");
 		const dailyMetricsLoad = await this.calculator.getDailyMetrics(range);
 
-		this.stateManager.emitNewDailyState({
-			...this.stateManager.getDailyMetricsState,
+		this.stateManager.emitNewDailyMetrics(today, {
 			date: dailyMetricsLoad.date,
 			words: dailyMetricsLoad.words,
 			sentences: dailyMetricsLoad.sentences,
@@ -109,7 +103,7 @@ export class StatProcessor {
 
 	async processDeletedMarkdownFile(file: TFile) {
 		const currentVolume = this.stateManager.getVaultMetricsState().volume;
-		const cachedFileMetrics = this.stateManager.getFileStatsPerPath(file.path) ?? VaultMapper.getEmptyActiveFileMetrics();
+		const cachedFileMetrics = this.stateManager.getFileStatsPerPath(file.path) ?? DailyMapper.getEmptyActiveFileMetrics();
 		
 		// -- NOTE Not every type of markDown file is a orphan file,
 		// to fix this problem, (I have to repass the getTotalOrphanFiles again).
@@ -171,8 +165,10 @@ export class StatProcessor {
 			streak: streak,
 			storageValues: storage
 		});
+
+		this.dailyMetricsLoad("all");
 		console.log("Inital Value State: ", this.stateManager.getVaultMetricsState());
 		console.log("Files Value State: ", this.stateManager.getFilesStats());
+		console.log("DailyHistoryMetrics State:", this.stateManager.getDailyMetricsState());
 	}
-
 }

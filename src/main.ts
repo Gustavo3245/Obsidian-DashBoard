@@ -1,53 +1,74 @@
 import {addIcon, App, Editor, MarkdownView, Modal, Notice, Plugin, TFile, Vault} from 'obsidian';
 import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
 
-import { VaultService } from "./services/VaultService";
-import { StatProcessor } from 'services/StatsProcessor';
-import { VaultCommands } from 'commands/VaultCommands';
-import { VaultMapper } from 'mappers/VaultMapper';
 import { VaultEventListener } from './events/VaultEventListener';
-import { SessionService } from 'services/SessionService';
-import { StateManager } from 'services/StateManager';
+import { DEFAULT_STORAGE_DATA, StorageData } from 'datas/VaultMetricData';
 
+import { ServiceContainer } from 'services/ServiceContainer';
+import { VaultMetrics } from 'models/VaultMetrics';
+import { DailyMetrics } from 'models/DailyMetrics';
 
 // Remember to rename these classes and interfaces!
 export default class DashboardPlugin extends Plugin {
 
-	private vaultService: VaultService;
-	private statsProcessor: StatProcessor;
-	private vaultCommands: VaultCommands;
-	private VaultMapper: VaultMapper;
-	private VaultEvent: VaultEventListener;
-	private sessionService: SessionService;
-	private stateManager: StateManager;
+	private serviceContainer: ServiceContainer;
+	private vaultMetricData: StorageData;
+
+	private vaultEvent: VaultEventListener;
 
 	async onload() {
-		this.vaultService = new VaultService(this.app);
-		this.sessionService = new SessionService(this.app);
-		this.stateManager = new StateManager();
-		this.statsProcessor = new StatProcessor(this.vaultService, this.sessionService, this.stateManager);	
-		this.vaultCommands = new VaultCommands(this, this.statsProcessor);
-		this.VaultEvent = new VaultEventListener(this, this.sessionService, this.statsProcessor);
 
-		this.VaultEvent.init();	
-		this.sessionService.startTracking();
-		this.statsProcessor.VaultLoad('all');
-		console.log(this.stateManager.getVaultMetricsState());
-	}
-	async unload() {
-		this.vaultService = null as any;
-		this.statsProcessor = null as any;
-		this.VaultEvent = null as any;
-	    
+		await this.loadSettings();
+
+		this.serviceContainer = new ServiceContainer(
+			this.app,
+			this.vaultMetricData,
+			async (data) => { await this.saveSettings(data); }
+		);
+
+		this.serviceContainer.initialize();
+
+		this.vaultEvent = new VaultEventListener(this, this.serviceContainer.sessionService, this.serviceContainer.statsProcessor)
+
+		await this.bootstrapPlugin();
 	}
 
 	async loadSettings() {
-
+		const dataFromDisk = await this.loadData();
+		this.vaultMetricData = Object.assign({}, DEFAULT_STORAGE_DATA, dataFromDisk);
 	}
 
-	async saveData(data: any): Promise<void> {
-	    
+	async saveSettings(updatedMetrics?: { vaultMetrics: VaultMetrics, dailyHistory: Record<string, DailyMetrics> }) {
+		
+		if (updatedMetrics) {
+			this.vaultMetricData = {
+				...this.vaultMetricData,
+				vaultMetrics: updatedMetrics.vaultMetrics,
+				dailyHistory: updatedMetrics.dailyHistory
+			};
+		}
+
+		await this.saveData(this.vaultMetricData);
 	}
+
+	private async bootstrapPlugin() {
+		console.log("Iniciando rotinas do Dynamic Dashboard...");
+
+		// 1. Liga os "ouvidos" do plugin (eventos de clique, digitação, etc)
+		this.vaultEvent.init()
+
+		// 2. Começa a contar o tempo da sessão atual
+		this.serviceContainer.sessionService.startTracking();
+
+		// 3. Faz a varredura pesada inicial do Vault inteiro
+		await this.serviceContainer.statsProcessor.VaultLoad('all');
+
+		// 4. (Opcional, mas recomendado) Já garante que o dia de hoje exista no histórico
+		// await this.statsProcessor.dailyMetricsLoad('today');
+
+		// 5. Salva o estado atualizado imediatamente após a primeira varredura
+		await this.saveSettings();
+	}
+
 }
 
-//class SampleModal extends Modal {}
