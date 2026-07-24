@@ -4,9 +4,7 @@ import { DailyMetrics } from "models/DailyMetrics";
 export interface StorageData {
     vaultMetrics: VaultMetrics;
     dailyHistory: Record<string, DailyMetrics>; 
-    settings: {
-        idleLimitMinutes: number;
-    };
+    settings: any;
 }
 
 export const DEFAULT_STORAGE_DATA: StorageData = {

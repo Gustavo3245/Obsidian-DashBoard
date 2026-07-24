@@ -15,9 +15,9 @@ export class StateManager {
 	private saveTimeout: NodeJS.Timeout | null = null;
 
 	constructor(
-		initialVaultData: VaultMetrics | null,
-		initialDailyHistory: Record<string, DailyMetrics> | null,
-		private persistCallback: () => Promise<void>
+		initialVaultData: VaultMetrics,
+		initialDailyHistory: Record<string, DailyMetrics>,
+		private persistCallback: (data: { vaultMetrics: VaultMetrics, dailyHistory: Record<string, DailyMetrics> }) => Promise<void>
 	){
 		this.vaultMetricsState = initialVaultData ?? VaultMapper.getEmptyVaultMetrics();
 		this.dailyMetricsHistory = initialDailyHistory ?? {};
