@@ -11,8 +11,7 @@ export class StateManager {
 	private dailyMetricsHistory: Record<string, DailyMetrics>;
 	private fileStatsCacheState: Map<string, FileMetrics> = new Map();
 
-	private listeners: StateListener[] = [];
-	private saveTimeout: NodeJS.Timeout | null = null;
+	private saveTimeout: number | null = null;
 
 	constructor(
 		initialVaultData: VaultMetrics,
@@ -43,13 +42,6 @@ export class StateManager {
 		this.fileStatsCacheState.delete(path);
 	}
 
-	public emitNewState(patch: Partial<VaultMetrics>) {
-		this.vaultMetricsState = VaultMapper.mapToVaultMetrics({
-			...this.vaultMetricsState,
-			...patch
-		});
-
-	}
 
 	public getDailyMetricsState(): Record<string, DailyMetrics> {
 		return this.dailyMetricsHistory;
@@ -67,6 +59,37 @@ export class StateManager {
 			...patch,
 			date: date
 		});
+
+		this.triggerSave();
+	}
+	
+	public emitNewState(patch: Partial<VaultMetrics>) {
+		this.vaultMetricsState = VaultMapper.mapToVaultMetrics({
+			...this.vaultMetricsState,
+			...patch
+		});
+
+		this.triggerSave();
+	}
+
+	private triggerSave() {
+
+		if (this.saveTimeout !== null){
+			window.clearTimeout(this.saveTimeout);
+		}
+
+		this.saveTimeout = window.setTimeout(async () => {
+	
+			await this.persistCallback({
+				vaultMetrics: this.vaultMetricsState,
+				dailyHistory: this.dailyMetricsHistory
+			});
+			
+			this.saveTimeout = null;
+			console.log("Data.json updated");
+
+		}, 2000);
+
 	}
 
 }

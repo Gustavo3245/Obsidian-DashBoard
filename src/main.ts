@@ -23,7 +23,7 @@ export default class DashboardPlugin extends Plugin {
 		this.serviceContainer = new ServiceContainer(
 			this.app,
 			this.vaultMetricData,
-			async (data) => { await this.saveSettings(data); }
+			async (updatedData) => { await this.saveSettings(updatedData); }
 		);
 
 		this.serviceContainer.initialize();
@@ -34,17 +34,38 @@ export default class DashboardPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		const dataFromDisk = await this.loadData();
-		this.vaultMetricData = Object.assign({}, DEFAULT_STORAGE_DATA, dataFromDisk);
+		
+		const dataFromDisk = (await this.loadData()) || {};
+
+		this.vaultMetricData = {
+
+			vaultMetrics: {
+				...DEFAULT_STORAGE_DATA.vaultMetrics,
+				...(dataFromDisk.vaultMetricData || {})
+			},
+
+			dailyHistory: dataFromDisk.dailyHistory || {},
+
+			settings: {
+				...DEFAULT_STORAGE_DATA.settings,
+				...(dataFromDisk.settings || {})
+			}
+		};
 	}
 
-	async saveSettings(updatedMetrics?: { vaultMetrics: VaultMetrics, dailyHistory: Record<string, DailyMetrics> }) {
-		
+	async saveSettings(updatedMetrics?: { vaultMetrics?: VaultMetrics, dailyHistory?: Record<string, DailyMetrics> }) {
 		if (updatedMetrics) {
 			this.vaultMetricData = {
+
 				...this.vaultMetricData,
-				vaultMetrics: updatedMetrics.vaultMetrics,
-				dailyHistory: updatedMetrics.dailyHistory
+				vaultMetrics: {
+					...this.vaultMetricData.vaultMetrics,
+					...(updatedMetrics.vaultMetrics || {})
+				},
+				dailyHistory: {
+					...this.vaultMetricData.dailyHistory,
+					...(updatedMetrics.dailyHistory || {})
+				}
 			};
 		}
 
@@ -63,12 +84,6 @@ export default class DashboardPlugin extends Plugin {
 		// 3. Faz a varredura pesada inicial do Vault inteiro
 		await this.serviceContainer.statsProcessor.VaultLoad('all');
 
-		// 4. (Opcional, mas recomendado) Já garante que o dia de hoje exista no histórico
-		// await this.statsProcessor.dailyMetricsLoad('today');
-
-		// 5. Salva o estado atualizado imediatamente após a primeira varredura
-		await this.saveSettings();
 	}
-
 }
 
