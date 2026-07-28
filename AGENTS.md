@@ -166,7 +166,7 @@ Essas definições são inconsistentes em alguns pontos (especialmente palavras 
 
 Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra API de registro do `Plugin`. Operações frequentes como `modify` devem usar debounce/throttle ou cálculo incremental confiável.
 
-O plugin também registra atividade por teclado, ponteiro e foco da janela. Ainda não existem listeners dedicados para mudanças do `metadataCache`, abertura de arquivo, blur ou visibilidade da janela.
+`VaultEventListener.initActivityEvents()` registra atividade por teclado, ponteiro e foco da janela. Ainda não existem listeners dedicados para mudanças do `metadataCache`, abertura de arquivo, blur ou visibilidade da janela.
 
 ## Estrutura e inventário arquivo por arquivo
 

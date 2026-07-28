@@ -70,6 +70,23 @@ export class VaultEventListener {
 
 	}
 
+	public initActivityEvents(): void {
+		this.plugin.registerDomEvent(activeDocument, "keydown", () => {
+			Logger.event("activity.keydown");
+			this.sessionService.pingActivity();
+		});
+
+		this.plugin.registerDomEvent(activeDocument, "pointerdown", () => {
+			Logger.event("activity.pointerdown");
+			this.sessionService.pingActivity();
+		});
+
+		this.plugin.registerDomEvent(window, "focus", () => {
+			Logger.event("activity.focus");
+			this.sessionService.pingActivity();
+		});
+	}
+
 	private async handleAbstractFileModification(AbstractFile: TAbstractFile) {
 
 		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){

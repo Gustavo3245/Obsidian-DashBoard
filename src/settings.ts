@@ -1,18 +1,10 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
-import MyPlugin from "./main";
+import DashboardPlugin from "./main";
 
-export interface MyPluginSettings {
-	mySetting: string;
-}
+export class DashboardSettingTab extends PluginSettingTab {
+	plugin: DashboardPlugin;
 
-export const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
-
-export class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: DashboardPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
@@ -23,14 +15,17 @@ export class SampleSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Settings #1')
-			.setDesc('It\'s a secret')
+			.setName("Idle limit")
+			.setDesc("Minutes without activity before session tracking pauses.")
 			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
+				.setPlaceholder("5")
+				.setValue(String(this.plugin.settings.idleLimitMinutes))
 				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
+					const idleLimitMinutes = Number(value);
+
+					if (Number.isFinite(idleLimitMinutes) && idleLimitMinutes > 0) {
+						await this.plugin.updateSettings({ idleLimitMinutes });
+					}
 				}));
 	}
 }
