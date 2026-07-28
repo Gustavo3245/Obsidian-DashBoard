@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-sample-plugin",
+	"name": "dynamic-dashboard",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "Dynamic metrics and insights for Obsidian vaults.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
