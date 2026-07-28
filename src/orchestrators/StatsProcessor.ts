@@ -158,44 +158,102 @@ export class StatProcessor {
 		const currentVolume = this.stateManager.getVaultMetricsState().volume;
 		const cachedFileMetrics = this.stateManager.getFileStatsPerPath(file.path) ?? DailyMapper.getEmptyActiveFileMetrics();
 		
-		// -- NOTE Not every type of markDown file is a orphan file,
-		// to fix this problem, (I have to repass the getTotalOrphanFiles again).
-	
+		const totalWords = Math.max(0, currentVolume.snapshot.totalWords - cachedFileMetrics.words);
+		const totalMarkdownFiles = Math.max(0, currentVolume.totalMarkdownFiles - 1);
+
 		this.stateManager.emitNewState({
 			volume: {
 				...currentVolume,
 				snapshot: {
-					totalWords: currentVolume.snapshot.totalWords - cachedFileMetrics.words,
-					totalCharacters: currentVolume.snapshot.totalCharacters - cachedFileMetrics.characters,
-					totalSentences: currentVolume.snapshot.totalSentences - cachedFileMetrics.sentences
+					totalWords,
+					totalCharacters: Math.max(0, currentVolume.snapshot.totalCharacters - cachedFileMetrics.characters),
+					totalSentences: Math.max(0,currentVolume.snapshot.totalSentences - cachedFileMetrics.sentences)
 				},
-				totalMarkdownFiles: currentVolume.totalMarkdownFiles - 1,
-				totalFiles: currentVolume.totalFiles - 1,
-				totalFolders: currentVolume.totalFolders,
-				totalAttachments: currentVolume.totalAttachments,
-				totalOrphansFiles: currentVolume.totalOrphansFiles - (cachedFileMetrics.isOrphanFile ? 1 : 0),
-				totalVaultSize: currentVolume.totalVaultSize - cachedFileMetrics.fileSize, 
-				averageWordsPerFile: (currentVolume.snapshot.totalWords / currentVolume.totalFiles)
-			}
-		})
 
-		console.log("New file created: ", this.stateManager.getVaultMetricsState().volume);
+				totalMarkdownFiles,
+				totalFiles: Math.max(0, currentVolume.totalFiles - 1),
+				totalOrphansFiles: Math.max(0, currentVolume.totalOrphansFiles - (cachedFileMetrics.isOrphanFile ? 1 : 0)),
+				totalVaultSize: Math.max(0, currentVolume.totalVaultSize - cachedFileMetrics.fileSize),
+				averageWordsPerFile: totalMarkdownFiles > 0 ? totalWords / totalMarkdownFiles : 0,
+			}
+		});
+
+		this.stateManager.removeFileCache(file.path);
 	}
 
-	async processFolders(tfolder: TFolder) {
+	processFolders(): void {
 		const currentVolume = this.stateManager.getVaultMetricsState().volume;
 
 		this.stateManager.emitNewState({
 			volume: {
 				...currentVolume,
-				totalFolders: currentVolume.totalFolders,
-				totalVaultSize: currentVolume.totalVaultSize,
+				totalFolders: this.vaultService.getTotalFolders(),
 			}
-		})
-		console.log("New folder state: ", this.stateManager.getVaultMetricsState().volume);
+		});
 	}
 
-	async VaultLoad(range: TimeRange) {
+	processNewAttachment(file: TFile): void {
+		const currentVolume = this.stateManager.getVaultMetricsState().volume;
+
+		this.stateManager.emitNewState({
+			volume: {
+				...currentVolume,
+				totalFiles: currentVolume.totalFiles + 1,
+				totalAttachments: currentVolume.totalAttachments + 1,
+				totalVaultSize: currentVolume.totalVaultSize + file.stat.size,
+			}
+		});
+	}
+
+	processDeletedAttachment(file: TFile): void {
+		const currentVolume = this.stateManager.getVaultMetricsState().volume;
+
+		this.stateManager.emitNewState({
+			volume: {
+				...currentVolume,
+				totalFiles: Math.max(0, currentVolume.totalFiles - 1),
+				totalAttachments: Math.max(0, currentVolume.totalAttachments - 1),
+				totalVaultSize: Math.max(0, currentVolume.totalVaultSize - file.stat.size),
+			}
+		});
+	}
+
+	processModifiedAttachment(): void {
+		const currentVolume = this.stateManager.getVaultMetricsState().volume;
+
+		this.stateManager.emitNewState({
+			volume: {
+				...currentVolume,
+				totalVaultSize: this.vaultService.getTotalVaultSize(),
+			}
+		});
+	}
+
+	async processRenamedFile(file: TFile, oldPath: string): Promise<void> {
+		
+		if (file.extension !== "md") {
+			return;
+		}
+
+		const cachedMetrics = this.stateManager.getFileStatsPerPath(oldPath);
+		this.stateManager.removeFileCache(oldPath);
+
+		if (cachedMetrics) {
+			this.stateManager.setFileCache(file.path, {
+				...cachedMetrics,
+				name: file.name,
+				path: file.path,
+			});
+			return;
+		}
+
+		this.stateManager.setFileCache(
+			file.path,
+			await this.calculator.getFileMetrics(file)
+		);
+	}
+
+	async vaultLoad(range: TimeRange) {
 		const files = this.vaultService.getFilesByRange(range);
 
 		await Promise.all(files.map(async (file) => {
