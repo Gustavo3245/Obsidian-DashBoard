@@ -11,6 +11,10 @@ export class StatsCalculator {
 	constructor(private vaultService: VaultService,
 				private metadataAnalyzer: MetadataAnalyzer,
 				private sessionService: SessionService){}
+
+	getActiveMinutes(): number {
+		return this.sessionService.getActiveMinutes();
+	}
 	 
 	async getFileMetrics(file: TFile): Promise<FileMetrics> {
 		const fileMetrics = await this.vaultService.getFilesMetrics(file);
@@ -59,38 +63,38 @@ export class StatsCalculator {
 
 	async getSnapshot(range: TimeRange): Promise<VaultMetrics['volume']['snapshot']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
+		
+		const filesMetrics = await Promise.all(
+			relevantFiles.map((file) => this.vaultService.getFilesMetrics(file))
+		);
 
-		const [chars, words, sentences] = await Promise.all([
-			this.vaultService.getTotalCharacters(relevantFiles),
-			this.vaultService.getTotalWords(relevantFiles),
-			this.vaultService.getTotalSentences(relevantFiles)
-		])
 		return {
-			totalCharacters: chars, totalWords: words, totalSentences: sentences
+			totalCharacters: filesMetrics.reduce((total, file) => total + file.characters, 0),
+			totalWords: filesMetrics.reduce((total, file) => total + file.words, 0),
+			totalSentences: filesMetrics.reduce((total, file) => total + file.sentences, 0)
 		};
 	}
 
 	async updateSnapshotMetrics(file: TFile): Promise<VaultMetrics['volume']['snapshot']> {
-
-		const [chars, words, sentences] = await Promise.all([
-			this.vaultService.getTotalCharacters([file]),
-			this.vaultService.getTotalWords([file]),
-			this.vaultService.getTotalSentences([file])
-		])
+		const metrics = await this.getFileMetrics(file);
 
 		return {
-			totalCharacters: chars, totalWords: words, totalSentences: sentences
+			totalCharacters: metrics.characters,
+			totalWords: metrics.words,
+			totalSentences: metrics.sentences,
 		}
 	}
 
 	async getVolumeMetrics(range: TimeRange): Promise<VaultMetrics['volume']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
 
-		const [chars, words, sentences] = await Promise.all([
-			this.vaultService.getTotalCharacters(relevantFiles),
-			this.vaultService.getTotalWords(relevantFiles),
-			this.vaultService.getTotalSentences(relevantFiles)
-		]);
+		const filesMetrics = await Promise.all(
+			relevantFiles.map((file) => this.vaultService.getFilesMetrics(file))
+		);
+
+		const chars = filesMetrics.reduce((total, file) => total + file.characters, 0);
+		const words = filesMetrics.reduce((total, file) => total + file.words, 0);
+		const sentences = filesMetrics.reduce((total, file) => total + file.sentences, 0);
 
 		return {
 			snapshot: {
@@ -100,10 +104,10 @@ export class StatsCalculator {
 			},
 			totalMarkdownFiles: this.vaultService.getTotalMarkdownFiles(),
 			totalFiles: this.vaultService.getTotalFiles(),
-			totalFolders: this.vaultService.getTotalFoldes(),
+			totalFolders: this.vaultService.getTotalFolders(),
 			totalAttachments: this.vaultService.getTotalAttachments(),
 			totalOrphansFiles: this.vaultService.getTotalOrphansFiles(relevantFiles),
-			totalVaultSize: this.vaultService.getTotalVaultSize(relevantFiles),
+			totalVaultSize: this.vaultService.getTotalVaultSize(),
 			averageWordsPerFile: await this.vaultService.getAverageWordsPerFile(relevantFiles)
 		};
 	}
@@ -134,12 +138,10 @@ export class StatsCalculator {
 			mostActiveFolder: this.vaultService.mostActiveFolder(),
 			lastModifiedFile: this.vaultService.getLastModifiedMarkDownFile(),
 			lastModifiedFiles: this.vaultService.getActiveMarkDownFiles(),
-
 		}
 	}
 
 	async getStreakMetrics(range: TimeRange): Promise<VaultMetrics['streak']> {
-		const relevantFiles = this.vaultService.getFilesByRange(range);
 
 		return {
 			streakCount: null,
@@ -148,7 +150,6 @@ export class StatsCalculator {
 	}
 
 	async storageValuesMetrics(range: TimeRange): Promise<VaultMetrics['storageValues']> {
-		const relevantFiles = this.vaultService.getFilesByRange(range);
 
 		return {
 			mostActiveDay: null,
