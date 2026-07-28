@@ -2,6 +2,7 @@ import { TAbstractFile, TFile, TFolder } from "obsidian";
 import DashboardPlugin from "../main";
 import { StatProcessor } from "orchestrators/StatsProcessor";
 import { SessionService } from "services/SessionService";
+import { Logger } from "utils/Logger";
 
 export class VaultEventListener {
 
@@ -14,38 +15,53 @@ export class VaultEventListener {
 
 		this.plugin.registerEvent(
 			this.plugin.app.workspace.on('quick-preview', (AbstractFile: TFile, data: string) => {
+
+				Logger.event("workspace.quick-preview", {
+					path: AbstractFile.path,
+					extension: AbstractFile.extension,
+				});
+
 				this.sessionService.pingActivity();
-				this.handlePreviewAbsctractFile(AbstractFile, data);
+				void this.handlePreviewAbsctractFile(AbstractFile, data);
 			})
 		)
 		
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('modify', (AbstractFile) => {
+				Logger.event("vault.modify", this.describeFile(AbstractFile));
 				this.sessionService.pingActivity();
-				this.handleAbstractFileModification(AbstractFile);
+				void this.handleAbstractFileModification(AbstractFile);
 			})
 		);
 
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('create', (AbstractFile) => {
+				Logger.event("vault.create", this.describeFile(AbstractFile));
 				this.sessionService.pingActivity();
-				this.handleAbstractFileCreation(AbstractFile);
+				void this.handleAbstractFileCreation(AbstractFile);
 			})
 		);
 
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('delete', (AbstractFile) => {
+				Logger.event("vault.delete", this.describeFile(AbstractFile));
 				this.sessionService.pingActivity();
-				this.handleAbstractFileDeletion(AbstractFile);
+				void this.handleAbstractFileDeletion(AbstractFile);
 			})
 		);
 
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on("rename", (abstractFile, oldPath) => {
+
+				Logger.event("vault.rename", {
+					...this.describeFile(abstractFile),
+					oldPath,
+				});
+
 				this.sessionService.pingActivity();
 
 				if (abstractFile instanceof TFile) {
-					this.processor.processRenamedFile(abstractFile, oldPath);
+					void this.processor.processRenamedFile(abstractFile, oldPath);
 				} else if (abstractFile instanceof TFolder) {
 					this.processor.processFolders();
 				}
@@ -99,5 +115,16 @@ export class VaultEventListener {
 			this.processor.updatePreviewMetrics(AbstractFile.path, data);
 		}
 		
+	}
+
+	private describeFile(abstractFile: TAbstractFile): Record<string, unknown> {
+		return {
+			path: abstractFile.path,
+			type: abstractFile instanceof TFolder ? "folder" : "file",
+			extension:
+				abstractFile instanceof TFile
+					? abstractFile.extension
+					: undefined,
+		};
 	}
 }

@@ -3,6 +3,7 @@ import { DailyMetrics } from "models/DailyMetrics";
 import { FileMetrics } from "models/FileMetrics";
 import { VaultMapper } from "mappers/VaultMapper";
 import { DailyMapper } from "mappers/DailyMapper";
+import { Logger } from "utils/Logger";
 
 export type StateListener = () => void;
 
@@ -69,6 +70,11 @@ export class StateManager {
 			date: date
 		});
 
+		Logger.state("daily metrics emitted", {
+			date,
+			patch,
+			state: this.dailyMetricsHistory[date],
+		});
 		this.triggerSave();
 	}
 	
@@ -78,6 +84,10 @@ export class StateManager {
 			...patch
 		});
 
+		Logger.state("vault metrics emitted", {
+			patch,
+			state: this.vaultMetricsState,
+		});
 		this.triggerSave();
 	}
 
@@ -99,6 +109,12 @@ export class StateManager {
 			vaultMetrics: this.vaultMetricsState,
 			dailyHistory: this.dailyMetricsHistory
 		});
+
+		Logger.state("state persisted", {
+			vaultMetrics: this.vaultMetricsState,
+			dailyHistory: this.dailyMetricsHistory,
+		});
+
 	}
 
 	public async flushPendingSave(): Promise<void> {

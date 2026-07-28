@@ -11,7 +11,7 @@ Este repositório contém um plugin comunitário do Obsidian chamado **Dynamic D
 - métricas diárias, sessões, tempo ativo e sequências de uso;
 - métricas do arquivo que está sendo editado ou visualizado.
 
-O projeto ainda está em desenvolvimento. A camada de coleta e estado está parcialmente implementada; não há dashboard ou outra interface de apresentação registrada no estado atual.
+O projeto ainda está em desenvolvimento. A camada de coleta e estado está parcialmente implementada; há uma aba de configuração e um comando de atualização manual, mas ainda não há dashboard de apresentação.
 
 ## Tecnologia e execução
 
@@ -89,14 +89,15 @@ Ao carregar o plugin, `DashboardPlugin.onload()`:
 4. cria `VaultEventListener`;
 5. registra listeners;
 6. inicia o rastreamento de sessão;
-7. executa `statsProcessor.VaultLoad("all")`.
+7. executa `statsProcessor.vaultLoad("all")`;
+8. registra a sessão diária e a atualização periódica do tempo ativo.
 
-`VaultLoad("all")`:
+`vaultLoad("all")`:
 
 1. calcula e armazena `FileMetrics` de cada Markdown no cache em memória;
 2. calcula em paralelo os grupos `volume`, `estimates`, `appears`, `streak` e `storageValues`;
 3. emite um novo `VaultMetrics`;
-4. calcula e persiste as métricas diárias.
+4. a inicialização registra separadamente as métricas da sessão diária.
 
 Essa varredura lê o conteúdo dos arquivos várias vezes. Trate alterações nessa etapa como sensíveis a desempenho, principalmente em Vaults grandes e dispositivos móveis.
 
@@ -110,13 +111,13 @@ Contrato persistido em `StorageData`:
 interface StorageData {
 	vaultMetrics: VaultMetrics;
 	dailyHistory: Record<string, DailyMetrics>;
-	settings: any;
+	settings: DashboardSettings;
 }
 ```
 
 - `vaultMetrics`: snapshot agregado atual.
 - `dailyHistory`: histórico indexado por data no formato `YYYY-MM-DD`.
-- `settings`: atualmente contém por padrão `idleLimitMinutes: 5`, mas ainda é `any` e não está ligado ao `SessionService`.
+- `settings`: contém `idleLimitMinutes`, com padrão de 5 minutos, aplicado ao `SessionService`.
 - `fileStatsCacheState`: cache `Map<path, FileMetrics>` somente em memória; não é persistido.
 
 O `StateManager` aceita patches, normaliza-os com os mappers e agenda gravação após 2 segundos. Chamadas sucessivas reiniciam o timer. Ao adicionar novos campos persistidos:
@@ -137,17 +138,17 @@ As definições abaixo descrevem o código existente, não necessariamente a def
 - intervalo `week`: últimos 7 dias contando hoje;
 - intervalo `month`: últimos 30 dias contando hoje;
 - intervalo `all`: todos os Markdown;
-- caracteres globais: conteúdo sem caracteres de espaço (`/\s/g`);
-- palavras globais: tokens separados por espaços (`/\s+/`);
-- palavras do preview: grupos Unicode de letras ou números, removendo frontmatter inicial;
-- “sentenças” globais: linhas não vazias;
-- “sentenças” por arquivo no cache: trechos terminados em `.`, `!` ou `?`;
+- palavras, caracteres e sentenças usam `ContentAnalyzer`, tanto no snapshot quanto no cache e preview;
+- o frontmatter inicial é removido antes da análise;
+- caracteres: conteúdo sem espaços;
+- palavras: grupos Unicode de letras/números, aceitando conectores internos comuns;
+- sentenças: segmentos separados por pontuação final ou quebra de linha;
 - leitura estimada: 200 palavras por minuto;
 - fala estimada: 130 palavras por minuto;
 - anexo: qualquer arquivo que não seja Markdown;
 - arquivo órfão: sem tags, links de saída e backlinks resolvidos;
 - pasta mais ativa: pasta com mais filhos diretos que sejam arquivos;
-- tamanho: soma de `file.stat.size`;
+- tamanho: soma de `file.stat.size` de todos os arquivos, em bytes;
 - tempo ocioso pretendido: 5 minutos;
 - heartbeat da sessão: 10 segundos.
 
@@ -158,13 +159,14 @@ Essas definições são inconsistentes em alguns pontos (especialmente palavras 
 `VaultEventListener.init()` usa `plugin.registerEvent()` para garantir limpeza automática:
 
 - `workspace.quick-preview`: marca atividade e atualiza palavras/caracteres no cache do arquivo;
-- `vault.modify`: para Markdown, recalcula o snapshot associado ao arquivo;
-- `vault.create`: processa Markdown ou pasta criada;
-- `vault.delete`: processa Markdown ou pasta removida.
+- `vault.modify`: aplica o delta de Markdown ou reconcilia o tamanho de anexos;
+- `vault.create`: processa Markdown, anexo ou pasta criada;
+- `vault.delete`: processa Markdown, anexo ou pasta removida;
+- `vault.rename`: move a entrada de cache de Markdown e reconcilia pastas.
 
 Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra API de registro do `Plugin`. Operações frequentes como `modify` devem usar debounce/throttle ou cálculo incremental confiável.
 
-Ainda não existem listeners para rename/move, mudanças de metadados, abertura de arquivo, foco/blur/visibilidade da janela ou atividade global de teclado/mouse.
+O plugin também registra atividade por teclado, ponteiro e foco da janela. Ainda não existem listeners dedicados para mudanças do `metadataCache`, abertura de arquivo, blur ou visibilidade da janela.
 
 ## Estrutura e inventário arquivo por arquivo
 
@@ -193,8 +195,8 @@ Ainda não existem listeners para rename/move, mudanças de metadados, abertura 
 ### Entrada e configuração
 
 - `src/main.ts`: classe `DashboardPlugin`, carregamento/gravação dos dados e bootstrap. Deve permanecer pequeno e focado no lifecycle.
-- `src/settings.ts`: interface e tab de configurações herdadas do sample. Ainda não está integrada de forma válida à classe principal.
-- `src/commands/VaultCommands.ts`: comando experimental `DashBoard-word` para imprimir um snapshot. Não é registrado no bootstrap e seu import de `StatProcessor` está incorreto.
+- `src/settings.ts`: aba de configuração do limite de inatividade.
+- `src/commands/VaultCommands.ts`: registra o comando `refresh-vault-metrics`.
 
 ### Eventos e orquestração
 
@@ -207,11 +209,13 @@ Ainda não existem listeners para rename/move, mudanças de metadados, abertura 
 - `src/services/VaultService.ts`: consultas ao Vault, leitura de conteúdo e cálculos de baixo nível. É o maior arquivo e deve ser dividido se continuar crescendo.
 - `src/services/StatsCalculator.ts`: produz `FileMetrics`, `DailyMetrics` e os grupos internos de `VaultMetrics`.
 - `src/services/SessionService.ts`: heartbeat e atividade/ociosidade da sessão.
+- `src/analyzer/ContentAnalyzer.ts`: regra única e pura para palavras, caracteres e sentenças.
 - `src/analyzer/MetadataAnalyzer.ts`: tags de frontmatter, tags únicas e detecção de arquivo órfão.
 
 ### Estado, dados e conversão
 
 - `src/state/StateManager.ts`: fonte de verdade em memória, cache por caminho e persistência com debounce.
+- `src/utils/Logger.ts`: logger estruturado para lifecycle, eventos e emissões de estado; não deve registrar conteúdo de notas.
 - `src/datas/VaultMetricData.ts`: `StorageData` e valores persistidos padrão.
 - `src/mappers/VaultMapper.ts`: objeto vazio e merge seguro de grupos de `VaultMetrics`.
 - `src/mappers/DailyMapper.ts`: objetos vazios e normalização de `DailyMetrics`/`FileMetrics`.
@@ -221,6 +225,7 @@ Ainda não existem listeners para rename/move, mudanças de metadados, abertura 
 - `src/models/VaultMetrics.ts`: contrato agregado, dividido em `volume`, `estimates`, `appears`, `streak` e `storageValues`.
 - `src/models/DailyMetrics.ts`: totais e tempo de uma data.
 - `src/models/FileMetrics.ts`: métricas e identidade de um arquivo.
+- `src/models/DashboardSettings.ts`: contrato e padrão das configurações.
 - `src/models/StatusBarMetrics.ts`: contrato planejado para status bar; ainda não usado.
 - `src/models/value_objects/ReadingTime.ts`: horas, minutos, segundos e total em segundos.
 - `src/models/value_objects/TagType.ts`: nome e contagem de tag. O tipo atual se chama `tagType`.
@@ -228,10 +233,8 @@ Ainda não existem listeners para rename/move, mudanças de metadados, abertura 
 
 ### Recursos
 
-- `src/assets/icons/DashboardIcon.tsx`: retorna SVG como string; não usa JSX e não está conectado ao plugin.
-- `src/assets/icons/DashboardLeftIcon.tsx`: segundo SVG como string; também não está conectado.
-
-O `tsconfig.json` inclui apenas `src/**/*.ts`, portanto os arquivos `.tsx` não participam da checagem/build enquanto não forem importados. Se forem adotados, decidir entre renomeá-los para `.ts` ou configurar JSX/`include` corretamente.
+- `src/assets/icons/DashboardIcon.ts`: retorna SVG como string e ainda não está conectado ao plugin.
+- `src/assets/icons/DashboardLeftIcon.ts`: segundo SVG como string, também ainda não conectado.
 
 ## Estado conhecido e débitos técnicos
 
@@ -239,50 +242,34 @@ Não esconda, contorne silenciosamente nem confunda estes problemas com regress�
 
 ### Build e lint
 
-No estado analisado, `npm run build` falha por:
-
-- import inexistente `services/StatsProcessor` em comandos e eventos; o arquivo real é `orchestrators/StatsProcessor`;
-- acesso possivelmente indefinido em backlinks de `MetadataAnalyzer` e `VaultService`;
-- inicialização possivelmente indefinida da primeira pasta em `mostActiveFolder`;
-- `settings.ts` acessando `plugin.settings`, propriedade ausente em `DashboardPlugin`.
-
-`npm run lint` também falha ao aplicar uma regra tipada do plugin `obsidianmd` a `package.json`.
+No estado atual, `npm run build` e `npm run lint` passam. Preserve esse baseline.
 
 ### Lifecycle e composição
 
-- `ServiceContainer.initialize()` cria duas instâncias de `SessionService`: a calculadora recebe uma, enquanto `serviceContainer.sessionService` expõe outra. Assim, a instância iniciada/pingada não é a usada no cálculo diário.
-- `initialize()` é `async`, mas não possui awaits e é chamada sem `await`.
-- o intervalo de `SessionService` usa `setInterval` diretamente e não possui `stop`; ele deveria ser registrado/limpo no unload.
-- comandos, settings tab, ícones e UI não são registrados.
-- há imports não usados em `main.ts` e outros arquivos.
+- comandos e settings tab estão registrados, mas os ícones e o dashboard visual ainda não são usados;
+- timers e eventos possuem cleanup pelo lifecycle do plugin;
+- mudanças no limite de inatividade afetam a sessão atual sem exigir reload.
 
 ### Estado e atualização incremental
 
-- `loadSettings()` lê métricas de `dataFromDisk.vaultMetricData`, mas `saveSettings()` grava `vaultMetrics`; métricas persistidas podem não ser restauradas.
-- em `modify`, `updateSnapshotLoad()` substitui o snapshot global pelas métricas somente do arquivo alterado, em vez de aplicar a diferença entre cache anterior e novo.
-- `processFolders()` não altera a contagem de pastas.
-- criação/exclusão não cobre anexos e depende de cache para subtrair arquivo excluído.
-- médias incrementais usam totais/contagens anteriores em alguns caminhos.
-- renomear/mover arquivo não atualiza a chave do cache.
-- `StateManager` não expõe cleanup/flush do debounce no unload.
-- métricas diárias usam chave ISO (`YYYY-MM-DD`), mas o campo interno `date` é criado com locale `pt-BR`.
+- o carregamento aceita a chave atual `vaultMetrics` e a chave legada `vaultMetricData`;
+- modificações Markdown usam a diferença entre cache anterior e métricas novas;
+- criação, exclusão, modificação de anexos, pastas e rename possuem tratamento;
+- o cache de preview é separado do cache-base usado nos deltas;
+- `StateManager.flushPendingSave()` é chamado no unload;
+- datas persistidas usam chave ISO (`YYYY-MM-DD`).
 
 ### Cálculos
 
-- `SessionService.getActiveMinutes()` divide milissegundos pelo intervalo de heartbeat, retornando quantidade aproximada de ticks, não minutos.
-- `totalVaultSize` é documentado como MB, calcula MB em uma variável não usada e retorna bytes.
-- `getLastModifiedMarkDownFile()` usa uma redução invertida e tende a retornar o arquivo mais antigo.
 - streak, maior streak, média diária e dias/semanas/meses mais ativos retornam `null`.
-- contagem de sessões é sempre `1`.
-- limites de idle e heartbeat são hardcoded; o setting persistido não é consumido.
-- `MetadataAnalyzer.isOrphanFile()` duplica a implementação de `VaultService.isOrphanFile()`.
 - leituras repetidas de todos os arquivos tornam o bootstrap pesado.
+- grupos de métricas como tags, estimativas e pasta mais ativa são recalculados na carga completa, não incrementalmente em todos os eventos.
 
 ### Metadados e release
 
-- `manifest.json` usa ID com espaços e maiúsculas (`Dynamic DashBoard`), não corresponde ao nome da pasta e possui versão/minAppVersion/descrição provisórias.
-- `package.json`, `README.md` e `styles.css` ainda carregam conteúdo do sample.
-- versões do `package.json` (`1.0.0`) e manifesto (`0.0.0`) divergem.
+- o ID definitivo atual é `dynamic-dashboard`; a pasta local de desenvolvimento ainda se chama `obsidian-sample-plugin`;
+- `README.md` e `styles.css` ainda carregam conteúdo do sample;
+- `package.json`, `manifest.json` e `versions.json` estão alinhados em `1.0.0`, com Obsidian mínimo `1.6.6`.
 - preserve o ID definitivo depois do primeiro release e use SemVer sem prefixo `v`.
 
 ## Regras para alterações futuras
