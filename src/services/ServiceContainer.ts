@@ -6,22 +6,21 @@ import { StatsCalculator } from 'services/StatsCalculator';
 import { StorageData } from 'datas/VaultMetricData';
 import { MetadataAnalyzer } from 'analyzer/MetadataAnalyzer';
 import { App } from "obsidian";
-import { VaultEventListener } from "events/VaultEventListener";
 
 export class ServiceContainer {
 
 	public stateManager: StateManager;
 	public statsProcessor: StatProcessor;
 	public sessionService: SessionService;
-	public vaultEvent: VaultEventListener;
 
 	constructor(
 		private app: App,
 		private initialData: StorageData,
-		private saveToDiskFn: (data: StorageData) => Promise<void>
+		private saveToDiskFn: (
+			data: Pick<StorageData, "vaultMetrics" | "dailyHistory"> ) => Promise<void>
 	) {}
 
-	public async initialize(): Promise<void> {
+	public initialize(): void {
 
 		this.stateManager = new StateManager(
 			this.initialData.vaultMetrics,
@@ -31,14 +30,15 @@ export class ServiceContainer {
 
 		const metadataAnalyzer = new MetadataAnalyzer(this.app);
 		const vaultService = new VaultService(this.app);
-		const sessionService = new SessionService(this.app);
-
-		this.sessionService = new SessionService(this.app);
+		
+		this.sessionService = new SessionService(
+			this.initialData.settings.idleLimitMinutes
+		);
 
 		const statsCalculator = new StatsCalculator(
 			vaultService,
 			metadataAnalyzer,
-			sessionService
+			this.sessionService
 		);
 
 		this.statsProcessor = new StatProcessor(

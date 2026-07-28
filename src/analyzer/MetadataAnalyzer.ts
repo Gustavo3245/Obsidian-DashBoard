@@ -1,9 +1,14 @@
-import { MetadataCache, TFile, getAllTags, App } from "obsidian";
+import { TFile, getAllTags, App } from "obsidian";
 import { tagType } from "models/value_objects/TagType";
+
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
 
 export class MetadataAnalyzer {
 	constructor(
-		private app: App
+		private app: App 
 	) {}
 
 	/**
@@ -16,13 +21,18 @@ export class MetadataAnalyzer {
 		for (const file of files){ 
 			const cache = this.app.metadataCache.getFileCache(file);
 
-			if(cache?.frontmatter && cache.frontmatter.tags) {
+			const frontmatter: unknown = cache?.frontmatter;
+			const rawTags = isRecord(frontmatter) ? frontmatter.tags : undefined;
 
-				const tags = Array.isArray(cache.frontmatter.tags)
-					? cache.frontmatter.tags : [cache.frontmatter.tags];
+			if (rawTags !== undefined) {
+				const tags = Array.isArray(rawTags) ? rawTags : [rawTags];
 
 				tags.forEach(tag => {
-					const normalized = tag.startsWith('#') ? tag : `#${tag}`;
+					if (typeof tag !== "string") {
+						return;
+					}
+
+					const normalized = tag.startsWith("#") ? tag : `#${tag}`;
 					tagCount[normalized] = (tagCount[normalized] || 0) + 1; 
 				});
 			}
@@ -94,21 +104,25 @@ export class MetadataAnalyzer {
 	 * this function return the value of the orphanFile A OrphanFile is a file 
 	 * without Tags, Outlinks and BackLinks in the entiry content or Frontmatter.
 	*/
-	isOrphanFile(file: TFile): Boolean {
+	isOrphanFile(file: TFile): boolean {
 		const cache = this.app.metadataCache.getFileCache(file);
 
-		// 1. Verifica Tags (Conteúdo e Frontmatter)
-		const hasTags = (cache?.tags?.length ?? 0) > 0 || (cache?.frontmatter?.tags?.length ?? 0) > 0;
+		const frontmatter: unknown = cache?.frontmatter;
+		const frontmatterTags = isRecord(frontmatter) ? frontmatter.tags : undefined;
 
-		// 2. Verifica Links de Saída (Outlinks)
+		const hasFrontmatterTags = Array.isArray(frontmatterTags)
+			? frontmatterTags.length > 0
+			: typeof frontmatterTags === "string" && frontmatterTags.length > 0;
+
+		const hasTags = (cache?.tags?.length ?? 0) > 0 || hasFrontmatterTags;
+
 		const hasOutlinks = (cache?.links?.length ?? 0) > 0;
 
-		// 3. Verifica Links de Entrada (Inlinks/Backlinks)
 		const backlinks = this.app.metadataCache.resolvedLinks;
 		let hasInlinks = false;
 
 		for (const sourcePath in backlinks) {
-			if (backlinks[sourcePath][file.path]) {
+			if (backlinks[sourcePath]?.[file.path]) {
 				hasInlinks = true;
 				break;
 			}
