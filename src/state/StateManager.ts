@@ -10,6 +10,7 @@ export class StateManager {
 	private vaultMetricsState: VaultMetrics;
 	private dailyMetricsHistory: Record<string, DailyMetrics>;
 	private fileStatsCacheState: Map<string, FileMetrics> = new Map();
+	private filePreviewCacheState: Map<string, FileMetrics> = new Map();
 
 	private saveTimeout: number | null = null;
 
@@ -40,8 +41,16 @@ export class StateManager {
 
 	public removeFileCache(path: string) {
 		this.fileStatsCacheState.delete(path);
+		this.filePreviewCacheState.delete(path);
 	}
 
+	public getFilePreview(path: string): FileMetrics | undefined {
+		return this.filePreviewCacheState.get(path);
+	}
+
+	public setFilePreview(path: string, stats: FileMetrics): void {
+		this.filePreviewCacheState.set(path, stats);
+	}
 
 	public getDailyMetricsState(): Record<string, DailyMetrics> {
 		return this.dailyMetricsHistory;
@@ -78,18 +87,27 @@ export class StateManager {
 			window.clearTimeout(this.saveTimeout);
 		}
 
-		this.saveTimeout = window.setTimeout(async () => {
-	
-			await this.persistCallback({
-				vaultMetrics: this.vaultMetricsState,
-				dailyHistory: this.dailyMetricsHistory
-			});
-			
+		this.saveTimeout = window.setTimeout(() => {
 			this.saveTimeout = null;
-			console.log("Data.json updated");
-
+			void this.persist();
 		}, 2000);
 
 	}
 
+	private async persist(): Promise<void> {
+		await this.persistCallback({
+			vaultMetrics: this.vaultMetricsState,
+			dailyHistory: this.dailyMetricsHistory
+		});
+	}
+
+	public async flushPendingSave(): Promise<void> {
+		if (this.saveTimeout === null) {
+			return;
+		}
+
+		window.clearTimeout(this.saveTimeout);
+		this.saveTimeout = null;
+		await this.persist();
+	}
 }
