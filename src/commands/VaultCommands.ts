@@ -1,20 +1,21 @@
-import DashBoardPlugin from "../main";
-import { StatProcessor } from "services/StatsProcessor";
+import { Notice } from "obsidian";
+import DashboardPlugin from "../main";
+import { StatProcessor } from "orchestrators/StatsProcessor";
 
 export class VaultCommands {
 	constructor(
-		private plugin: DashBoardPlugin, 
+		private plugin: DashboardPlugin,
 		private statProcessor: StatProcessor
 	) {}
 	
 
 	public register(): void {
 		this.plugin.addCommand({
-			id: "DashBoard-word",
-			name: "Print Snapshot",
+			id: "refresh-vault-metrics",
+			name: "Refresh vault metrics",
 			callback: async () => {
-				const data = await this.statProcessor.snapshotLoad('all');
-				console.log(`the active data: ${data}`);
+				await this.statProcessor.vaultLoad("all");
+				new Notice("Vault metrics updated.");
 			},
 		});
 	}
