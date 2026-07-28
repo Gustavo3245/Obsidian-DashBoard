@@ -3,10 +3,15 @@ import { tagType } from "models/value_objects/TagType";
 import { ReadingTime } from "models/value_objects/ReadingTime";
 import { TimeRange } from "models/value_objects/TimeRange";
 import { FileMetrics } from "models/FileMetrics";
-
+import { ContentAnalyzer } from "analyzer/ContentAnalyzer";
+import { MetadataAnalyzer } from "analyzer/MetadataAnalyzer";
 
 export class VaultService {
-	constructor(private app: App) {}
+	private readonly metadataAnalyzer: MetadataAnalyzer;
+
+	constructor(private app: App) {
+		this.metadataAnalyzer = new MetadataAnalyzer(app);
+	}
 
 	getFilesByRange(range: TimeRange): TFile[] {
 		const files = this.app.vault.getMarkdownFiles();
@@ -50,16 +55,9 @@ export class VaultService {
 	 * this function uses a map passing the entire vault using the vault.cacheRead() 
 	 * function for catch the content: string with the caracters.
 	 */
-	//  FIXME: This function is much much heavier that should be.
 	async getTotalCharacters(files: TFile[]): Promise<number> {
-		
-		const characterCount = await Promise.all(
-			files.map(async (file) => {
-				const content = await this.app.vault.cachedRead(file);
-				return content.replace(/\s/g, '').length;
-			})
-		);
-		return characterCount.reduce((total, count) => total + count, 0);
+		const metrics = await this.getContentMetrics(files);
+		return metrics.reduce((total, current) => total + current.characters, 0);
 	}
 
 	/**
@@ -68,18 +66,8 @@ export class VaultService {
 	 * punctuation at the end of it.
 	 */
 	async getTotalWords(files: TFile[]): Promise<number> {
-
-		const wordCount = await Promise.all(
-			files.map(async (file) => {
-
-				// split the actual content of this complete file created a list
-				// where every item divide by a space/colon or ponctuation is a item
-				// ifs the length of the item is >= 1 caracters is considered a word.
-				const content = await this.app.vault.cachedRead(file);
-				return content.split(/\s+/).filter(word => word.length >= 1).length;
-			})
-		);
-		return wordCount.reduce((total, count) => total + count, 0);
+		const metrics = await this.getContentMetrics(files);
+		return metrics.reduce((total, current) => total + current.words, 0);
 	}
 
 	/**
@@ -139,10 +127,9 @@ export class VaultService {
 		};
 	}
 
-	/*
+	/**
 	 * Get the current last modified MarkDown file in the vault.
 	 * Typically, the last modified file is the active one at the moment.
-	 * / ERROR: 
 	 */
 	getLastModifiedMarkDownFile(): TFile | string { 
 		const files = this.app.vault.getMarkdownFiles();
@@ -152,7 +139,7 @@ export class VaultService {
 		}
 		
 		return files.reduce((previous, current) => 
-			(current.stat.mtime > previous.stat.mtime) ? previous : current);
+			(current.stat.mtime > previous.stat.mtime) ? current : previous);
 
 	}
 
@@ -187,7 +174,7 @@ export class VaultService {
 	 * get the current count of all folders inside the vault.
 	 * The root folder is not counted (includeRoot = false).
 	 */
-	getTotalFoldes(): number {
+	getTotalFolders(): number {
 		const folders = this.app.vault.getAllFolders(false);
 
 		if(folders.length == 0){
@@ -227,23 +214,16 @@ export class VaultService {
 	 */
 	async getAverageWordsPerFile(files: TFile[]): Promise<number>{
 
-		if(files.length === 0 || !files){
+		if(files.length === 0){
 			return 0;
 		}
 
-		const fileContents: string[] = await Promise.all(
-			files.map((file) => this.app.vault.cachedRead(file))
+		const metrics = await this.getContentMetrics(files);
+		const totalWords = metrics.reduce(
+			(total, current) => total + current.words,
+			0
 		);
-
-		let totalLength = 0;
-		fileContents.forEach((content) => {
-			const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
-			totalLength += wordCount;
-		})
-
-
-		let response = totalLength / fileContents.length;
-		return response;
+		return totalWords / metrics.length;
 	}
 
 	/**
@@ -251,7 +231,7 @@ export class VaultService {
 	 * this function uses the current totalWords parameter made available by getTotalWords().
 	 */
 	async getAverageWordsPerFiles(files: TFile[], totalWords: number): Promise<number> { 
-		return Number(totalWords / files.length)
+		return files.length > 0 ? totalWords / files.length : 0;
 	}
 
 	/**
@@ -259,50 +239,25 @@ export class VaultService {
 	 * orphan file is a file that has no connection whatsoever (tags and Hyperlinks).
 	 */
 	getTotalOrphansFiles(files: TFile[]): number {
-		// const orphanFiles: TFile[] = [];
 
 		if(files.length === 0 || !files){
 			return 0;
 		}
 
 		return files.filter(file => this.isOrphanFile(file)).length
-		// files.forEach((file) => {
-		// 	const cache = this.app.metadataCache.getFileCache(file);
-
-		// 	const hasTags = (cache?.tags?.length ?? 0) > 0 || (cache?.frontmatter?.length ?? 0) > 0;
-
-		// 	const hasOutlinks = (cache?.links?.length ?? 0) > 0;
-
-		// 	const backlinks = this.app.metadataCache.resolvedLinks;
-		// 	let hasInlinks = false;
-
-		// 	for(const sourcePath in backlinks){
-		// 		if(backlinks[sourcePath][file.path]){
-		// 			hasInlinks = true;
-		// 			break;
-		// 		}
-		// 	}
-
-		// 	if(!hasTags && !hasOutlinks && !hasInlinks){
-		// 		orphanFiles.push(file)
-		// 	}
-		// });
-		// return orphanFiles.length;
 	}
 
 	/**
 	 * get the total size (in MegaBytes) inside the vault.
 	 * this function returns a double number represent the actual vault size.
 	*/
-	getTotalVaultSize(files: TFile[]): number {
+	getTotalVaultSize(files: TFile[] = this.app.vault.getFiles()): number {
 
 		if(files.length === 0){
 			return 0;
 		}
 		
 		const totalSizeBytes = files.reduce((total, file) => total + file.stat.size, 0);
-		const totalSizeInMB = totalSizeBytes / (1024 * 1024);
-
 		return Number(totalSizeBytes.toFixed(2));
 	}
 
@@ -337,61 +292,25 @@ export class VaultService {
 	 * is considered text separated by a line break);
 	 * */
 	async getTotalSentences(files: TFile[]): Promise<number> {
-		let totalSentences = 0;
-
-		const contents = await Promise.all(
-			files.map(file => this.app.vault.cachedRead(file))
-		);
-
-		contents.forEach(content => {
-			const sentencesInFile = content.split(/\r?\n/).filter(line => line.trim().length > 0).length
-			totalSentences += sentencesInFile;
-		});
-		return totalSentences;
+		const metrics = await this.getContentMetrics(files);
+		return metrics.reduce((total, current) => total + current.sentences, 0);
 	}
 
 	getTotalWordsFromMemory(data: string): number {
-		if (!data || data.trim() === '') return 0;
-
-		const textWithoutFrontmatter = data.replace(/^---[\s\S]+?---\n/, '');
-
-		const wordsArray = textWithoutFrontmatter.match(/[\p{L}\p{N}]+/gu);
-
-		return wordsArray ? wordsArray.length : 0;
+		return ContentAnalyzer.analyze(data).words;
 	}
 
-	isOrphanFile(file: TFile): Boolean {
-		const cache = this.app.metadataCache.getFileCache(file);
+	getContentMetricsFromMemory(data: string) {
+		return ContentAnalyzer.analyze(data);
+	}
 
-		// 1. Verifica Tags (Conteúdo e Frontmatter)
-		const hasTags = (cache?.tags?.length ?? 0) > 0 || (cache?.frontmatter?.tags?.length ?? 0) > 0;
-
-		// 2. Verifica Links de Saída (Outlinks)
-		const hasOutlinks = (cache?.links?.length ?? 0) > 0;
-
-		// 3. Verifica Links de Entrada (Inlinks/Backlinks)
-		const backlinks = this.app.metadataCache.resolvedLinks;
-		let hasInlinks = false;
-
-		for (const sourcePath in backlinks) {
-			if (backlinks[sourcePath][file.path]) {
-				hasInlinks = true;
-				break;
-			}
-		}
-
-		return !hasTags && !hasOutlinks && !hasInlinks;	
+	isOrphanFile(file: TFile): boolean {
+		return this.metadataAnalyzer.isOrphanFile(file);
 	}
 
 	async getFilesMetrics(file: TFile): Promise<FileMetrics> {
 		const content = await this.app.vault.cachedRead(file);
-
-		const words = (content.match(/\S+/g) || []).length;
-
-		const sentences = (content.match(/[^.!?]+[.!?]+/g) || []).length;
-
-		const characters = content.replace(/\s/g, '').length;
-
+		const { words, sentences, characters } = ContentAnalyzer.analyze(content);
 		const isOrphan = this.isOrphanFile(file);
 
 		const readingTime = await this.getVaultEstimateReadingTime([file]);
@@ -410,12 +329,13 @@ export class VaultService {
 
 	mostActiveFolder(): string {
 		const tfolders: TFolder[] = this.app.vault.getAllFolders(false);
+		const [firstFolder] = tfolders;
 
-		if (!tfolders || tfolders.length === 0) {
+		if (!firstFolder) {
 			return "Nothing but Wind";
 		}
 
-		let mostActiveFolder: TFolder = tfolders[0];
+		let mostActiveFolder = firstFolder;
 		let maxFileCount = -1; 
 
 		for (const folder of tfolders) {
@@ -428,5 +348,13 @@ export class VaultService {
 		}
 
 		return mostActiveFolder.name;
+	}
+
+	private async getContentMetrics(files: TFile[]) {
+		const contents = await Promise.all(
+			files.map((file) => this.app.vault.cachedRead(file))
+		);
+
+		return contents.map((content) => ContentAnalyzer.analyze(content));
 	}
 }
