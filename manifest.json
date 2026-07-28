@@ -1,11 +1,10 @@
 {
-	"id": "Dynamic DashBoard",
-	"name": "Dynamic DashBoard",
-	"version": "0.0.0",
-	"minAppVersion": "0.0.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
+	"id": "dynamic-dashboard",
+	"name": "Dynamic Dashboard",
+	"version": "1.0.0",
+	"minAppVersion": "1.6.6",
+	"description": "Provides dynamic metrics and insights about your Obsidian vault.",
 	"author": "Gustavo3245",
 	"authorUrl": "https://github.com/Gustavo3245/Obsidian-DashBoard",
-	"fundingUrl": "free for use",
 	"isDesktopOnly": true
 }
