@@ -13,30 +13,30 @@ export class VaultEventListener {
 	public init() {
 
 		this.plugin.registerEvent(
-				this.plugin.app.workspace.on('quick-preview', (AbstractFile: TFile, data: string) => {
+			this.plugin.app.workspace.on('quick-preview', (AbstractFile: TFile, data: string) => {
 				this.sessionService.pingActivity();
-				void this.handlePreviewAbsctractFile(AbstractFile, data);
+				this.handlePreviewAbsctractFile(AbstractFile, data);
 			})
 		)
 		
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('modify', (AbstractFile) => {
 				this.sessionService.pingActivity();
-				void this.handleAbstractFileModification(AbstractFile);
+				this.handleAbstractFileModification(AbstractFile);
 			})
 		);
 
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('create', (AbstractFile) => {
 				this.sessionService.pingActivity();
-				void this.handleAbstractFileCreation(AbstractFile);
+				this.handleAbstractFileCreation(AbstractFile);
 			})
 		);
 
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('delete', (AbstractFile) => {
 				this.sessionService.pingActivity();
-				void this.handleAbstractFileDeletion(AbstractFile);
+				this.handleAbstractFileDeletion(AbstractFile);
 			})
 		);
 
@@ -45,7 +45,7 @@ export class VaultEventListener {
 				this.sessionService.pingActivity();
 
 				if (abstractFile instanceof TFile) {
-					void this.processor.processRenamedFile(abstractFile, oldPath);
+					this.processor.processRenamedFile(abstractFile, oldPath);
 				} else if (abstractFile instanceof TFolder) {
 					this.processor.processFolders();
 				}
@@ -72,7 +72,9 @@ export class VaultEventListener {
 
 		else if(AbstractFile instanceof TFolder) {
 			this.processor.processFolders();
-		} else if (AbstractFile instanceof TFile) {
+		} 
+
+		else if (AbstractFile instanceof TFile) {
 			this.processor.processNewAttachment(AbstractFile);
 		}
 	}
@@ -85,7 +87,9 @@ export class VaultEventListener {
 
 		else if(AbstractFile instanceof TFolder){
 			this.processor.processFolders();
-		} else if (AbstractFile instanceof TFile) {
+		}
+
+		else if (AbstractFile instanceof TFile) {
 			this.processor.processDeletedAttachment(AbstractFile);
 		}
 	}
