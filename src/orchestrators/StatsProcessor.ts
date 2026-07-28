@@ -44,7 +44,20 @@ export class StatProcessor {
 				activeMinutes: dailyMetricsLoad.timeMetrics.activeMinutes,
 				sessions: currentDailyMetrics.timeMetrics.sessions + 1,
 			}
-		})
+		});
+	}
+
+	refreshActiveTime(): void {
+
+		const today = moment().format("YYYY-MM-DD");
+		const currentDailyMetrics = this.stateManager.getDailyMetricsByDate(today);
+
+		this.stateManager.emitNewDailyMetrics(today, {
+			timeMetrics: {
+				...currentDailyMetrics.timeMetrics,
+				activeMinutes: this.calculator.getActiveMinutes(),
+			},
+		});
 	}
 
 	async snapshotLoad(range: TimeRange) {
@@ -58,16 +71,50 @@ export class StatProcessor {
 		})
 	}
 
-	async updateSnapshotLoad(file: TFile) {
-		const updatedSnapshot = await this.calculator.updateSnapshotMetrics(file);
+	async updateSnapshotLoad(file: TFile): Promise<void> {
+		
+		const currentVolume = this.stateManager.getVaultMetricsState().volume;
+		const previousFileMetrics = this.stateManager.getFileStatsPerPath(file.path);
+		const updatedFileMetrics = await this.calculator.getFileMetrics(file);
+		
+		const previousWords = previousFileMetrics?.words ?? 0;
+		const previousCharacters = previousFileMetrics?.characters ?? 0;
+		const previousSentences = previousFileMetrics?.sentences ?? 0;
+		const previousSize = previousFileMetrics?.fileSize ?? 0;
+		const previousOrphanCount = previousFileMetrics?.isOrphanFile ? 1 : 0;
+		const updatedOrphanCount = updatedFileMetrics.isOrphanFile ? 1 : 0;
+
+		const totalWords = Math.max(
+			0,
+			currentVolume.snapshot.totalWords + updatedFileMetrics.words - previousWords
+		);
 
 		this.stateManager.emitNewState({
 			volume: {
-				...this.stateManager.getVaultMetricsState().volume,
-				snapshot: updatedSnapshot
+				...currentVolume,
+				snapshot: {
+					totalCharacters: Math.max(0, currentVolume.snapshot.totalCharacters
+							+ updatedFileMetrics.characters
+							- previousCharacters ),
+					totalWords,
+					totalSentences: Math.max(0, currentVolume.snapshot.totalSentences
+							+ updatedFileMetrics.sentences
+							- previousSentences ),
+				},
+
+				totalOrphansFiles: Math.max(0, currentVolume.totalOrphansFiles
+						+ updatedOrphanCount
+						- previousOrphanCount ),
+				totalVaultSize: Math.max(0, currentVolume.totalVaultSize
+						+ updatedFileMetrics.fileSize
+						- previousSize ),
+				averageWordsPerFile: currentVolume.totalMarkdownFiles > 0
+						? totalWords / currentVolume.totalMarkdownFiles
+						: 0,
 			}
-		})
-		console.log("new file state: ", this.stateManager.getVaultMetricsState().volume.snapshot);
+		});
+
+		this.stateManager.setFileCache(file.path, updatedFileMetrics);
 	}
 
 	async volumesLoad(range: TimeRange) {
@@ -172,9 +219,5 @@ export class StatProcessor {
 			storageValues: storage
 		});
 
-		this.dailyMetricsLoad("all");
-		console.log("Inital Value State: ", this.stateManager.getVaultMetricsState());
-		console.log("Files Value State: ", this.stateManager.getFilesStats());
-		console.log("DailyHistoryMetrics State:", this.stateManager.getDailyMetricsState());
 	}
 }
