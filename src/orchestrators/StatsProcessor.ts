@@ -1,6 +1,6 @@
 import { TimeRange } from "models/value_objects/TimeRange";
 import { DailyMapper } from "mappers/DailyMapper";
-import { moment, TFile, TFolder } from "obsidian";
+import { moment, TFile } from "obsidian";
 import { StateManager } from "state/StateManager";
 import { VaultService } from "services/VaultService";
 import { StatsCalculator } from "services/StatsCalculator";
@@ -11,37 +11,53 @@ export class StatProcessor {
 				private vaultService: VaultService,
 				private stateManager: StateManager) {} 
 
-	async updatePreviewMetrics(path: string, data: string) {
-		const currentFilePreview = this.stateManager.getFileStatsPerPath(path);
+	updatePreviewMetrics(path: string, data: string): void {
+		
+		const currentFilePreview = this.stateManager.getFilePreview(path)
+			?? this.stateManager.getFileStatsPerPath(path);
 
-		const charactersPreview = data.length;
-		const wordsPreview = this.vaultService.getTotalWordsFromMemory(data);
+		const previewMetrics = this.vaultService.getContentMetricsFromMemory(data);
 
 		const updatedFilePreview = DailyMapper.mapToFileMetrics({
 			...currentFilePreview,
-			characters: charactersPreview,
-			words: wordsPreview
+			characters: previewMetrics.characters,
+			words: previewMetrics.words,
+			sentences: previewMetrics.sentences,
 			}
 		)
-		this.stateManager.setFileCache(path, updatedFilePreview);
-		console.log(this.stateManager.getFileStatsPerPath(path));
+
+		this.stateManager.setFilePreview(path, updatedFilePreview);
 	}
 
-	async dailyMetricsLoad(range: TimeRange) {
-
+	async startDailySession(range: TimeRange): Promise<void> {
+		
 		const today = moment().format("YYYY-MM-DD");
 		const dailyMetricsLoad = await this.calculator.getDailyMetrics(range);
+		const currentDailyMetrics = this.stateManager.getDailyMetricsByDate(today);
 
 		this.stateManager.emitNewDailyMetrics(today, {
-			date: dailyMetricsLoad.date,
+			date: today,
 			words: dailyMetricsLoad.words,
 			sentences: dailyMetricsLoad.sentences,
 			characters: dailyMetricsLoad.characters,
 			timeMetrics: {
 				activeMinutes: dailyMetricsLoad.timeMetrics.activeMinutes,
-				sessions: dailyMetricsLoad.timeMetrics.sessions
+				sessions: currentDailyMetrics.timeMetrics.sessions + 1,
 			}
-		})
+		});
+	}
+
+	refreshActiveTime(): void {
+
+		const today = moment().format("YYYY-MM-DD");
+		const currentDailyMetrics = this.stateManager.getDailyMetricsByDate(today);
+
+		this.stateManager.emitNewDailyMetrics(today, {
+			timeMetrics: {
+				...currentDailyMetrics.timeMetrics,
+				activeMinutes: this.calculator.getActiveMinutes(),
+			},
+		});
 	}
 
 	async snapshotLoad(range: TimeRange) {
@@ -55,16 +71,50 @@ export class StatProcessor {
 		})
 	}
 
-	async updateSnapshotLoad(file: TFile) {
-		const updatedSnapshot = await this.calculator.updateSnapshotMetrics(file);
+	async updateSnapshotLoad(file: TFile): Promise<void> {
+		
+		const currentVolume = this.stateManager.getVaultMetricsState().volume;
+		const previousFileMetrics = this.stateManager.getFileStatsPerPath(file.path);
+		const updatedFileMetrics = await this.calculator.getFileMetrics(file);
+		
+		const previousWords = previousFileMetrics?.words ?? 0;
+		const previousCharacters = previousFileMetrics?.characters ?? 0;
+		const previousSentences = previousFileMetrics?.sentences ?? 0;
+		const previousSize = previousFileMetrics?.fileSize ?? 0;
+		const previousOrphanCount = previousFileMetrics?.isOrphanFile ? 1 : 0;
+		const updatedOrphanCount = updatedFileMetrics.isOrphanFile ? 1 : 0;
+
+		const totalWords = Math.max(
+			0,
+			currentVolume.snapshot.totalWords + updatedFileMetrics.words - previousWords
+		);
 
 		this.stateManager.emitNewState({
 			volume: {
-				...this.stateManager.getVaultMetricsState().volume,
-				snapshot: updatedSnapshot
+				...currentVolume,
+				snapshot: {
+					totalCharacters: Math.max(0, currentVolume.snapshot.totalCharacters
+							+ updatedFileMetrics.characters
+							- previousCharacters ),
+					totalWords,
+					totalSentences: Math.max(0, currentVolume.snapshot.totalSentences
+							+ updatedFileMetrics.sentences
+							- previousSentences ),
+				},
+
+				totalOrphansFiles: Math.max(0, currentVolume.totalOrphansFiles
+						+ updatedOrphanCount
+						- previousOrphanCount ),
+				totalVaultSize: Math.max(0, currentVolume.totalVaultSize
+						+ updatedFileMetrics.fileSize
+						- previousSize ),
+				averageWordsPerFile: currentVolume.totalMarkdownFiles > 0
+						? totalWords / currentVolume.totalMarkdownFiles
+						: 0,
 			}
-		})
-		console.log("new file state: ", this.stateManager.getVaultMetricsState().volume.snapshot);
+		});
+
+		this.stateManager.setFileCache(file.path, updatedFileMetrics);
 	}
 
 	async volumesLoad(range: TimeRange) {
@@ -78,26 +128,29 @@ export class StatProcessor {
 
 	async processNewMarkdownFile(file: TFile) {
 		const currentVolume = this.stateManager.getVaultMetricsState().volume;
-		const fileSnapshot = await this.calculator.updateSnapshotMetrics(file);
+		const fileMetrics = await this.calculator.getFileMetrics(file);
+		
+		const totalWords = currentVolume.snapshot.totalWords + fileMetrics.words;
+		const totalMarkdownFiles = currentVolume.totalMarkdownFiles + 1;
 
 		this.stateManager.emitNewState({
 			volume: {
 				...currentVolume,
 				snapshot: { 
-					totalCharacters: currentVolume.snapshot.totalCharacters + fileSnapshot.totalCharacters,
-					totalWords: currentVolume.snapshot.totalWords + fileSnapshot.totalWords,
-					totalSentences: currentVolume.snapshot.totalSentences + fileSnapshot.totalSentences
-					},
-				totalMarkdownFiles: currentVolume.totalMarkdownFiles + 1,
+					totalCharacters: currentVolume.snapshot.totalCharacters + fileMetrics.characters,
+					totalWords,
+					totalSentences: currentVolume.snapshot.totalSentences + fileMetrics.sentences
+				},
+
+				totalMarkdownFiles,
 				totalFiles: currentVolume.totalFiles + 1,
-				totalFolders: currentVolume.totalFolders, 
-				totalAttachments: currentVolume.totalAttachments, 
-				totalOrphansFiles: currentVolume.totalOrphansFiles + (this.vaultService.isOrphanFile(file) ? 1 : 0),
-				totalVaultSize: currentVolume.totalVaultSize + file.stat.size, 
-				averageWordsPerFile: (currentVolume.snapshot.totalWords / currentVolume.totalFiles)
+				totalOrphansFiles: currentVolume.totalOrphansFiles + (fileMetrics.isOrphanFile ? 1 : 0),
+				totalVaultSize: currentVolume.totalVaultSize + fileMetrics.fileSize,
+				averageWordsPerFile: totalWords / totalMarkdownFiles,
 			}
-		})
-		console.log("New file created: ", this.stateManager.getVaultMetricsState().volume);
+		});
+
+		this.stateManager.setFileCache(file.path, fileMetrics);
 	}
 
 
@@ -105,44 +158,102 @@ export class StatProcessor {
 		const currentVolume = this.stateManager.getVaultMetricsState().volume;
 		const cachedFileMetrics = this.stateManager.getFileStatsPerPath(file.path) ?? DailyMapper.getEmptyActiveFileMetrics();
 		
-		// -- NOTE Not every type of markDown file is a orphan file,
-		// to fix this problem, (I have to repass the getTotalOrphanFiles again).
-	
+		const totalWords = Math.max(0, currentVolume.snapshot.totalWords - cachedFileMetrics.words);
+		const totalMarkdownFiles = Math.max(0, currentVolume.totalMarkdownFiles - 1);
+
 		this.stateManager.emitNewState({
 			volume: {
 				...currentVolume,
 				snapshot: {
-					totalWords: currentVolume.snapshot.totalWords - cachedFileMetrics.words,
-					totalCharacters: currentVolume.snapshot.totalCharacters - cachedFileMetrics.characters,
-					totalSentences: currentVolume.snapshot.totalSentences - cachedFileMetrics.sentences
+					totalWords,
+					totalCharacters: Math.max(0, currentVolume.snapshot.totalCharacters - cachedFileMetrics.characters),
+					totalSentences: Math.max(0,currentVolume.snapshot.totalSentences - cachedFileMetrics.sentences)
 				},
-				totalMarkdownFiles: currentVolume.totalMarkdownFiles - 1,
-				totalFiles: currentVolume.totalFiles - 1,
-				totalFolders: currentVolume.totalFolders,
-				totalAttachments: currentVolume.totalAttachments,
-				totalOrphansFiles: currentVolume.totalOrphansFiles - (cachedFileMetrics.isOrphanFile ? 1 : 0),
-				totalVaultSize: currentVolume.totalVaultSize - cachedFileMetrics.fileSize, 
-				averageWordsPerFile: (currentVolume.snapshot.totalWords / currentVolume.totalFiles)
-			}
-		})
 
-		console.log("New file created: ", this.stateManager.getVaultMetricsState().volume);
+				totalMarkdownFiles,
+				totalFiles: Math.max(0, currentVolume.totalFiles - 1),
+				totalOrphansFiles: Math.max(0, currentVolume.totalOrphansFiles - (cachedFileMetrics.isOrphanFile ? 1 : 0)),
+				totalVaultSize: Math.max(0, currentVolume.totalVaultSize - cachedFileMetrics.fileSize),
+				averageWordsPerFile: totalMarkdownFiles > 0 ? totalWords / totalMarkdownFiles : 0,
+			}
+		});
+
+		this.stateManager.removeFileCache(file.path);
 	}
 
-	async processFolders(tfolder: TFolder) {
+	processFolders(): void {
 		const currentVolume = this.stateManager.getVaultMetricsState().volume;
 
 		this.stateManager.emitNewState({
 			volume: {
 				...currentVolume,
-				totalFolders: currentVolume.totalFolders,
-				totalVaultSize: currentVolume.totalVaultSize,
+				totalFolders: this.vaultService.getTotalFolders(),
 			}
-		})
-		console.log("New folder state: ", this.stateManager.getVaultMetricsState().volume);
+		});
 	}
 
-	async VaultLoad(range: TimeRange) {
+	processNewAttachment(file: TFile): void {
+		const currentVolume = this.stateManager.getVaultMetricsState().volume;
+
+		this.stateManager.emitNewState({
+			volume: {
+				...currentVolume,
+				totalFiles: currentVolume.totalFiles + 1,
+				totalAttachments: currentVolume.totalAttachments + 1,
+				totalVaultSize: currentVolume.totalVaultSize + file.stat.size,
+			}
+		});
+	}
+
+	processDeletedAttachment(file: TFile): void {
+		const currentVolume = this.stateManager.getVaultMetricsState().volume;
+
+		this.stateManager.emitNewState({
+			volume: {
+				...currentVolume,
+				totalFiles: Math.max(0, currentVolume.totalFiles - 1),
+				totalAttachments: Math.max(0, currentVolume.totalAttachments - 1),
+				totalVaultSize: Math.max(0, currentVolume.totalVaultSize - file.stat.size),
+			}
+		});
+	}
+
+	processModifiedAttachment(): void {
+		const currentVolume = this.stateManager.getVaultMetricsState().volume;
+
+		this.stateManager.emitNewState({
+			volume: {
+				...currentVolume,
+				totalVaultSize: this.vaultService.getTotalVaultSize(),
+			}
+		});
+	}
+
+	async processRenamedFile(file: TFile, oldPath: string): Promise<void> {
+		
+		if (file.extension !== "md") {
+			return;
+		}
+
+		const cachedMetrics = this.stateManager.getFileStatsPerPath(oldPath);
+		this.stateManager.removeFileCache(oldPath);
+
+		if (cachedMetrics) {
+			this.stateManager.setFileCache(file.path, {
+				...cachedMetrics,
+				name: file.name,
+				path: file.path,
+			});
+			return;
+		}
+
+		this.stateManager.setFileCache(
+			file.path,
+			await this.calculator.getFileMetrics(file)
+		);
+	}
+
+	async vaultLoad(range: TimeRange) {
 		const files = this.vaultService.getFilesByRange(range);
 
 		await Promise.all(files.map(async (file) => {
@@ -166,9 +277,5 @@ export class StatProcessor {
 			storageValues: storage
 		});
 
-		this.dailyMetricsLoad("all");
-		console.log("Inital Value State: ", this.stateManager.getVaultMetricsState());
-		console.log("Files Value State: ", this.stateManager.getFilesStats());
-		console.log("DailyHistoryMetrics State:", this.stateManager.getDailyMetricsState());
 	}
 }

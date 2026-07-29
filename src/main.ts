@@ -1,22 +1,27 @@
-import {addIcon, App, Editor, MarkdownView, Modal, Notice, Plugin, TFile, Vault} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
-
+import { Plugin } from "obsidian";
+import { DashboardSettingTab } from "./settings";
+import { DashboardSettings, DEFAULT_SETTINGS } from "models/DashboardSettings";
 import { VaultEventListener } from './events/VaultEventListener';
 import { DEFAULT_STORAGE_DATA, StorageData } from 'datas/VaultMetricData';
-
 import { ServiceContainer } from 'services/ServiceContainer';
 import { VaultMetrics } from 'models/VaultMetrics';
 import { DailyMetrics } from 'models/DailyMetrics';
+import { VaultCommands } from "commands/VaultCommands";
+import { Logger } from "utils/Logger";
 
-// Remember to rename these classes and interfaces!
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
 export default class DashboardPlugin extends Plugin {
 
 	private serviceContainer: ServiceContainer;
 	private vaultMetricData: StorageData;
-
 	private vaultEvent: VaultEventListener;
+	public settings: DashboardSettings = DEFAULT_SETTINGS;
 
 	async onload() {
+		Logger.lifecycle("plugin loading");
 
 		await this.loadSettings();
 
@@ -28,32 +33,54 @@ export default class DashboardPlugin extends Plugin {
 
 		this.serviceContainer.initialize();
 
-		this.vaultEvent = new VaultEventListener(this, this.serviceContainer.sessionService, this.serviceContainer.statsProcessor)
+		this.vaultEvent = new VaultEventListener(
+			this,
+			this.serviceContainer.sessionService,
+			this.serviceContainer.statsProcessor
+		);
 
 		await this.bootstrapPlugin();
+		Logger.lifecycle("plugin loaded");
 	}
 
 	async loadSettings() {
+
+		const loadedData: unknown = await this.loadData();
+		const dataFromDisk = isRecord(loadedData) ? loadedData : {};
 		
-		const dataFromDisk = (await this.loadData()) || {};
+		const currentVaultMetrics = isRecord(dataFromDisk.vaultMetrics)
+			? dataFromDisk.vaultMetrics: undefined;
+		const legacyVaultMetrics = isRecord(dataFromDisk.vaultMetricData)
+			? dataFromDisk.vaultMetricData: undefined;
+		const savedDailyHistory = isRecord(dataFromDisk.dailyHistory)
+			? dataFromDisk.dailyHistory as Record<string, DailyMetrics>: {};
+		const savedSettings = isRecord(dataFromDisk.settings)
+			? dataFromDisk.settings: {};
+
+		const savedVaultMetrics = currentVaultMetrics ?? legacyVaultMetrics ?? {};
 
 		this.vaultMetricData = {
-
 			vaultMetrics: {
 				...DEFAULT_STORAGE_DATA.vaultMetrics,
-				...(dataFromDisk.vaultMetricData || {})
+				...(savedVaultMetrics as Partial<VaultMetrics>)
 			},
-
-			dailyHistory: dataFromDisk.dailyHistory || {},
-
+			dailyHistory: savedDailyHistory,
 			settings: {
-				...DEFAULT_STORAGE_DATA.settings,
-				...(dataFromDisk.settings || {})
+				...DEFAULT_SETTINGS,
+				idleLimitMinutes:
+					typeof savedSettings.idleLimitMinutes === "number"
+						? savedSettings.idleLimitMinutes
+						: DEFAULT_SETTINGS.idleLimitMinutes,
 			}
 		};
+
+		this.settings = this.vaultMetricData.settings;
 	}
 
-	async saveSettings(updatedMetrics?: { vaultMetrics?: VaultMetrics, dailyHistory?: Record<string, DailyMetrics> }) {
+	async saveSettings(updatedMetrics?: {
+		vaultMetrics?: VaultMetrics;
+		dailyHistory?: Record<string, DailyMetrics>; }) {
+
 		if (updatedMetrics) {
 			this.vaultMetricData = {
 
@@ -72,18 +99,40 @@ export default class DashboardPlugin extends Plugin {
 		await this.saveData(this.vaultMetricData);
 	}
 
+	public async updateSettings(patch: Partial<DashboardSettings>): Promise<void> {
+		this.settings = {
+			...this.settings,
+			...patch,
+		};
+		this.vaultMetricData.settings = this.settings;
+		this.serviceContainer.sessionService.setIdleLimitMinutes(
+			this.settings.idleLimitMinutes
+		);
+		await this.saveSettings();
+	}
+
 	private async bootstrapPlugin() {
-		console.log("Iniciando rotinas do Dynamic Dashboard...");
+		this.vaultEvent.init();
+		this.vaultEvent.initActivityEvents();
 
-		// 1. Liga os "ouvidos" do plugin (eventos de clique, digitação, etc)
-		this.vaultEvent.init()
+		this.registerInterval(
+			this.serviceContainer.sessionService.startTracking()
+		);
 
-		// 2. Começa a contar o tempo da sessão atual
-		this.serviceContainer.sessionService.startTracking();
+		new VaultCommands(this, this.serviceContainer.statsProcessor).register();
 
-		// 3. Faz a varredura pesada inicial do Vault inteiro
-		await this.serviceContainer.statsProcessor.VaultLoad('all');
+		this.addSettingTab(new DashboardSettingTab(this.app, this));
+		await this.serviceContainer.statsProcessor.vaultLoad("all");
+		await this.serviceContainer.statsProcessor.startDailySession("all");
 
+		this.registerInterval(window.setInterval(() => {
+			this.serviceContainer.statsProcessor.refreshActiveTime();
+		}, 60_000));
+	}
+
+	onunload(): void {
+		Logger.lifecycle("plugin unloading");
+		this.serviceContainer.sessionService.stopTracking();
+		void this.serviceContainer.stateManager.flushPendingSave();
 	}
 }
-
