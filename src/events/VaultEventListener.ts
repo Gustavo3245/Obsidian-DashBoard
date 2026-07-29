@@ -11,6 +11,21 @@ export class VaultEventListener {
 		private processor: StatProcessor
 	) {}
 
+	/**
+	 * Registers the Obsidian workspace and Vault events used by the plugin.
+	 * Every event reports user activity to SessionService and delegates metric
+	 * updates to the appropriate handler or StatProcessor operation.
+	 *
+	 * Registered events:
+	 * - quick-preview: updates the in-memory preview metrics for a Markdown file.
+	 * - modify: applies metric changes from a Markdown file or attachment.
+	 * - create: adds metrics for a new Markdown file, attachment, or folder.
+	 * - delete: removes metrics for a deleted Markdown file, attachment, or folder.
+	 * - rename: moves a Markdown cache entry or reconciles the folder count.
+	 *
+	 * Plugin.registerEvent ensures that Obsidian removes these listeners when
+	 * the plugin is unloaded.
+	 */
 	public init() {
 
 		this.plugin.registerEvent(
@@ -70,6 +85,14 @@ export class VaultEventListener {
 
 	}
 
+	/**
+	 * Registers DOM events that indicate active interaction with Obsidian.
+	 * Keyboard input, pointer interaction, and window focus reset the idle
+	 * timer through SessionService.pingActivity().
+	 *
+	 * Plugin.registerDomEvent ensures that Obsidian removes these listeners
+	 * when the plugin is unloaded.
+	 */
 	public initActivityEvents(): void {
 		this.plugin.registerDomEvent(activeDocument, "keydown", () => {
 			Logger.event("activity.keydown");
@@ -87,6 +110,12 @@ export class VaultEventListener {
 		});
 	}
 
+	/**
+	 * Handles modifications to files in the Vault.
+	 * Markdown files use their cached previous metrics to apply an incremental
+	 * delta. Other files are treated as attachments and trigger a reconciliation
+	 * of the total Vault size.
+	 */
 	private async handleAbstractFileModification(AbstractFile: TAbstractFile) {
 
 		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
@@ -97,6 +126,11 @@ export class VaultEventListener {
 
 	}
 
+	/**
+	 * Handles newly created Vault entries.
+	 * Markdown files are analyzed and added to the file cache, folders update
+	 * the folder count, and all other files update attachment metrics.
+	 */
 	private async handleAbstractFileCreation(AbstractFile: TAbstractFile) {
 
 		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
@@ -112,6 +146,12 @@ export class VaultEventListener {
 		}
 	}
 
+	/**
+	 * Handles deleted Vault entries.
+	 * Markdown metrics are removed using the last cached FileMetrics because
+	 * deleted files may no longer be readable. Folders and attachments update
+	 * their corresponding aggregate metrics.
+	 */
 	private async handleAbstractFileDeletion(AbstractFile: TAbstractFile) {
 
 		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
@@ -127,6 +167,11 @@ export class VaultEventListener {
 		}
 	}
 
+	/**
+	 * Handles the current editor preview for a Markdown file.
+	 * The unsaved text is analyzed in memory and stored in the preview cache,
+	 * without replacing the confirmed metrics used for incremental deltas.
+	 */
 	private async handlePreviewAbsctractFile(AbstractFile: TAbstractFile, data: string) {
 		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
 			this.processor.updatePreviewMetrics(AbstractFile.path, data);
@@ -134,6 +179,10 @@ export class VaultEventListener {
 		
 	}
 
+	/**
+	 * Converts an Obsidian file or folder into a small, serializable description
+	 * used by event logs. File contents are never included.
+	 */
 	private describeFile(abstractFile: TAbstractFile): Record<string, unknown> {
 		return {
 			path: abstractFile.path,
