@@ -38,7 +38,8 @@ export class ServiceContainer {
 		const statsCalculator = new StatsCalculator(
 			vaultService,
 			metadataAnalyzer,
-			this.sessionService
+			this.sessionService,
+			this.stateManager
 		);
 
 		this.statsProcessor = new StatProcessor(

@@ -5,6 +5,9 @@ import { TimeRange } from "models/value_objects/TimeRange";
 import { FileMetrics } from "models/FileMetrics";
 import { ContentAnalyzer } from "analyzer/ContentAnalyzer";
 import { MetadataAnalyzer } from "analyzer/MetadataAnalyzer";
+import { DailyMetrics } from "models/DailyMetrics";
+
+const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 
 export class VaultService {
 	private readonly metadataAnalyzer: MetadataAnalyzer;
@@ -348,6 +351,108 @@ export class VaultService {
 		}
 
 		return mostActiveFolder.name;
+	}
+
+	getActiveDates(range: TimeRange, dailyHistory: Record<string, DailyMetrics>): number[] {
+		
+		const today = this.getStartOfLocalDay(new Date());
+		const minimumDate = this.getMinimumDateForRange(range, today);
+		const activeDates = new Set<number>();
+
+		for (const [dateKey, metrics] of Object.entries(dailyHistory)) {
+			const date = this.parseIsoDate(dateKey);
+
+			if (date === null || date < minimumDate || date > today) {
+				continue;
+			}
+
+			const hasActivity = metrics.words > 0
+				|| metrics.characters > 0
+				|| metrics.sentences > 0
+				|| metrics.timeMetrics.activeMinutes > 0
+				|| metrics.timeMetrics.sessions > 0;
+
+			if (hasActivity) {
+				activeDates.add(date);
+			}
+		}
+
+		return [...activeDates].sort((first, second) => first - second);
+	}
+
+	calculateStreakCount(activeDates: number[]): number {
+		const activeDateSet = new Set(activeDates);
+		const today = this.getStartOfLocalDay(new Date());
+		let currentDate = activeDateSet.has(today)
+			? today
+			: today - DAY_IN_MILLISECONDS;
+		let streakCount = 0;
+
+		while (activeDateSet.has(currentDate)) {
+			streakCount++;
+			currentDate -= DAY_IN_MILLISECONDS;
+		}
+
+		return streakCount;
+	}
+
+	calculateLongestStreak(activeDates: number[]): number {
+		let longestStreak = 0;
+		let currentStreak = 0;
+		let previousDate: number | null = null;
+
+		for (const date of activeDates) {
+			currentStreak = previousDate !== null
+				&& date - previousDate === DAY_IN_MILLISECONDS
+				? currentStreak + 1
+				: 1;
+			longestStreak = Math.max(longestStreak, currentStreak);
+			previousDate = date;
+		}
+
+		return longestStreak;
+	}
+
+	private getMinimumDateForRange(range: TimeRange, today: number): number {
+		switch (range) {
+			case "today":
+				return today;
+			case "week":
+				return today - (6 * DAY_IN_MILLISECONDS);
+			case "month":
+				return today - (29 * DAY_IN_MILLISECONDS);
+			case "all":
+				return Number.NEGATIVE_INFINITY;
+		}
+	}
+
+	private parseIsoDate(date: string): number | null {
+		const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+
+		if (!match) {
+			return null;
+		}
+
+		const year = Number(match[1]);
+		const month = Number(match[2]) - 1;
+		const day = Number(match[3]);
+		const parsedDate = new Date(year, month, day);
+
+		if (parsedDate.getFullYear() !== year
+			|| parsedDate.getMonth() !== month
+			|| parsedDate.getDate() !== day) {
+			return null;
+		}
+
+		return this.getStartOfLocalDay(parsedDate);
+	}
+
+	private getStartOfLocalDay(date: Date): number {
+		return Date.UTC(
+			date.getFullYear(),
+			date.getMonth(),
+			date.getDate()
+		);
 	}
 
 	private async getContentMetrics(files: TFile[]) {

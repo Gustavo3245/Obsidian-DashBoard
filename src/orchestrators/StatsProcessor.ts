@@ -50,6 +50,7 @@ export class StatProcessor {
 	refreshActiveTime(): void {
 
 		const today = moment().format("YYYY-MM-DD");
+		
 		const currentDailyMetrics = this.stateManager.getDailyMetricsByDate(today);
 
 		this.stateManager.emitNewDailyMetrics(today, {

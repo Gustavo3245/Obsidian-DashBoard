@@ -37,8 +37,8 @@ export interface VaultMetrics {
 	}
 	// streak
 	streak: {
-		streakCount: null | undefined;
-		longestStreak: null | undefined;
+		streakCount: number;
+		longestStreak: number;
 	}
 	// values that should be saved by the user obsidian.
 	storageValues : {
