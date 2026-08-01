@@ -353,6 +353,10 @@ export class VaultService {
 		return mostActiveFolder.name;
 	}
 
+	/**
+	 * Get all active dates from the saved daily history within the selected range.
+	 * A date is active when it contains content metrics, active minutes or sessions.
+	 */
 	getActiveDates(range: TimeRange, dailyHistory: Record<string, DailyMetrics>): number[] {
 		
 		const today = this.getStartOfLocalDay(new Date());
@@ -380,6 +384,10 @@ export class VaultService {
 		return [...activeDates].sort((first, second) => first - second);
 	}
 
+	/**
+	 * Get the current streak count from an array of active dates.
+	 * The streak can end today or yesterday and stops at the first inactive day.
+	 */
 	calculateStreakCount(activeDates: number[]): number {
 		const activeDateSet = new Set(activeDates);
 		const today = this.getStartOfLocalDay(new Date());
@@ -396,6 +404,10 @@ export class VaultService {
 		return streakCount;
 	}
 
+	/**
+	 * Get the longest streak from an ordered array of active dates.
+	 * Every sequence of consecutive days is compared with the longest sequence found.
+	 */
 	calculateLongestStreak(activeDates: number[]): number {
 		let longestStreak = 0;
 		let currentStreak = 0;
@@ -413,6 +425,9 @@ export class VaultService {
 		return longestStreak;
 	}
 
+	/**
+	 * Get the oldest accepted date for the selected predefined time range.
+	 */
 	private getMinimumDateForRange(range: TimeRange, today: number): number {
 		switch (range) {
 			case "today":
@@ -426,6 +441,10 @@ export class VaultService {
 		}
 	}
 
+	/**
+	 * Convert a date key in YYYY-MM-DD format into a normalized timestamp.
+	 * Invalid or non-existent calendar dates return null.
+	 */
 	private parseIsoDate(date: string): number | null {
 		const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
 
@@ -447,6 +466,9 @@ export class VaultService {
 		return this.getStartOfLocalDay(parsedDate);
 	}
 
+	/**
+	 * Normalize a local calendar date into a UTC timestamp without a time component.
+	 */
 	private getStartOfLocalDay(date: Date): number {
 		return Date.UTC(
 			date.getFullYear(),
