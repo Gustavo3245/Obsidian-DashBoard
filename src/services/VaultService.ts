@@ -12,10 +12,17 @@ const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 export class VaultService {
 	private readonly metadataAnalyzer: MetadataAnalyzer;
 
+	/**
+	 * Create the Vault service and its metadata analyzer using the Obsidian app.
+	 */
 	constructor(private app: App) {
 		this.metadataAnalyzer = new MetadataAnalyzer(app);
 	}
 
+	/**
+	 * Get Markdown files modified within a predefined time range.
+	 * The all range returns every Markdown file in the vault.
+	 */
 	getFilesByRange(range: TimeRange): TFile[] {
 		const files = this.app.vault.getMarkdownFiles();
 
@@ -146,15 +153,24 @@ export class VaultService {
 
 	}
 
+	/**
+	 * Get the file currently active in the Obsidian workspace.
+	 * This function returns null when no file is open.
+	 */
 	getLastModifiedFile(): TFile | null {
 		return this.app.workspace.getActiveFile();
 	}
 
+	/**
+	 * Get the display name of the current vault.
+	 */
 	getVaultName(): string {
 		return this.app.vault.getName();
 	}
 
-	
+	/**
+	 * Get the total number of Markdown files inside the vault.
+	 */
 	getTotalMarkdownFiles(): number {
 		const files = this.app.vault.getMarkdownFiles();
 
@@ -164,6 +180,9 @@ export class VaultService {
 		return files.length;
 	}
 
+	/**
+	 * Get the total number of files of every type inside the vault.
+	 */
 	getTotalFiles(): number {
 		const files = this.app.vault.getFiles();
 
@@ -186,6 +205,10 @@ export class VaultService {
 		return folders.length;
 	}
 
+	/**
+	 * Get the paths of the files most recently opened in the workspace.
+	 * This function returns a fallback message when no file was opened.
+	 */
 	getActiveMarkDownFiles(): string[] | string {
 		const files = this.app.workspace.getLastOpenFiles();
 
@@ -299,18 +322,31 @@ export class VaultService {
 		return metrics.reduce((total, current) => total + current.sentences, 0);
 	}
 
+	/**
+	 * Get the word count directly from a content string kept in memory.
+	 */
 	getTotalWordsFromMemory(data: string): number {
 		return ContentAnalyzer.analyze(data).words;
 	}
 
+	/**
+	 * Get words, characters and sentences directly from in-memory content.
+	 */
 	getContentMetricsFromMemory(data: string) {
 		return ContentAnalyzer.analyze(data);
 	}
 
+	/**
+	 * Check whether a Markdown file has no tags, outgoing links or backlinks.
+	 */
 	isOrphanFile(file: TFile): boolean {
 		return this.metadataAnalyzer.isOrphanFile(file);
 	}
 
+	/**
+	 * Get content, reading time, orphan state and file information for one file.
+	 * The file content is read from the Obsidian Vault cache.
+	 */
 	async getFilesMetrics(file: TFile): Promise<FileMetrics> {
 		const content = await this.app.vault.cachedRead(file);
 		const { words, sentences, characters } = ContentAnalyzer.analyze(content);
@@ -330,6 +366,10 @@ export class VaultService {
 		}
 	}
 
+	/**
+	 * Get the name of the folder with the greatest number of direct file children.
+	 * This function returns a fallback message when the vault has no folders.
+	 */
 	mostActiveFolder(): string {
 		const tfolders: TFolder[] = this.app.vault.getAllFolders(false);
 		const [firstFolder] = tfolders;
@@ -477,6 +517,9 @@ export class VaultService {
 		);
 	}
 
+	/**
+	 * Read the supplied files once and analyze the content of each file.
+	 */
 	private async getContentMetrics(files: TFile[]) {
 		const contents = await Promise.all(
 			files.map((file) => this.app.vault.cachedRead(file))
