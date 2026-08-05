@@ -156,11 +156,15 @@ export class StatsCalculator {
 	}
 
 	async storageValuesMetrics(range: TimeRange): Promise<VaultMetrics['storageValues']> {
+		const dailyMetrics = this.vaultService.getDailyMetricsByRange(
+			range,
+			this.stateManager.getDailyMetricsState()
+		);
 
 		return {
-			mostActiveDay: null,
-			mostActiveWeek: null,
-			mostActiveMonth: null
+			mostActiveDay: this.vaultService.calculateMostActiveDay(dailyMetrics),
+			mostActiveWeek: this.vaultService.calculateMostActiveWeek(dailyMetrics),
+			mostActiveMonth: this.vaultService.calculateMostActiveMonth(dailyMetrics)
 		}
 	}
 

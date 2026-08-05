@@ -6,6 +6,7 @@ import { FileMetrics } from "models/FileMetrics";
 import { ContentAnalyzer } from "analyzer/ContentAnalyzer";
 import { MetadataAnalyzer } from "analyzer/MetadataAnalyzer";
 import { DailyMetrics } from "models/DailyMetrics";
+import { ActivityPeriod, DatedDailyMetrics } from "models/ActivityMetrics";
 
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 
@@ -410,13 +411,7 @@ export class VaultService {
 				continue;
 			}
 
-			const hasActivity = metrics.words > 0
-				|| metrics.characters > 0
-				|| metrics.sentences > 0
-				|| metrics.timeMetrics.activeMinutes > 0
-				|| metrics.timeMetrics.sessions > 0;
-
-			if (hasActivity) {
+			if (this.hasDailyActivity(metrics)) {
 				activeDates.add(date);
 			}
 		}
@@ -463,6 +458,175 @@ export class VaultService {
 		}
 
 		return longestStreak;
+	}
+
+	/**
+	 * Get valid daily metrics from the saved history within the selected range.
+	 * Future dates and invalid date keys are ignored.
+	 */
+	getDailyMetricsByRange(range: TimeRange, dailyHistory: Record<string, DailyMetrics>): DatedDailyMetrics[] {
+		const today = this.getStartOfLocalDay(new Date());
+		const minimumDate = this.getMinimumDateForRange(range, today);
+
+		return Object.entries(dailyHistory)
+			.map(([dateKey, metrics]) => ({
+				date: this.parseIsoDate(dateKey),
+				dateKey,
+				metrics,
+			}))
+			.filter((dailyMetrics): dailyMetrics is DatedDailyMetrics =>
+				dailyMetrics.date !== null
+				&& dailyMetrics.date >= minimumDate
+				&& dailyMetrics.date <= today
+				&& this.hasDailyActivity(dailyMetrics.metrics)
+			)
+			.sort((first, second) => first.date - second.date);
+	}
+
+	/**
+	 * Get the most active day using active minutes and the saved daily metrics.
+	 * The most recent day wins when all activity values are equal.
+	 */
+	calculateMostActiveDay(dailyMetrics: DatedDailyMetrics[]): string | null {
+		const periods = dailyMetrics.map(({ date, dateKey, metrics }) =>
+			this.createActivityPeriod(dateKey, date, metrics)
+		);
+
+		return this.getMostActivePeriod(periods)?.key ?? null;
+	}
+
+	/**
+	 * Get the Monday of the most active week using the saved daily metrics.
+	 * Metrics from every day in the same calendar week are accumulated.
+	 */
+	calculateMostActiveWeek(dailyMetrics: DatedDailyMetrics[]): string | null {
+		const periods = this.groupDailyMetrics(dailyMetrics, (date) => {
+			const dayOfWeek = new Date(date).getUTCDay();
+			const daysSinceMonday = (dayOfWeek + 6) % 7;
+			const weekStart = date - (daysSinceMonday * DAY_IN_MILLISECONDS);
+
+			return {
+				key: this.formatIsoDate(weekStart),
+				endDate: weekStart + (6 * DAY_IN_MILLISECONDS),
+			};
+		});
+
+		return this.getMostActivePeriod(periods)?.key ?? null;
+	}
+
+	/**
+	 * Get the most active month in YYYY-MM format using the saved daily metrics.
+	 * Metrics from every day in the same calendar month are accumulated.
+	 */
+	calculateMostActiveMonth(dailyMetrics: DatedDailyMetrics[]): string | null {
+		const periods = this.groupDailyMetrics(dailyMetrics, (date) => {
+			const parsedDate = new Date(date);
+			const year = parsedDate.getUTCFullYear();
+			const month = parsedDate.getUTCMonth();
+
+			return {
+				key: `${year}-${String(month + 1).padStart(2, "0")}`,
+				endDate: Date.UTC(year, month + 1, 0),
+			};
+		});
+
+		return this.getMostActivePeriod(periods)?.key ?? null;
+	}
+
+	/**
+	 * Group daily metrics into activity periods using the supplied date resolver.
+	 */
+	private groupDailyMetrics(dailyMetrics: DatedDailyMetrics[],
+		resolvePeriod: (date: number) => { key: string; endDate: number }): ActivityPeriod[] {
+		const periods = new Map<string, ActivityPeriod>();
+
+		for (const { date, metrics } of dailyMetrics) {
+			const { key, endDate } = resolvePeriod(date);
+			const period = periods.get(key)
+				?? this.createActivityPeriod(key, endDate);
+
+			period.words += metrics.words;
+			period.characters += metrics.characters;
+			period.sentences += metrics.sentences;
+			period.activeMinutes += metrics.timeMetrics.activeMinutes;
+			period.sessions += metrics.timeMetrics.sessions;
+			periods.set(key, period);
+		}
+
+		return [...periods.values()];
+	}
+
+	/**
+	 * Create a serializable activity period with optional daily metric values.
+	 */
+	private createActivityPeriod(key: string, endDate: number, metrics?: DailyMetrics): ActivityPeriod {
+		return {
+			key,
+			endDate,
+			words: metrics?.words ?? 0,
+			characters: metrics?.characters ?? 0,
+			sentences: metrics?.sentences ?? 0,
+			activeMinutes: metrics?.timeMetrics.activeMinutes ?? 0,
+			sessions: metrics?.timeMetrics.sessions ?? 0,
+		};
+	}
+
+	/**
+	 * Select the most active period by time, sessions and content metrics.
+	 */
+	private getMostActivePeriod(periods: ActivityPeriod[]): ActivityPeriod | null {
+		return periods.reduce<ActivityPeriod | null>((mostActive, current) => {
+			if (mostActive === null) {
+				return current;
+			}
+
+			const currentValues = this.getActivityValues(current);
+			const mostActiveValues = this.getActivityValues(mostActive);
+
+			for (let index = 0; index < currentValues.length; index++) {
+				const currentValue = currentValues[index] ?? 0;
+				const mostActiveValue = mostActiveValues[index] ?? 0;
+
+				if (currentValue !== mostActiveValue) {
+					return currentValue > mostActiveValue
+						? current
+						: mostActive;
+				}
+			}
+
+			return current.endDate > mostActive.endDate ? current : mostActive;
+		}, null);
+	}
+
+	/**
+	 * Get activity values in the order used to compare saved periods.
+	 */
+	private getActivityValues(period: ActivityPeriod): number[] {
+		return [
+			period.activeMinutes,
+			period.sessions,
+			period.words,
+			period.characters,
+			period.sentences,
+		];
+	}
+
+	/**
+	 * Convert a normalized timestamp into a YYYY-MM-DD date key.
+	 */
+	private formatIsoDate(date: number): string {
+		return new Date(date).toISOString().slice(0, 10);
+	}
+
+	/**
+	 * Check whether saved daily metrics contain content or session activity.
+	 */
+	private hasDailyActivity(metrics: DailyMetrics): boolean {
+		return metrics.words > 0
+			|| metrics.characters > 0
+			|| metrics.sentences > 0
+			|| metrics.timeMetrics.activeMinutes > 0
+			|| metrics.timeMetrics.sessions > 0;
 	}
 
 	/**
