@@ -5,14 +5,25 @@ import { TimeRange } from "models/value_objects/TimeRange";
 import { FileMetrics } from "models/FileMetrics";
 import { ContentAnalyzer } from "analyzer/ContentAnalyzer";
 import { MetadataAnalyzer } from "analyzer/MetadataAnalyzer";
+import { DailyMetrics } from "models/DailyMetrics";
+import { ActivityPeriod, DatedDailyMetrics } from "models/ActivityMetrics";
+
+const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 
 export class VaultService {
 	private readonly metadataAnalyzer: MetadataAnalyzer;
 
+	/**
+	 * Create the Vault service and its metadata analyzer using the Obsidian app.
+	 */
 	constructor(private app: App) {
 		this.metadataAnalyzer = new MetadataAnalyzer(app);
 	}
 
+	/**
+	 * Get Markdown files modified within a predefined time range.
+	 * The all range returns every Markdown file in the vault.
+	 */
 	getFilesByRange(range: TimeRange): TFile[] {
 		const files = this.app.vault.getMarkdownFiles();
 
@@ -143,15 +154,24 @@ export class VaultService {
 
 	}
 
+	/**
+	 * Get the file currently active in the Obsidian workspace.
+	 * This function returns null when no file is open.
+	 */
 	getLastModifiedFile(): TFile | null {
 		return this.app.workspace.getActiveFile();
 	}
 
+	/**
+	 * Get the display name of the current vault.
+	 */
 	getVaultName(): string {
 		return this.app.vault.getName();
 	}
 
-	
+	/**
+	 * Get the total number of Markdown files inside the vault.
+	 */
 	getTotalMarkdownFiles(): number {
 		const files = this.app.vault.getMarkdownFiles();
 
@@ -161,6 +181,9 @@ export class VaultService {
 		return files.length;
 	}
 
+	/**
+	 * Get the total number of files of every type inside the vault.
+	 */
 	getTotalFiles(): number {
 		const files = this.app.vault.getFiles();
 
@@ -183,6 +206,10 @@ export class VaultService {
 		return folders.length;
 	}
 
+	/**
+	 * Get the paths of the files most recently opened in the workspace.
+	 * This function returns a fallback message when no file was opened.
+	 */
 	getActiveMarkDownFiles(): string[] | string {
 		const files = this.app.workspace.getLastOpenFiles();
 
@@ -296,18 +323,31 @@ export class VaultService {
 		return metrics.reduce((total, current) => total + current.sentences, 0);
 	}
 
+	/**
+	 * Get the word count directly from a content string kept in memory.
+	 */
 	getTotalWordsFromMemory(data: string): number {
 		return ContentAnalyzer.analyze(data).words;
 	}
 
+	/**
+	 * Get words, characters and sentences directly from in-memory content.
+	 */
 	getContentMetricsFromMemory(data: string) {
 		return ContentAnalyzer.analyze(data);
 	}
 
+	/**
+	 * Check whether a Markdown file has no tags, outgoing links or backlinks.
+	 */
 	isOrphanFile(file: TFile): boolean {
 		return this.metadataAnalyzer.isOrphanFile(file);
 	}
 
+	/**
+	 * Get content, reading time, orphan state and file information for one file.
+	 * The file content is read from the Obsidian Vault cache.
+	 */
 	async getFilesMetrics(file: TFile): Promise<FileMetrics> {
 		const content = await this.app.vault.cachedRead(file);
 		const { words, sentences, characters } = ContentAnalyzer.analyze(content);
@@ -327,6 +367,10 @@ export class VaultService {
 		}
 	}
 
+	/**
+	 * Get the name of the folder with the greatest number of direct file children.
+	 * This function returns a fallback message when the vault has no folders.
+	 */
 	mostActiveFolder(): string {
 		const tfolders: TFolder[] = this.app.vault.getAllFolders(false);
 		const [firstFolder] = tfolders;
@@ -350,6 +394,296 @@ export class VaultService {
 		return mostActiveFolder.name;
 	}
 
+	/**
+	 * Get all active dates from the saved daily history within the selected range.
+	 * A date is active when it contains content metrics, active minutes or sessions.
+	 */
+	getActiveDates(range: TimeRange, dailyHistory: Record<string, DailyMetrics>): number[] {
+		
+		const today = this.getStartOfLocalDay(new Date());
+		const minimumDate = this.getMinimumDateForRange(range, today);
+		const activeDates = new Set<number>();
+
+		for (const [dateKey, metrics] of Object.entries(dailyHistory)) {
+			const date = this.parseIsoDate(dateKey);
+
+			if (date === null || date < minimumDate || date > today) {
+				continue;
+			}
+
+			if (this.hasDailyActivity(metrics)) {
+				activeDates.add(date);
+			}
+		}
+
+		return [...activeDates].sort((first, second) => first - second);
+	}
+
+	/**
+	 * Get the current streak count from an array of active dates.
+	 * The streak can end today or yesterday and stops at the first inactive day.
+	 */
+	calculateStreakCount(activeDates: number[]): number {
+		const activeDateSet = new Set(activeDates);
+		const today = this.getStartOfLocalDay(new Date());
+		let currentDate = activeDateSet.has(today)
+			? today
+			: today - DAY_IN_MILLISECONDS;
+		let streakCount = 0;
+
+		while (activeDateSet.has(currentDate)) {
+			streakCount++;
+			currentDate -= DAY_IN_MILLISECONDS;
+		}
+
+		return streakCount;
+	}
+
+	/**
+	 * Get the longest streak from an ordered array of active dates.
+	 * Every sequence of consecutive days is compared with the longest sequence found.
+	 */
+	calculateLongestStreak(activeDates: number[]): number {
+		let longestStreak = 0;
+		let currentStreak = 0;
+		let previousDate: number | null = null;
+
+		for (const date of activeDates) {
+			currentStreak = previousDate !== null
+				&& date - previousDate === DAY_IN_MILLISECONDS
+				? currentStreak + 1
+				: 1;
+			longestStreak = Math.max(longestStreak, currentStreak);
+			previousDate = date;
+		}
+
+		return longestStreak;
+	}
+
+	/**
+	 * Get valid daily metrics from the saved history within the selected range.
+	 * Future dates and invalid date keys are ignored.
+	 */
+	getDailyMetricsByRange(range: TimeRange, dailyHistory: Record<string, DailyMetrics>): DatedDailyMetrics[] {
+		const today = this.getStartOfLocalDay(new Date());
+		const minimumDate = this.getMinimumDateForRange(range, today);
+
+		return Object.entries(dailyHistory)
+			.map(([dateKey, metrics]) => ({
+				date: this.parseIsoDate(dateKey),
+				dateKey,
+				metrics,
+			}))
+			.filter((dailyMetrics): dailyMetrics is DatedDailyMetrics =>
+				dailyMetrics.date !== null
+				&& dailyMetrics.date >= minimumDate
+				&& dailyMetrics.date <= today
+				&& this.hasDailyActivity(dailyMetrics.metrics)
+			)
+			.sort((first, second) => first.date - second.date);
+	}
+
+	/**
+	 * Get the most active day using active minutes and the saved daily metrics.
+	 * The most recent day wins when all activity values are equal.
+	 */
+	calculateMostActiveDay(dailyMetrics: DatedDailyMetrics[]): string | null {
+		const periods = dailyMetrics.map(({ date, dateKey, metrics }) =>
+			this.createActivityPeriod(dateKey, date, metrics)
+		);
+
+		return this.getMostActivePeriod(periods)?.key ?? null;
+	}
+
+	/**
+	 * Get the Monday of the most active week using the saved daily metrics.
+	 * Metrics from every day in the same calendar week are accumulated.
+	 */
+	calculateMostActiveWeek(dailyMetrics: DatedDailyMetrics[]): string | null {
+		const periods = this.groupDailyMetrics(dailyMetrics, (date) => {
+			const dayOfWeek = new Date(date).getUTCDay();
+			const daysSinceMonday = (dayOfWeek + 6) % 7;
+			const weekStart = date - (daysSinceMonday * DAY_IN_MILLISECONDS);
+
+			return {
+				key: this.formatIsoDate(weekStart),
+				endDate: weekStart + (6 * DAY_IN_MILLISECONDS),
+			};
+		});
+
+		return this.getMostActivePeriod(periods)?.key ?? null;
+	}
+
+	/**
+	 * Get the most active month in YYYY-MM format using the saved daily metrics.
+	 * Metrics from every day in the same calendar month are accumulated.
+	 */
+	calculateMostActiveMonth(dailyMetrics: DatedDailyMetrics[]): string | null {
+		const periods = this.groupDailyMetrics(dailyMetrics, (date) => {
+			const parsedDate = new Date(date);
+			const year = parsedDate.getUTCFullYear();
+			const month = parsedDate.getUTCMonth();
+
+			return {
+				key: `${year}-${String(month + 1).padStart(2, "0")}`,
+				endDate: Date.UTC(year, month + 1, 0),
+			};
+		});
+
+		return this.getMostActivePeriod(periods)?.key ?? null;
+	}
+
+	/**
+	 * Group daily metrics into activity periods using the supplied date resolver.
+	 */
+	private groupDailyMetrics(dailyMetrics: DatedDailyMetrics[],
+		resolvePeriod: (date: number) => { key: string; endDate: number }): ActivityPeriod[] {
+		const periods = new Map<string, ActivityPeriod>();
+
+		for (const { date, metrics } of dailyMetrics) {
+			const { key, endDate } = resolvePeriod(date);
+			const period = periods.get(key)
+				?? this.createActivityPeriod(key, endDate);
+
+			period.words += metrics.words;
+			period.characters += metrics.characters;
+			period.sentences += metrics.sentences;
+			period.activeMinutes += metrics.timeMetrics.activeMinutes;
+			period.sessions += metrics.timeMetrics.sessions;
+			periods.set(key, period);
+		}
+
+		return [...periods.values()];
+	}
+
+	/**
+	 * Create a serializable activity period with optional daily metric values.
+	 */
+	private createActivityPeriod(key: string, endDate: number, metrics?: DailyMetrics): ActivityPeriod {
+		return {
+			key,
+			endDate,
+			words: metrics?.words ?? 0,
+			characters: metrics?.characters ?? 0,
+			sentences: metrics?.sentences ?? 0,
+			activeMinutes: metrics?.timeMetrics.activeMinutes ?? 0,
+			sessions: metrics?.timeMetrics.sessions ?? 0,
+		};
+	}
+
+	/**
+	 * Select the most active period by time, sessions and content metrics.
+	 */
+	private getMostActivePeriod(periods: ActivityPeriod[]): ActivityPeriod | null {
+		return periods.reduce<ActivityPeriod | null>((mostActive, current) => {
+			if (mostActive === null) {
+				return current;
+			}
+
+			const currentValues = this.getActivityValues(current);
+			const mostActiveValues = this.getActivityValues(mostActive);
+
+			for (let index = 0; index < currentValues.length; index++) {
+				const currentValue = currentValues[index] ?? 0;
+				const mostActiveValue = mostActiveValues[index] ?? 0;
+
+				if (currentValue !== mostActiveValue) {
+					return currentValue > mostActiveValue
+						? current
+						: mostActive;
+				}
+			}
+
+			return current.endDate > mostActive.endDate ? current : mostActive;
+		}, null);
+	}
+
+	/**
+	 * Get activity values in the order used to compare saved periods.
+	 */
+	private getActivityValues(period: ActivityPeriod): number[] {
+		return [
+			period.activeMinutes,
+			period.sessions,
+			period.words,
+			period.characters,
+			period.sentences,
+		];
+	}
+
+	/**
+	 * Convert a normalized timestamp into a YYYY-MM-DD date key.
+	 */
+	private formatIsoDate(date: number): string {
+		return new Date(date).toISOString().slice(0, 10);
+	}
+
+	/**
+	 * Check whether saved daily metrics contain content or session activity.
+	 */
+	private hasDailyActivity(metrics: DailyMetrics): boolean {
+		return metrics.words > 0
+			|| metrics.characters > 0
+			|| metrics.sentences > 0
+			|| metrics.timeMetrics.activeMinutes > 0
+			|| metrics.timeMetrics.sessions > 0;
+	}
+
+	/**
+	 * Get the oldest accepted date for the selected predefined time range.
+	 */
+	private getMinimumDateForRange(range: TimeRange, today: number): number {
+		switch (range) {
+			case "today":
+				return today;
+			case "week":
+				return today - (6 * DAY_IN_MILLISECONDS);
+			case "month":
+				return today - (29 * DAY_IN_MILLISECONDS);
+			case "all":
+				return Number.NEGATIVE_INFINITY;
+		}
+	}
+
+	/**
+	 * Convert a date key in YYYY-MM-DD format into a normalized timestamp.
+	 * Invalid or non-existent calendar dates return null.
+	 */
+	private parseIsoDate(date: string): number | null {
+		const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+
+		if (!match) {
+			return null;
+		}
+
+		const year = Number(match[1]);
+		const month = Number(match[2]) - 1;
+		const day = Number(match[3]);
+		const parsedDate = new Date(year, month, day);
+
+		if (parsedDate.getFullYear() !== year
+			|| parsedDate.getMonth() !== month
+			|| parsedDate.getDate() !== day) {
+			return null;
+		}
+
+		return this.getStartOfLocalDay(parsedDate);
+	}
+
+	/**
+	 * Normalize a local calendar date into a UTC timestamp without a time component.
+	 */
+	private getStartOfLocalDay(date: Date): number {
+		return Date.UTC(
+			date.getFullYear(),
+			date.getMonth(),
+			date.getDate()
+		);
+	}
+
+	/**
+	 * Read the supplied files once and analyze the content of each file.
+	 */
 	private async getContentMetrics(files: TFile[]) {
 		const contents = await Promise.all(
 			files.map((file) => this.app.vault.cachedRead(file))

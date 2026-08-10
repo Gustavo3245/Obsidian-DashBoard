@@ -38,8 +38,8 @@ export const DEFAULT_STORAGE_DATA: StorageData = {
 			lastModifiedFiles: "Nothing but Wind",
 		},
 		streak: {
-			streakCount: null,
-			longestStreak: null 
+			streakCount: 0,
+			longestStreak: 0
 		},
 		storageValues: { 
 			mostActiveDay: null,

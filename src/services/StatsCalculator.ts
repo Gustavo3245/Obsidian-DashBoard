@@ -6,11 +6,13 @@ import { TFile} from "obsidian";
 import { SessionService } from "./SessionService";
 import { VaultService } from "./VaultService";
 import { MetadataAnalyzer } from "analyzer/MetadataAnalyzer";
+import { StateManager } from "state/StateManager";
 
 export class StatsCalculator {
 	constructor(private vaultService: VaultService,
 				private metadataAnalyzer: MetadataAnalyzer,
-				private sessionService: SessionService){}
+				private sessionService: SessionService,
+				private stateManager: StateManager){}
 
 	getActiveMinutes(): number {
 		return this.sessionService.getActiveMinutes();
@@ -142,19 +144,27 @@ export class StatsCalculator {
 	}
 
 	async getStreakMetrics(range: TimeRange): Promise<VaultMetrics['streak']> {
+		const activeDates = this.vaultService.getActiveDates(
+			range,
+			this.stateManager.getDailyMetricsState()
+		);
 
 		return {
-			streakCount: null,
-			longestStreak: null
+			streakCount: this.vaultService.calculateStreakCount(activeDates),
+			longestStreak: this.vaultService.calculateLongestStreak(activeDates)
 		}
 	}
 
 	async storageValuesMetrics(range: TimeRange): Promise<VaultMetrics['storageValues']> {
+		const dailyMetrics = this.vaultService.getDailyMetricsByRange(
+			range,
+			this.stateManager.getDailyMetricsState()
+		);
 
 		return {
-			mostActiveDay: null,
-			mostActiveWeek: null,
-			mostActiveMonth: null
+			mostActiveDay: this.vaultService.calculateMostActiveDay(dailyMetrics),
+			mostActiveWeek: this.vaultService.calculateMostActiveWeek(dailyMetrics),
+			mostActiveMonth: this.vaultService.calculateMostActiveMonth(dailyMetrics)
 		}
 	}
 

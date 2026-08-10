@@ -37,13 +37,13 @@ export interface VaultMetrics {
 	}
 	// streak
 	streak: {
-		streakCount: null | undefined;
-		longestStreak: null | undefined;
+		streakCount: number;
+		longestStreak: number;
 	}
 	// values that should be saved by the user obsidian.
 	storageValues : {
-		mostActiveDay: null | undefined;
-		mostActiveWeek: null | undefined;
-		mostActiveMonth: null | undefined;
+		mostActiveDay: string | null;
+		mostActiveWeek: string | null;
+		mostActiveMonth: string | null;
 	}
 }
