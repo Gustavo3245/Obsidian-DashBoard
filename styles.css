@@ -1,14 +1,13 @@
 .dynamic-dashboard-view {
-	--dynamic-dashboard-default-height: 420px;
 	--dynamic-dashboard-min-height: 220px;
 
 	box-sizing: border-box;
 	container-name: dynamic-dashboard;
-	container-type: inline-size;
+	container-type: size;
 	width: 100%;
 	min-width: 0;
 	max-width: 100%;
-	height: min(var(--dynamic-dashboard-default-height), 100%);
+	height: 100%;
 	min-height: min(var(--dynamic-dashboard-min-height), 100%);
 	max-height: 100%;
 	overflow: hidden;
@@ -19,12 +18,8 @@
 	box-sizing: border-box;
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	grid-template-rows:
-		minmax(0, 1.05fr)
-		minmax(0, 0.9fr)
-		minmax(0, 1.3fr)
-		minmax(0, 1fr)
-		minmax(0, 0.36fr);
+	grid-auto-flow: row;
+	grid-auto-rows: minmax(0, 1fr);
 	gap: 10px;
 	width: 100%;
 	min-width: 0;
@@ -51,6 +46,35 @@
 	grid-column: 1 / -1;
 }
 
+.dynamic-dashboard-card--medium,
+.dynamic-dashboard-card--large,
+.dynamic-dashboard-height-group {
+	display: none;
+}
+
+.dynamic-dashboard-height-group {
+	grid-column: 1 / -1;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.dynamic-dashboard-height-group--large {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dynamic-dashboard-card--square {
+	width: 100%;
+	height: 100%;
+}
+
+.dynamic-dashboard-card--square-third {
+	display: none;
+}
+
 .dynamic-dashboard-footer {
 	grid-column: 1 / -1;
 	border-radius: var(--radius-s);
@@ -61,11 +85,63 @@
 		gap: 6px;
 		padding: 6px;
 	}
+
+	.dynamic-dashboard-height-group {
+		gap: 6px;
+	}
 }
 
 @container dynamic-dashboard (min-width: 360px) {
 	.dynamic-dashboard-layout {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 12px;
 		padding: 12px;
+	}
+
+	.dynamic-dashboard-card--medium {
+		display: block;
+	}
+
+	.dynamic-dashboard-height-group {
+		gap: 12px;
+	}
+
+	.dynamic-dashboard-height-group--large {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+
+	.dynamic-dashboard-card--square-third {
+		display: block;
+	}
+}
+
+@container dynamic-dashboard (min-width: 560px) {
+	.dynamic-dashboard-layout {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+
+	.dynamic-dashboard-card--large {
+		display: block;
+	}
+
+	.dynamic-dashboard-card--wide {
+		grid-column: span 2;
+	}
+
+	.dynamic-dashboard-card--streak,
+	.dynamic-dashboard-footer {
+		grid-column: 1 / -1;
+	}
+}
+
+@container dynamic-dashboard (min-height: 500px) and (max-width: 359px) {
+	.dynamic-dashboard-height-group--medium {
+		display: grid;
+	}
+}
+
+@container dynamic-dashboard (min-height: 680px) and (max-width: 559px) {
+	.dynamic-dashboard-height-group--large {
+		display: grid;
 	}
 }

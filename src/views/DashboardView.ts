@@ -48,17 +48,56 @@ export class DashboardView extends ItemView {
 			cls: "dynamic-dashboard-card dynamic-dashboard-card--summary",
 		});
 		dashboard.createDiv({
+			cls: "dynamic-dashboard-card dynamic-dashboard-card--summary dynamic-dashboard-card--medium",
+		});
+		dashboard.createDiv({
+			cls: "dynamic-dashboard-card dynamic-dashboard-card--summary dynamic-dashboard-card--large",
+		});
+		dashboard.createDiv({
 			cls: "dynamic-dashboard-card dynamic-dashboard-card--wide",
 		});
 		dashboard.createDiv({
+			cls: "dynamic-dashboard-card dynamic-dashboard-card--wide dynamic-dashboard-card--large",
+		});
+		dashboard.createDiv({
 			cls: "dynamic-dashboard-card dynamic-dashboard-card--detail",
 		});
 		dashboard.createDiv({
 			cls: "dynamic-dashboard-card dynamic-dashboard-card--detail",
+		});
+		dashboard.createDiv({
+			cls: "dynamic-dashboard-card dynamic-dashboard-card--detail dynamic-dashboard-card--medium",
+		});
+		dashboard.createDiv({
+			cls: "dynamic-dashboard-card dynamic-dashboard-card--detail dynamic-dashboard-card--large",
 		});
 		dashboard.createDiv({
 			cls: "dynamic-dashboard-card dynamic-dashboard-card--wide dynamic-dashboard-card--streak",
 		});
+
+		const mediumHeightGroup = dashboard.createDiv({
+			cls: "dynamic-dashboard-height-group dynamic-dashboard-height-group--medium",
+		});
+		mediumHeightGroup.createDiv({
+			cls: "dynamic-dashboard-card dynamic-dashboard-card--square",
+		});
+		mediumHeightGroup.createDiv({
+			cls: "dynamic-dashboard-card dynamic-dashboard-card--square",
+		});
+
+		const largeHeightGroup = dashboard.createDiv({
+			cls: "dynamic-dashboard-height-group dynamic-dashboard-height-group--large",
+		});
+		largeHeightGroup.createDiv({
+			cls: "dynamic-dashboard-card dynamic-dashboard-card--square",
+		});
+		largeHeightGroup.createDiv({
+			cls: "dynamic-dashboard-card dynamic-dashboard-card--square dynamic-dashboard-card--square-third",
+		});
+		largeHeightGroup.createDiv({
+			cls: "dynamic-dashboard-card dynamic-dashboard-card--square",
+		});
+
 		dashboard.createDiv({
 			cls: "dynamic-dashboard-footer",
 		});
