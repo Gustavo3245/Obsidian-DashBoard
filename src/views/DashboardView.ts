@@ -3,6 +3,48 @@ import { ItemView, Side, Workspace, WorkspaceLeaf } from "obsidian";
 export const DASHBOARD_VIEW_TYPE = "dynamic-dashboard-view";
 export const DASHBOARD_ICON_ID = "dynamic-dashboard";
 
+type DashboardCardModifier =
+	| "summary"
+	| "wide"
+	| "detail"
+	| "streak"
+	| "medium"
+	| "large"
+	| "square"
+	| "square-third";
+
+interface DashboardHeightGroup {
+	size: "medium" | "large";
+	cardCount: number;
+	conditionalCard?: {
+		index: number;
+		modifier: DashboardCardModifier;
+	};
+}
+
+const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
+	["summary"],
+	["summary"],
+	["summary", "medium"],
+	["summary", "large"],
+	["wide"],
+	["wide", "large"],
+	["detail"],
+	["detail"],
+	["detail", "medium"],
+	["detail", "large"],
+	["wide", "streak"],
+];
+
+const DASHBOARD_HEIGHT_GROUPS: readonly DashboardHeightGroup[] = [
+	{ size: "medium", cardCount: 2 },
+	{
+		size: "large",
+		cardCount: 3,
+		conditionalCard: { index: 2, modifier: "square-third" },
+	},
+];
+
 export class DashboardView extends ItemView {
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
@@ -41,66 +83,55 @@ export class DashboardView extends ItemView {
 		});
 		dashboard.setAttribute("aria-hidden", "true");
 
-		dashboard.createDiv({
-			cls: "dynamic-dashboard-card dynamic-dashboard-card--summary",
-		});
-		dashboard.createDiv({
-			cls: "dynamic-dashboard-card dynamic-dashboard-card--summary",
-		});
-		dashboard.createDiv({
-			cls: "dynamic-dashboard-card dynamic-dashboard-card--summary dynamic-dashboard-card--medium",
-		});
-		dashboard.createDiv({
-			cls: "dynamic-dashboard-card dynamic-dashboard-card--summary dynamic-dashboard-card--large",
-		});
-		dashboard.createDiv({
-			cls: "dynamic-dashboard-card dynamic-dashboard-card--wide",
-		});
-		dashboard.createDiv({
-			cls: "dynamic-dashboard-card dynamic-dashboard-card--wide dynamic-dashboard-card--large",
-		});
-		dashboard.createDiv({
-			cls: "dynamic-dashboard-card dynamic-dashboard-card--detail",
-		});
-		dashboard.createDiv({
-			cls: "dynamic-dashboard-card dynamic-dashboard-card--detail",
-		});
-		dashboard.createDiv({
-			cls: "dynamic-dashboard-card dynamic-dashboard-card--detail dynamic-dashboard-card--medium",
-		});
-		dashboard.createDiv({
-			cls: "dynamic-dashboard-card dynamic-dashboard-card--detail dynamic-dashboard-card--large",
-		});
-		dashboard.createDiv({
-			cls: "dynamic-dashboard-card dynamic-dashboard-card--wide dynamic-dashboard-card--streak",
-		});
+		for (const modifiers of DASHBOARD_CARD_LAYOUT) {
+			this.createCard(dashboard, modifiers);
+		}
 
-		const mediumHeightGroup = dashboard.createDiv({
-			cls: "dynamic-dashboard-height-group dynamic-dashboard-height-group--medium",
-		});
-		mediumHeightGroup.createDiv({
-			cls: "dynamic-dashboard-card dynamic-dashboard-card--square",
-		});
-		mediumHeightGroup.createDiv({
-			cls: "dynamic-dashboard-card dynamic-dashboard-card--square",
-		});
-
-		const largeHeightGroup = dashboard.createDiv({
-			cls: "dynamic-dashboard-height-group dynamic-dashboard-height-group--large",
-		});
-		largeHeightGroup.createDiv({
-			cls: "dynamic-dashboard-card dynamic-dashboard-card--square",
-		});
-		largeHeightGroup.createDiv({
-			cls: "dynamic-dashboard-card dynamic-dashboard-card--square dynamic-dashboard-card--square-third",
-		});
-		largeHeightGroup.createDiv({
-			cls: "dynamic-dashboard-card dynamic-dashboard-card--square",
-		});
+		for (const group of DASHBOARD_HEIGHT_GROUPS) {
+			this.createHeightGroup(dashboard, group);
+		}
 
 		dashboard.createDiv({
 			cls: "dynamic-dashboard-footer",
 		});
+	}
+
+	/**
+	 * Create one dashboard card from its visual modifiers.
+	 */
+	private createCard(
+		parent: HTMLElement,
+		modifiers: readonly DashboardCardModifier[]
+	): void {
+		const modifierClasses = modifiers.map(
+			(modifier) => `dynamic-dashboard-card--${modifier}`
+		);
+
+		parent.createDiv({
+			cls: ["dynamic-dashboard-card", ...modifierClasses].join(" "),
+		});
+	}
+
+	/**
+	 * Create a responsive group containing a configurable number of square cards.
+	 */
+	private createHeightGroup(
+		parent: HTMLElement,
+		config: DashboardHeightGroup
+	): void {
+		const group = parent.createDiv({
+			cls: `dynamic-dashboard-height-group dynamic-dashboard-height-group--${config.size}`,
+		});
+
+		for (let index = 0; index < config.cardCount; index++) {
+			const modifiers: DashboardCardModifier[] = ["square"];
+
+			if (index === config.conditionalCard?.index) {
+				modifiers.push(config.conditionalCard.modifier);
+			}
+
+			this.createCard(group, modifiers);
+		}
 	}
 }
 
