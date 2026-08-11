@@ -1,6 +1,6 @@
 .dynamic-dashboard-view {
-	--dynamic-dashboard-default-height: 480px;
-	--dynamic-dashboard-min-height: 280px;
+	--dynamic-dashboard-default-height: 420px;
+	--dynamic-dashboard-min-height: 220px;
 
 	box-sizing: border-box;
 	container-name: dynamic-dashboard;
@@ -11,8 +11,7 @@
 	height: min(var(--dynamic-dashboard-default-height), 100%);
 	min-height: min(var(--dynamic-dashboard-min-height), 100%);
 	max-height: 100%;
-	overflow: auto;
-	overscroll-behavior: contain;
+	overflow: hidden;
 	padding: 0;
 }
 
@@ -20,11 +19,18 @@
 	box-sizing: border-box;
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	grid-auto-flow: row;
+	grid-template-rows:
+		minmax(0, 1.05fr)
+		minmax(0, 0.9fr)
+		minmax(0, 1.3fr)
+		minmax(0, 1fr)
+		minmax(0, 0.36fr);
 	gap: 10px;
 	width: 100%;
 	min-width: 0;
-	min-height: 100%;
+	height: 100%;
+	min-height: 0;
+	overflow: hidden;
 	padding: 10px;
 	background: var(--background-primary);
 }
@@ -33,45 +39,27 @@
 .dynamic-dashboard-footer {
 	box-sizing: border-box;
 	min-width: 0;
+	min-height: 0;
+	overflow: hidden;
 	border: 1px solid var(--background-modifier-border);
 	border-radius: var(--radius-m);
 	background: var(--background-secondary);
 	box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
 }
 
-.dynamic-dashboard-card--summary {
-	min-height: 88px;
-}
-
 .dynamic-dashboard-card--wide {
 	grid-column: 1 / -1;
-	min-height: 78px;
-}
-
-.dynamic-dashboard-card--detail {
-	min-height: 112px;
-}
-
-.dynamic-dashboard-card--streak {
-	min-height: 88px;
 }
 
 .dynamic-dashboard-footer {
 	grid-column: 1 / -1;
-	min-height: 32px;
 	border-radius: var(--radius-s);
 }
 
-@container dynamic-dashboard (max-width: 190px) {
+@container dynamic-dashboard (max-width: 220px) {
 	.dynamic-dashboard-layout {
-		grid-template-columns: minmax(0, 1fr);
-		gap: 8px;
-		padding: 8px;
-	}
-
-	.dynamic-dashboard-card,
-	.dynamic-dashboard-footer {
-		grid-column: 1;
+		gap: 6px;
+		padding: 6px;
 	}
 }
 
@@ -79,13 +67,5 @@
 	.dynamic-dashboard-layout {
 		gap: 12px;
 		padding: 12px;
-	}
-
-	.dynamic-dashboard-card--summary {
-		min-height: 96px;
-	}
-
-	.dynamic-dashboard-card--detail {
-		min-height: 124px;
 	}
 }

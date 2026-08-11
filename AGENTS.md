@@ -207,7 +207,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 ### Views
 
 - `src/views/DashboardView.ts`: registra a view e o wireframe responsivo do dashboard, seus identificadores e a abertura em qualquer painel lateral; a aba pode ser movida pelo drag-and-drop nativo do Obsidian.
-- a view ocupa toda a largura disponível, abre com altura de referência de 480px, usa mínimo adaptativo de até 280px e nunca ultrapassa a altura concedida pelo painel lateral.
+- a view ocupa toda a largura disponível, abre com altura de referência de 420px, usa mínimo adaptativo de até 220px e distribui suas linhas proporcionalmente sem criar barras internas.
 
 ### Serviços e análise
 
