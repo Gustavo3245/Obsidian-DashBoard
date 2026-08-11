@@ -85,8 +85,7 @@ export class StatProcessor {
 		const previousOrphanCount = previousFileMetrics?.isOrphanFile ? 1 : 0;
 		const updatedOrphanCount = updatedFileMetrics.isOrphanFile ? 1 : 0;
 
-		const totalWords = Math.max(
-			0,
+		const totalWords = Math.max(0,
 			currentVolume.snapshot.totalWords + updatedFileMetrics.words - previousWords
 		);
 

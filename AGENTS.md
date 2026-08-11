@@ -203,6 +203,10 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 - `src/events/VaultEventListener.ts`: registra eventos do workspace/Vault e encaminha alterações ao processador.
 - `src/orchestrators/StatsProcessor.ts`: coordena carga inicial, snapshot, métricas diárias, preview e processamento de criação/exclusão. O nome exportado é singular: `StatProcessor`.
 
+### Views
+
+- `src/views/DashboardView.ts`: registra a view vazia do dashboard, seus identificadores e a abertura no painel lateral direito.
+
 ### Serviços e análise
 
 - `src/services/ServiceContainer.ts`: composition root/DI manual do plugin.
@@ -222,6 +226,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 ### Modelos
 
+- `src/models/ActivityMetrics.ts`: contratos normalizados de métricas diárias datadas e períodos agregados de atividade.
 - `src/models/VaultMetrics.ts`: contrato agregado, dividido em `volume`, `estimates`, `appears`, `streak` e `storageValues`.
 - `src/models/DailyMetrics.ts`: totais e tempo de uma data.
 - `src/models/FileMetrics.ts`: métricas e identidade de um arquivo.

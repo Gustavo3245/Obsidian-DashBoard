@@ -1,4 +1,4 @@
-import { Plugin } from "obsidian";
+import { addIcon, Plugin } from "obsidian";
 import { DashboardSettingTab } from "./settings";
 import { DashboardSettings, DEFAULT_SETTINGS } from "models/DashboardSettings";
 import { VaultEventListener } from './events/VaultEventListener';
@@ -8,6 +8,13 @@ import { VaultMetrics } from 'models/VaultMetrics';
 import { DailyMetrics } from 'models/DailyMetrics';
 import { VaultCommands } from "commands/VaultCommands";
 import { Logger } from "utils/Logger";
+import { getDashboardIcon } from "assets/icons/DashboardIcon";
+import {
+	DASHBOARD_ICON_ID,
+	DASHBOARD_VIEW_TYPE,
+	DashboardView,
+	openDashboardView,
+} from "views/DashboardView";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
@@ -32,6 +39,7 @@ export default class DashboardPlugin extends Plugin {
 		);
 
 		this.serviceContainer.initialize();
+		this.registerDashboardView();
 
 		this.vaultEvent = new VaultEventListener(
 			this,
@@ -128,6 +136,19 @@ export default class DashboardPlugin extends Plugin {
 		this.registerInterval(window.setInterval(() => {
 			this.serviceContainer.statsProcessor.refreshActiveTime();
 		}, 60_000));
+	}
+
+	private registerDashboardView(): void {
+		addIcon(DASHBOARD_ICON_ID, getDashboardIcon());
+		this.registerView(
+			DASHBOARD_VIEW_TYPE,
+			(leaf) => new DashboardView(leaf)
+		);
+		this.addRibbonIcon(
+			DASHBOARD_ICON_ID,
+			"Open dynamic dashboard",
+			() => { void openDashboardView(this.app.workspace); }
+		);
 	}
 
 	onunload(): void {
