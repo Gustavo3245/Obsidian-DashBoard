@@ -1,4 +1,4 @@
-import { ItemView, Workspace, WorkspaceLeaf } from "obsidian";
+import { ItemView, Side, Workspace, WorkspaceLeaf } from "obsidian";
 
 export const DASHBOARD_VIEW_TYPE = "dynamic-dashboard-view";
 export const DASHBOARD_ICON_ID = "dynamic-dashboard";
@@ -32,10 +32,15 @@ export class DashboardView extends ItemView {
 	}
 }
 
-export async function openDashboardView(workspace: Workspace): Promise<void> {
+export async function openDashboardView(
+	workspace: Workspace,
+	side: Side = "right"
+): Promise<void> {
 	const existingLeaf = workspace.getLeavesOfType(DASHBOARD_VIEW_TYPE)[0];
 	const leaf = existingLeaf
-		?? workspace.getRightLeaf(false)
+		?? (side === "left"
+			? workspace.getLeftLeaf(false)
+			: workspace.getRightLeaf(false))
 		?? workspace.getLeaf("tab");
 
 	if (!existingLeaf) {

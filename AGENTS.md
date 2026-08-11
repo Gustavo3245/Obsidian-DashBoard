@@ -196,6 +196,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 - `src/main.ts`: classe `DashboardPlugin`, carregamento/gravação dos dados e bootstrap. Deve permanecer pequeno e focado no lifecycle.
 - `src/settings.ts`: aba de configuração do limite de inatividade.
+- `src/commands/DashboardCommands.ts`: registra comandos para abrir o dashboard nos painéis laterais esquerdo ou direito.
 - `src/commands/VaultCommands.ts`: registra o comando `refresh-vault-metrics`.
 
 ### Eventos e orquestração
@@ -205,7 +206,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 ### Views
 
-- `src/views/DashboardView.ts`: registra a view vazia do dashboard, seus identificadores e a abertura no painel lateral direito.
+- `src/views/DashboardView.ts`: registra a view vazia do dashboard, seus identificadores e a abertura em qualquer painel lateral; a aba pode ser movida pelo drag-and-drop nativo do Obsidian.
 
 ### Serviços e análise
 

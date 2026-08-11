@@ -7,14 +7,10 @@ import { ServiceContainer } from 'services/ServiceContainer';
 import { VaultMetrics } from 'models/VaultMetrics';
 import { DailyMetrics } from 'models/DailyMetrics';
 import { VaultCommands } from "commands/VaultCommands";
+import { DashboardCommands } from "commands/DashboardCommands";
 import { Logger } from "utils/Logger";
 import { getDashboardIcon } from "assets/icons/DashboardIcon";
-import {
-	DASHBOARD_ICON_ID,
-	DASHBOARD_VIEW_TYPE,
-	DashboardView,
-	openDashboardView,
-} from "views/DashboardView";
+import {DASHBOARD_ICON_ID, DASHBOARD_VIEW_TYPE, DashboardView, openDashboardView} from "views/DashboardView";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
@@ -128,6 +124,7 @@ export default class DashboardPlugin extends Plugin {
 		);
 
 		new VaultCommands(this, this.serviceContainer.statsProcessor).register();
+		new DashboardCommands(this).register();
 
 		this.addSettingTab(new DashboardSettingTab(this.app, this));
 		await this.serviceContainer.statsProcessor.vaultLoad("all");
@@ -147,7 +144,7 @@ export default class DashboardPlugin extends Plugin {
 		this.addRibbonIcon(
 			DASHBOARD_ICON_ID,
 			"Open dynamic dashboard",
-			() => { void openDashboardView(this.app.workspace); }
+			() => { void openDashboardView(this.app.workspace, "right"); }
 		);
 	}
 
