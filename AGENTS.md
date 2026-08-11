@@ -182,7 +182,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 - `esbuild.config.mjs`: bundle de `src/main.ts` para `main.js`.
 - `tsconfig.json`: configuração TypeScript, imports absolutos e verificações estritas.
 - `eslint.config.mts`: flat config do ESLint com regras `obsidianmd`.
-- `styles.css`: estilos globais do plugin; atualmente contém apenas um estilo de template.
+- `styles.css`: dimensões responsivas e estilos globais da view do dashboard.
 - `LICENSE`: licença 0-BSD.
 - `.editorconfig`: UTF-8, LF, newline final e tabs de largura 4.
 - `.npmrc`: remove o prefixo `v` das tags geradas pelo npm.
@@ -206,7 +206,8 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 ### Views
 
-- `src/views/DashboardView.ts`: registra a view vazia do dashboard, seus identificadores e a abertura em qualquer painel lateral; a aba pode ser movida pelo drag-and-drop nativo do Obsidian.
+- `src/views/DashboardView.ts`: registra a view e o wireframe responsivo do dashboard, seus identificadores e a abertura em qualquer painel lateral; a aba pode ser movida pelo drag-and-drop nativo do Obsidian.
+- a view ocupa toda a largura disponível, abre com altura de referência de 480px, usa mínimo adaptativo de até 280px e nunca ultrapassa a altura concedida pelo painel lateral.
 
 ### Serviços e análise
 
@@ -239,7 +240,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 ### Recursos
 
-- `src/assets/icons/DashboardIcon.ts`: retorna SVG como string e ainda não está conectado ao plugin.
+- `src/assets/icons/DashboardIcon.ts`: retorna o SVG registrado para a view e para a ribbon do dashboard.
 - `src/assets/icons/DashboardLeftIcon.ts`: segundo SVG como string, também ainda não conectado.
 
 ## Estado conhecido e débitos técnicos
@@ -252,7 +253,7 @@ No estado atual, `npm run build` e `npm run lint` passam. Preserve esse baseline
 
 ### Lifecycle e composição
 
-- comandos e settings tab estão registrados, mas os ícones e o dashboard visual ainda não são usados;
+- comandos, settings tab, ícone e wireframe visual estão registrados; os cards ainda não exibem métricas;
 - timers e eventos possuem cleanup pelo lifecycle do plugin;
 - mudanças no limite de inatividade afetam a sessão atual sem exigir reload.
 

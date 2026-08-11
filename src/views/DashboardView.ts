@@ -24,11 +24,44 @@ export class DashboardView extends ItemView {
 	protected async onOpen(): Promise<void> {
 		this.contentEl.empty();
 		this.contentEl.addClass("dynamic-dashboard-view");
+		this.renderLayout();
 	}
 
 	protected async onClose(): Promise<void> {
 		this.contentEl.removeClass("dynamic-dashboard-view");
 		this.contentEl.empty();
+	}
+
+	/**
+	 * Render the empty responsive regions used by the future dashboard cards.
+	 */
+	private renderLayout(): void {
+		const dashboard = this.contentEl.createDiv({
+			cls: "dynamic-dashboard-layout",
+		});
+		dashboard.setAttribute("aria-hidden", "true");
+
+		dashboard.createDiv({
+			cls: "dynamic-dashboard-card dynamic-dashboard-card--summary",
+		});
+		dashboard.createDiv({
+			cls: "dynamic-dashboard-card dynamic-dashboard-card--summary",
+		});
+		dashboard.createDiv({
+			cls: "dynamic-dashboard-card dynamic-dashboard-card--wide",
+		});
+		dashboard.createDiv({
+			cls: "dynamic-dashboard-card dynamic-dashboard-card--detail",
+		});
+		dashboard.createDiv({
+			cls: "dynamic-dashboard-card dynamic-dashboard-card--detail",
+		});
+		dashboard.createDiv({
+			cls: "dynamic-dashboard-card dynamic-dashboard-card--wide dynamic-dashboard-card--streak",
+		});
+		dashboard.createDiv({
+			cls: "dynamic-dashboard-footer",
+		});
 	}
 }
 
