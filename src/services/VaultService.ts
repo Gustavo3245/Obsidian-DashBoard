@@ -139,19 +139,20 @@ export class VaultService {
 	}
 
 	/**
-	 * Get the current last modified MarkDown file in the vault.
-	 * Typically, the last modified file is the active one at the moment.
+	 * Get the path of the last modified Markdown file in the vault.
+	 * A serializable fallback message is returned when the vault has no Markdown files.
 	 */
-	getLastModifiedMarkDownFile(): TFile | string { 
+	getLastModifiedMarkDownFile(): string {
 		const files = this.app.vault.getMarkdownFiles();
 
 		if(files.length === 0){
 			return "Nothing But Wind";
 		}
-		
-		return files.reduce((previous, current) => 
+
+		const lastModifiedFile = files.reduce((previous, current) =>
 			(current.stat.mtime > previous.stat.mtime) ? current : previous);
 
+		return lastModifiedFile.path;
 	}
 
 	/**
@@ -207,16 +208,20 @@ export class VaultService {
 	}
 
 	/**
-	 * Get the paths of the files most recently opened in the workspace.
-	 * This function returns a fallback message when no file was opened.
+	 * Get recently opened paths that still resolve to Markdown files in the vault.
+	 * This function returns a fallback message when no valid Markdown file exists.
 	 */
 	getActiveMarkDownFiles(): string[] | string {
-		const files = this.app.workspace.getLastOpenFiles();
+		const markdownFilePaths = this.app.workspace.getLastOpenFiles()
+			.filter((path) => {
+				const file = this.app.vault.getAbstractFileByPath(path);
+				return file instanceof TFile && file.extension === "md";
+			});
 
-		if(files.length == 0) {
+		if(markdownFilePaths.length === 0) {
 			return "Nothing but Wind";
 		}
-		return files;
+		return markdownFilePaths;
 	}
 
 	/**
@@ -275,8 +280,8 @@ export class VaultService {
 	}
 
 	/**
-	 * get the total size (in MegaBytes) inside the vault.
-	 * this function returns a double number represent the actual vault size.
+	 * Get the total size in bytes of the supplied files or the complete vault.
+	 * File sizes come directly from TFile.stat.size.
 	*/
 	getTotalVaultSize(files: TFile[] = this.app.vault.getFiles()): number {
 

@@ -1,4 +1,4 @@
-import { TFile, TFolder } from "obsidian";
+import { TFolder } from "obsidian";
 import { ReadingTime } from "./value_objects/ReadingTime";
 import { tagType } from "./value_objects/TagType";
 
@@ -32,7 +32,7 @@ export interface VaultMetrics {
 		minorAppearsTag: tagType | string; // Done
 		totalUniqueTags: number; // Done
 		mostActiveFolder: TFolder | string;
-		lastModifiedFile: TFile | string; // Done
+		lastModifiedFile: string; // Done
 		lastModifiedFiles: string[] | string; // Done
 	}
 	// streak

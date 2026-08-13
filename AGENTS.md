@@ -89,15 +89,15 @@ Ao carregar o plugin, `DashboardPlugin.onload()`:
 4. cria `VaultEventListener`;
 5. registra listeners;
 6. inicia o rastreamento de sessão;
-7. executa `statsProcessor.vaultLoad("all")`;
-8. registra a sessão diária e a atualização periódica do tempo ativo.
+7. registra a sessão diária atual;
+8. executa `statsProcessor.vaultLoad("all")` e inicia a atualização periódica do tempo ativo.
 
 `vaultLoad("all")`:
 
 1. calcula e armazena `FileMetrics` de cada Markdown no cache em memória;
 2. calcula em paralelo os grupos `volume`, `estimates`, `appears`, `streak` e `storageValues`;
 3. emite um novo `VaultMetrics`;
-4. a inicialização registra separadamente as métricas da sessão diária.
+4. como a sessão diária já foi registrada, os cálculos históricos incluem o dia atual.
 
 Essa varredura lê o conteúdo dos arquivos várias vezes. Trate alterações nessa etapa como sensíveis a desempenho, principalmente em Vaults grandes e dispositivos móveis.
 

@@ -127,8 +127,8 @@ export default class DashboardPlugin extends Plugin {
 		new DashboardCommands(this).register();
 
 		this.addSettingTab(new DashboardSettingTab(this.app, this));
-		await this.serviceContainer.statsProcessor.vaultLoad("all");
 		await this.serviceContainer.statsProcessor.startDailySession("all");
+		await this.serviceContainer.statsProcessor.vaultLoad("all");
 
 		this.registerInterval(window.setInterval(() => {
 			this.serviceContainer.statsProcessor.refreshActiveTime();
