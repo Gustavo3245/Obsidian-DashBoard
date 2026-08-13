@@ -65,11 +65,13 @@ export class DashboardView extends ItemView {
 
 	protected async onOpen(): Promise<void> {
 		this.contentEl.empty();
+		this.containerEl.addClass("dynamic-dashboard-container");
 		this.contentEl.addClass("dynamic-dashboard-view");
 		this.renderLayout();
 	}
 
 	protected async onClose(): Promise<void> {
+		this.containerEl.removeClass("dynamic-dashboard-container");
 		this.contentEl.removeClass("dynamic-dashboard-view");
 		this.contentEl.empty();
 	}

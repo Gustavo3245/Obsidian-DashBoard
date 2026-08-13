@@ -207,7 +207,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 ### Views
 
 - `src/views/DashboardView.ts`: registra a view e o wireframe responsivo do dashboard, seus identificadores e a abertura em qualquer painel lateral; a aba pode ser movida pelo drag-and-drop nativo do Obsidian.
-- a view ocupa toda a largura e altura concedidas pelo painel, usa mínimo adaptativo de até 220px e distribui suas linhas proporcionalmente sem criar barras internas.
+- a view e seu contêiner de leaf ocupam toda a largura e altura concedidas pelo painel; a leaf tem altura mínima de 75% da referência de 380px (285px), permitindo redução máxima de 25%, e as linhas são distribuídas proporcionalmente sem barras internas.
 - o wireframe começa com 7 regiões; exibe 9 a partir de 360px de largura ou 500px de altura e 12 a partir de 560px de largura ou 680px de altura.
 - regiões liberadas exclusivamente pela altura reutilizam o tamanho das células do grid: dois cards no modo compacto e um terceiro no nível alto apenas quando houver largura para três colunas.
 
@@ -270,7 +270,7 @@ No estado atual, `npm run build` e `npm run lint` passam. Preserve esse baseline
 
 ### Cálculos
 
-- streak, maior streak, média diária e dias/semanas/meses mais ativos retornam `null`.
+- streak, maior streak, média diária e dias/semanas/meses mais ativos são calculados a partir do histórico diário persistido.
 - leituras repetidas de todos os arquivos tornam o bootstrap pesado.
 - grupos de métricas como tags, estimativas e pasta mais ativa são recalculados na carga completa, não incrementalmente em todos os eventos.
 

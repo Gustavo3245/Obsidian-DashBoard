@@ -484,6 +484,23 @@ export class VaultService {
 	}
 
 	/**
+	 * Get the average word count across active days in the selected history.
+	 * Empty histories return zero.
+	 */
+	calculateDailyAverageWords(dailyMetrics: DatedDailyMetrics[]): number {
+		if (dailyMetrics.length === 0) {
+			return 0;
+		}
+
+		const totalWords = dailyMetrics.reduce(
+			(total, dailyMetric) => total + dailyMetric.metrics.words,
+			0
+		);
+
+		return totalWords / dailyMetrics.length;
+	}
+
+	/**
 	 * Get the most active day using active minutes and the saved daily metrics.
 	 * The most recent day wins when all activity values are equal.
 	 */

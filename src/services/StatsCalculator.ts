@@ -116,6 +116,10 @@ export class StatsCalculator {
 
 	async getEstimatesMetric(range: TimeRange): Promise<VaultMetrics['estimates']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
+		const dailyMetrics = this.vaultService.getDailyMetricsByRange(
+			range,
+			this.stateManager.getDailyMetricsState()
+		);
 
 		const [estimatedReading, estimatedSpeaking] = await Promise.all([
 			this.vaultService.getVaultEstimateReadingTime(relevantFiles),
@@ -125,7 +129,7 @@ export class StatsCalculator {
 		return {
 			estimatedReadingTime: estimatedReading,
 			estimatedSpeakingTime: estimatedSpeaking,
-			dailyAverageWords: null
+			dailyAverageWords: this.vaultService.calculateDailyAverageWords(dailyMetrics)
 		}
 	}
 

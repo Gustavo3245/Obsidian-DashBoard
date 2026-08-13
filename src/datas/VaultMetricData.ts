@@ -23,7 +23,7 @@ export const DEFAULT_STORAGE_DATA: StorageData = {
 		estimates: {
 			estimatedReadingTime: "Nothing but Wind",
 			estimatedSpeakingTime: "Nothing but Wind",
-			dailyAverageWords: null
+			dailyAverageWords: 0
 		},
 		appears: {
 			mostAppearsTag: "Nothing but Wind",

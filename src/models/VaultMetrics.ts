@@ -23,7 +23,7 @@ export interface VaultMetrics {
 	estimates: {
 		estimatedReadingTime: ReadingTime | string; // Done
 		estimatedSpeakingTime: ReadingTime | string; // Done
-		dailyAverageWords: null | undefined;
+		dailyAverageWords: number;
 	}
 	// appearances
 	appears: {
