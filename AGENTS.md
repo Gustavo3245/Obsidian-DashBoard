@@ -202,7 +202,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 ### Eventos e orquestração
 
 - `src/events/VaultEventListener.ts`: registra eventos do workspace/Vault e encaminha alterações ao processador.
-- `src/orchestrators/StatsProcessor.ts`: coordena carga inicial, snapshot, métricas diárias, preview e processamento de criação/exclusão. O nome exportado é singular: `StatProcessor`.
+- `src/orchestrators/StatsProcessor.ts`: coordena carga inicial, carregamento individual dos grupos de `VaultMetrics`, métricas diárias, preview e processamento de criação/exclusão. O nome exportado é singular: `StatProcessor`.
 
 ### Views
 

@@ -126,6 +126,38 @@ export class StatProcessor {
 		})
 	}
 
+	async estimatesLoad(range: TimeRange): Promise<void> {
+		const estimatesMetrics = await this.calculator.getEstimatesMetric(range);
+
+		this.stateManager.emitNewState({
+			estimates: estimatesMetrics
+		});
+	}
+
+	async appearsLoad(range: TimeRange): Promise<void> {
+		const appearsMetrics = await this.calculator.getAppearsMetrics(range);
+
+		this.stateManager.emitNewState({
+			appears: appearsMetrics
+		});
+	}
+
+	async streakLoad(range: TimeRange): Promise<void> {
+		const streakMetrics = await this.calculator.getStreakMetrics(range);
+
+		this.stateManager.emitNewState({
+			streak: streakMetrics
+		});
+	}
+
+	async storageValuesLoad(range: TimeRange): Promise<void> {
+		const storageValuesMetrics = await this.calculator.storageValuesMetrics(range);
+
+		this.stateManager.emitNewState({
+			storageValues: storageValuesMetrics
+		});
+	}
+
 	async processNewMarkdownFile(file: TFile) {
 		const currentVolume = this.stateManager.getVaultMetricsState().volume;
 		const fileMetrics = await this.calculator.getFileMetrics(file);
