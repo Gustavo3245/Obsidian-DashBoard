@@ -141,9 +141,9 @@ export class StatsCalculator {
 			mostAppearsTagInFrontMatter: this.metadataAnalyzer.getMostAppearsTagInFrontMatter(relevantFiles),
 			minorAppearsTag: this.metadataAnalyzer.getMinorAppearsTagInFrontMatter(relevantFiles),
 			totalUniqueTags: this.metadataAnalyzer.getTotalUniqueTags(relevantFiles),
-			mostActiveFolder: this.vaultService.mostActiveFolder(),
-			lastModifiedFile: this.vaultService.getLastModifiedMarkDownFile(),
-			lastModifiedFiles: this.vaultService.getActiveMarkDownFiles(),
+			mostActiveFolder: this.vaultService.mostActiveFolder(relevantFiles),
+			lastModifiedFile: this.vaultService.getLastModifiedMarkDownFile(relevantFiles),
+			lastModifiedFiles: this.vaultService.getActiveMarkDownFiles(relevantFiles),
 		}
 	}
 

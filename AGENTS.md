@@ -147,8 +147,8 @@ As definições abaixo descrevem o código existente, não necessariamente a def
 - fala estimada: 130 palavras por minuto;
 - anexo: qualquer arquivo que não seja Markdown;
 - arquivo órfão: sem tags, links de saída e backlinks resolvidos;
-- pasta mais ativa: pasta com mais filhos diretos que sejam arquivos;
-- tamanho: soma de `file.stat.size` de todos os arquivos, em bytes;
+- pasta mais ativa: caminho da pasta com mais arquivos Markdown diretos dentro do intervalo solicitado;
+- `totalVaultSize`: soma de `file.stat.size` de todos os arquivos, armazenada e retornada em bytes; qualquer conversão para KB, MB ou GB pertence à camada de apresentação;
 - tempo ocioso pretendido: 5 minutos;
 - heartbeat da sessão: 10 segundos.
 

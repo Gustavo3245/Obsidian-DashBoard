@@ -1,4 +1,4 @@
-import { App, getAllTags, TFile, TFolder} from "obsidian";
+import { App, getAllTags, TFile} from "obsidian";
 import { tagType } from "models/value_objects/TagType";
 import { ReadingTime } from "models/value_objects/ReadingTime";
 import { TimeRange } from "models/value_objects/TimeRange";
@@ -139,12 +139,10 @@ export class VaultService {
 	}
 
 	/**
-	 * Get the path of the last modified Markdown file in the vault.
-	 * A serializable fallback message is returned when the vault has no Markdown files.
+	 * Get the path of the last modified Markdown file in the supplied range.
+	 * A serializable fallback message is returned when the range has no files.
 	 */
-	getLastModifiedMarkDownFile(): string {
-		const files = this.app.vault.getMarkdownFiles();
-
+	getLastModifiedMarkDownFile(files: TFile[]): string {
 		if(files.length === 0){
 			return "Nothing But Wind";
 		}
@@ -208,14 +206,17 @@ export class VaultService {
 	}
 
 	/**
-	 * Get recently opened paths that still resolve to Markdown files in the vault.
-	 * This function returns a fallback message when no valid Markdown file exists.
+	 * Get recently opened paths that belong to the supplied Markdown file range.
+	 * This function returns a fallback message when no matching file exists.
 	 */
-	getActiveMarkDownFiles(): string[] | string {
+	getActiveMarkDownFiles(files: TFile[]): string[] | string {
+		const relevantPaths = new Set(files.map((file) => file.path));
 		const markdownFilePaths = this.app.workspace.getLastOpenFiles()
 			.filter((path) => {
 				const file = this.app.vault.getAbstractFileByPath(path);
-				return file instanceof TFile && file.extension === "md";
+				return file instanceof TFile
+					&& file.extension === "md"
+					&& relevantPaths.has(path);
 			});
 
 		if(markdownFilePaths.length === 0) {
@@ -373,30 +374,26 @@ export class VaultService {
 	}
 
 	/**
-	 * Get the name of the folder with the greatest number of direct file children.
-	 * This function returns a fallback message when the vault has no folders.
+	 * Get the folder with the greatest number of direct files in the supplied range.
+	 * This function returns a fallback message when no ranged file belongs to a folder.
 	 */
-	mostActiveFolder(): string {
-		const tfolders: TFolder[] = this.app.vault.getAllFolders(false);
-		const [firstFolder] = tfolders;
+	mostActiveFolder(files: TFile[]): string {
+		const folderCounts = new Map<string, number>();
 
-		if (!firstFolder) {
-			return "Nothing but Wind";
-		}
+		for (const file of files) {
+			const folder = file.parent;
 
-		let mostActiveFolder = firstFolder;
-		let maxFileCount = -1; 
-
-		for (const folder of tfolders) {
-			const fileCount = folder.children.filter(child => child instanceof TFile).length;
-
-			if (fileCount > maxFileCount) {
-				maxFileCount = fileCount;
-				mostActiveFolder = folder;
+			if (folder?.isRoot() !== false) {
+				continue;
 			}
+
+			folderCounts.set(folder.path, (folderCounts.get(folder.path) ?? 0) + 1);
 		}
 
-		return mostActiveFolder.name;
+		const mostActiveFolder = [...folderCounts.entries()]
+			.sort((first, second) => second[1] - first[1] || first[0].localeCompare(second[0]))[0];
+
+		return mostActiveFolder?.[0] ?? "Nothing but Wind";
 	}
 
 	/**
