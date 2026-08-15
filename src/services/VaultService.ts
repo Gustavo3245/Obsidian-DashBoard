@@ -23,6 +23,7 @@ export class VaultService {
 	/**
 	 * Get Markdown files modified during a predefined rolling range.
 	 * Bounded ranges start at the beginning of the oldest included local day,
+	 * end at the end of the current local day,
 	 * while the all range returns every Markdown file in the vault.
 	 * Range names and day counts are defined centrally by RANGE_DAYS.
 	 */
@@ -33,11 +34,15 @@ export class VaultService {
 
 		const now = new Date();
 		const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+		const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - 1;
 
 		const days = RANGE_DAYS[range];
 		const getThreshold = startOfToday - ((days - 1) * DAY_IN_MILLISECONDS);
 
-		return files.filter(file => file.stat.mtime >= getThreshold);
+		return files.filter(file => {
+			const mtime = file.stat.mtime;
+			return mtime >= getThreshold && mtime <= endOfToday;
+		});
 	}
 
 	/**
