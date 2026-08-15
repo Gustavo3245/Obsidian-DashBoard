@@ -137,6 +137,9 @@ As definições abaixo descrevem o código existente, não necessariamente a def
 - intervalo `today`: arquivos com `mtime` desde o início do dia;
 - intervalo `week`: últimos 7 dias contando hoje;
 - intervalo `month`: últimos 30 dias contando hoje;
+- intervalo `quarter`: últimos 90 dias contando hoje;
+- intervalo `semester`: últimos 180 dias contando hoje;
+- intervalo `year`: últimos 365 dias contando hoje;
 - intervalo `all`: todos os Markdown;
 - palavras, caracteres e sentenças usam `ContentAnalyzer`, tanto no snapshot quanto no cache e preview;
 - o frontmatter inicial é removido antes da análise;
@@ -238,7 +241,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 - `src/models/StatusBarMetrics.ts`: contrato planejado para status bar; ainda não usado.
 - `src/models/value_objects/ReadingTime.ts`: horas, minutos, segundos e total em segundos.
 - `src/models/value_objects/TagType.ts`: nome e contagem de tag. O tipo atual se chama `tagType`.
-- `src/models/value_objects/TimeRange.ts`: intervalos predefinidos e `DateBounds`.
+- `src/models/value_objects/TimeRange.ts`: fonte única dos intervalos predefinidos, suas quantidades de dias, o tipo `TimeRange` e `DateBounds`.
 
 ### Recursos
 

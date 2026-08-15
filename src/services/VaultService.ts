@@ -1,7 +1,7 @@
 import { App, getAllTags, TFile} from "obsidian";
 import { tagType } from "models/value_objects/TagType";
 import { ReadingTime } from "models/value_objects/ReadingTime";
-import { TimeRange } from "models/value_objects/TimeRange";
+import { RANGE_DAYS, TimeRange } from "models/value_objects/TimeRange";
 import { FileMetrics } from "models/FileMetrics";
 import { ContentAnalyzer } from "analyzer/ContentAnalyzer";
 import { MetadataAnalyzer } from "analyzer/MetadataAnalyzer";
@@ -21,8 +21,10 @@ export class VaultService {
 	}
 
 	/**
-	 * Get Markdown files modified within a predefined time range.
-	 * The all range returns every Markdown file in the vault.
+	 * Get Markdown files modified during a predefined rolling range.
+	 * Bounded ranges start at the beginning of the oldest included local day,
+	 * while the all range returns every Markdown file in the vault.
+	 * Range names and day counts are defined centrally by RANGE_DAYS.
 	 */
 	getFilesByRange(range: TimeRange): TFile[] {
 		const files = this.app.vault.getMarkdownFiles();
@@ -32,17 +34,10 @@ export class VaultService {
 		const now = new Date();
 		const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
-		const getThreshold = (): number => {
-			switch(range) {
-				case 'today': return startOfToday;
-				case 'week': return startOfToday - (6 * 24 * 60 * 60 * 1000);
-				case 'month': return startOfToday - (29 * 24 * 60 * 60 * 1000);
-				default: return 0;
-			}
-		}
-		
-		const threshold = getThreshold();
-		return files.filter(file => file.stat.mtime >= threshold);
+		const days = RANGE_DAYS[range];
+		const getThreshold = startOfToday - ((days - 1) * DAY_IN_MILLISECONDS);
+
+		return files.filter(file => file.stat.mtime >= getThreshold);
 	}
 
 	/**
@@ -652,16 +647,11 @@ export class VaultService {
 	 * Get the oldest accepted date for the selected predefined time range.
 	 */
 	private getMinimumDateForRange(range: TimeRange, today: number): number {
-		switch (range) {
-			case "today":
-				return today;
-			case "week":
-				return today - (6 * DAY_IN_MILLISECONDS);
-			case "month":
-				return today - (29 * DAY_IN_MILLISECONDS);
-			case "all":
-				return Number.NEGATIVE_INFINITY;
+		if (range === "all") {
+			return Number.NEGATIVE_INFINITY;
 		}
+
+		return today - ((RANGE_DAYS[range] - 1) * DAY_IN_MILLISECONDS);
 	}
 
 	/**
