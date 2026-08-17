@@ -128,10 +128,6 @@ export class VaultService {
 			return "Nothing but Wind";
 		}
 
-		if(!Number.isFinite(wordsPerMinute) || wordsPerMinute <= 0) {
-			throw new RangeError("Words per minute must be greater than zero");
-		}
-
 		const totalSeconds = Math.floor((totalWords / wordsPerMinute) * 60);
 
 		const hours = Math.floor(totalSeconds / 3600);
@@ -468,6 +464,7 @@ export class VaultService {
 	 * Empty histories return zero.
 	 */
 	calculateDailyAverageWords(dailyMetrics: DatedDailyMetrics[]): number {
+		
 		if (dailyMetrics.length === 0) {
 			return 0;
 		}

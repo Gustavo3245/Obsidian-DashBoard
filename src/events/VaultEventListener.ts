@@ -9,7 +9,7 @@ export class VaultEventListener {
 	constructor(private plugin: DashboardPlugin,
 		private sessionService: SessionService,
 		private processor: StatProcessor
-	) {}
+	) { }
 
 	/**
 	 * Registers the Obsidian workspace and Vault events used by the plugin.
@@ -40,7 +40,7 @@ export class VaultEventListener {
 				void this.handlePreviewAbsctractFile(AbstractFile, data);
 			})
 		)
-		
+
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('modify', (AbstractFile) => {
 				Logger.event("vault.modify", this.describeFile(AbstractFile));
@@ -74,12 +74,7 @@ export class VaultEventListener {
 				});
 
 				this.sessionService.pingActivity();
-
-				if (abstractFile instanceof TFile) {
-					void this.processor.processRenamedFile(abstractFile, oldPath);
-				} else if (abstractFile instanceof TFolder) {
-					this.processor.processFolders();
-				}
+				this.handleAbstractRenameFile(abstractFile, oldPath);
 			})
 		);
 
@@ -118,7 +113,7 @@ export class VaultEventListener {
 	 */
 	private async handleAbstractFileModification(AbstractFile: TAbstractFile) {
 
-		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
+		if (AbstractFile instanceof TFile && AbstractFile.extension === 'md') {
 			await this.processor.updateSnapshotLoad(AbstractFile);
 		} else if (AbstractFile instanceof TFile) {
 			this.processor.processModifiedAttachment();
@@ -133,13 +128,13 @@ export class VaultEventListener {
 	 */
 	private async handleAbstractFileCreation(AbstractFile: TAbstractFile) {
 
-		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
+		if (AbstractFile instanceof TFile && AbstractFile.extension === 'md') {
 			await this.processor.processNewMarkdownFile(AbstractFile);
 		}
 
-		else if(AbstractFile instanceof TFolder) {
+		else if (AbstractFile instanceof TFolder) {
 			this.processor.processFolders();
-		} 
+		}
 
 		else if (AbstractFile instanceof TFile) {
 			this.processor.processNewAttachment(AbstractFile);
@@ -154,11 +149,11 @@ export class VaultEventListener {
 	 */
 	private async handleAbstractFileDeletion(AbstractFile: TAbstractFile) {
 
-		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
+		if (AbstractFile instanceof TFile && AbstractFile.extension === 'md') {
 			await this.processor.processDeletedMarkdownFile(AbstractFile);
 		}
 
-		else if(AbstractFile instanceof TFolder){
+		else if (AbstractFile instanceof TFolder) {
 			this.processor.processFolders();
 		}
 
@@ -173,10 +168,20 @@ export class VaultEventListener {
 	 * without replacing the confirmed metrics used for incremental deltas.
 	 */
 	private async handlePreviewAbsctractFile(AbstractFile: TAbstractFile, data: string) {
-		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
+		if (AbstractFile instanceof TFile && AbstractFile.extension === 'md') {
 			this.processor.updatePreviewMetrics(AbstractFile.path, data);
 		}
+	}
+
+	private async handleAbstractRenameFile(abstractFile: TAbstractFile, oldPath: string) {
+
+		if (abstractFile instanceof TFile) {
+			this.processor.processRenamedFile(abstractFile, oldPath);
+		} 
 		
+		else if (abstractFile instanceof TFolder) {
+			this.processor.processFolders();
+		}
 	}
 
 	/**
