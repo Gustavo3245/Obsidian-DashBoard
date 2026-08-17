@@ -1,4 +1,4 @@
-import { TAbstractFile, TFile, TFolder } from "obsidian";
+import { CachedMetadata, TAbstractFile, TFile, TFolder } from "obsidian";
 import DashboardPlugin from "../main";
 import { StatProcessor } from "orchestrators/StatsProcessor";
 import { SessionService } from "services/SessionService";
@@ -11,6 +11,7 @@ export class VaultEventListener {
 		private processor: StatProcessor
 	) { }
 
+	private metadataChangedTimer: number | null = null;
 	/**
 	 * Registers the Obsidian workspace and Vault events used by the plugin.
 	 * Every event reports user activity to SessionService and delegates metric
@@ -77,6 +78,29 @@ export class VaultEventListener {
 				this.handleAbstractRenameFile(abstractFile, oldPath);
 			})
 		);
+
+		this.plugin.registerEvent(
+			this.plugin.app.metadataCache.on("deleted", (file: TFile, previousCache: CachedMetadata) => {
+
+				Logger.event("Metadata.deleted", {
+					path: file.path,
+					hasPreviousCache: previousCache
+				})
+
+				this.handleDeletedMetadata(file);
+			})
+		);
+
+		this.plugin.registerEvent(
+			this.plugin.app.metadataCache.on("changed", (file: TFile, data: string, cache: CachedMetadata) => {
+
+				Logger.event("MetadataChace.changed", {
+					path: file.path,
+				});
+
+				this.handleChangedMetadata(file);
+			})
+		)
 
 	}
 
@@ -177,11 +201,36 @@ export class VaultEventListener {
 
 		if (abstractFile instanceof TFile) {
 			this.processor.processRenamedFile(abstractFile, oldPath);
-		} 
-		
+		}
+
 		else if (abstractFile instanceof TFolder) {
 			this.processor.processFolders();
 		}
+	}
+
+	private async handleDeletedMetadata(file: TFile) {
+
+		if (file.extension !== "md") {
+			return;
+		}
+
+		await this.processor.refreshMetadataMetrics("all");
+	}
+
+	private async handleChangedMetadata(file: TFile) {
+
+		if (file.extension !== "md") {
+			return;
+		}
+
+		if (this.metadataChangedTimer !== null) {
+			window.clearTimeout(this.metadataChangedTimer);
+		}
+
+		this.metadataChangedTimer = window.setTimeout(() => {
+			this.metadataChangedTimer = null;
+			this.processor.appearsLoad("all");
+		}, 300);
 	}
 
 	/**

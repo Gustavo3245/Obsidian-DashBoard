@@ -285,6 +285,14 @@ export class StatProcessor {
 		);
 	}
 
+	async refreshMetadataMetrics(range: TimeRange) {
+		const appears = await this.calculator.getAppearsMetrics(range);
+
+		this.stateManager.emitNewState({
+			appears,
+		});
+	}
+
 	async vaultLoad(range: TimeRange) {
 		const files = this.vaultService.getFilesByRange(range);
 
