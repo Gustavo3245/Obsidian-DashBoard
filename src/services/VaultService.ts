@@ -82,6 +82,15 @@ export class VaultService {
 	}
 
 	/**
+	 * get the current vault TotalSentences count (this function declares that a sentence
+	 * is considered text separated by a line break);
+	 * */
+	async getTotalSentences(files: TFile[]): Promise<number> {
+		const metrics = await this.getContentMetrics(files);
+		return metrics.reduce((total, current) => total + current.sentences, 0);
+	}
+
+	/**
 	 * Return a type tag with the name and count of the most used tag.
 	 * this calculation uses all tag appearances in the entire vault (content and FrontMatter).
 	 */
@@ -112,19 +121,22 @@ export class VaultService {
 	}
 
 	/**
-	 * Get the Estimated Reading Time based in medium per word readtime
-	 * using a Array range of Tfiles[]. This function uses the number 200 for
-	 * the medium Per minute readtime.
+	 * Calculate an estimated duration from the total words in the supplied files
+	 * and a positive words-per-minute rate.
 	 */
-	async getVaultEstimateReadingTime(files: TFile[]): Promise<ReadingTime | string> {
-		const totalWords = await this.getTotalWords(files);
-		const WORD_PER_MINUTE_READTIME = 200;
+	async estimateTime(files: TFile[], wordsPerMinute: number): Promise<ReadingTime | string> {
 
-		if(totalWords == null || !totalWords){
-			return "Nothing But Wind";
+		const totalWords = await this.getTotalWords(files);
+
+		if(files.length === 0) {
+			return "Nothing but Wind";
 		}
-		
-		const totalSeconds = Math.floor((totalWords / WORD_PER_MINUTE_READTIME) * 60);
+
+		if(totalWords <= 0) {
+			return "Nothing but Wind";
+		}
+
+		const totalSeconds = Math.floor((totalWords / wordsPerMinute) * 60);
 
 		const hours = Math.floor(totalSeconds / 3600);
 		const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -139,10 +151,29 @@ export class VaultService {
 	}
 
 	/**
+	 * Get the Estimated Reading Time based in medium per word readtime
+	 * using a Array range of Tfiles[]. This function uses the number 200 for
+	 * the medium Per minute readtime.
+	 */
+	async getVaultEstimateReadingTime(files: TFile[]): Promise<ReadingTime | string> {
+		const WORDS_PER_MINUTE_READING = 200;
+		return this.estimateTime(files, WORDS_PER_MINUTE_READING);
+	}
+
+	/**
+	 * get the current estimated Speaking Time (for files, folders and complete Vault).
+	 */
+	async getEstimatedSpeakingTime(files: TFile[]): Promise<ReadingTime | string> {
+		const WORDS_PER_MINUTE_SPEAKING = 130;
+		return this.estimateTime(files, WORDS_PER_MINUTE_SPEAKING);
+	}
+
+	/**
 	 * Get the path of the last modified Markdown file in the supplied range.
 	 * A serializable fallback message is returned when the range has no files.
 	 */
 	getLastModifiedMarkDownFile(files: TFile[]): string {
+		
 		if(files.length === 0){
 			return "Nothing But Wind";
 		}
@@ -210,18 +241,21 @@ export class VaultService {
 	 * This function returns a fallback message when no matching file exists.
 	 */
 	getActiveMarkDownFiles(files: TFile[]): string[] | string {
+
 		const relevantPaths = new Set(files.map((file) => file.path));
+		
 		const markdownFilePaths = this.app.workspace.getLastOpenFiles()
 			.filter((path) => {
 				const file = this.app.vault.getAbstractFileByPath(path);
+				
 				return file instanceof TFile
-					&& file.extension === "md"
-					&& relevantPaths.has(path);
+					&& file.extension === "md" && relevantPaths.has(path);
 			});
 
 		if(markdownFilePaths.length === 0) {
 			return "Nothing but Wind";
 		}
+
 		return markdownFilePaths;
 	}
 
@@ -245,7 +279,7 @@ export class VaultService {
 	 * get the current average file length inside the files range,
 	 * the average file length is based in the (vault.files.length - vault.totalFiles).
 	 */
-	async getAverageWordsPerFile(files: TFile[]): Promise<number>{
+	async getAverageWordsPerFile(files: TFile[]): Promise<number> {
 
 		if(files.length === 0){
 			return 0;
@@ -292,41 +326,6 @@ export class VaultService {
 		
 		const totalSizeBytes = files.reduce((total, file) => total + file.stat.size, 0);
 		return Number(totalSizeBytes.toFixed(2));
-	}
-
-	/**
-	 * get the current estimated Speaking Time (for files, folders and complete Vault).
-	*/
-	async getEstimatedSpeakingTime(files: TFile[]): Promise<ReadingTime | string> {
-		const totalWords = await this.getTotalWords(files);
-		const WORDS_PER_MINUTE_SPEAKTIME = 130;
-
-		if(!totalWords || totalWords <= 0){
-			return "Nothing But Wind";
-		}
-		
-		const totalSeconds = Math.floor((totalWords / WORDS_PER_MINUTE_SPEAKTIME) * 60);
-
-		const hours = Math.floor(totalSeconds / 3600);
-		const minutes = Math.floor((totalSeconds % 3600) / 60);
-		const seconds = totalSeconds % 60;
-
-		return {
-			hours,
-			minutes,
-			seconds,
-			totalSeconds
-		};
-
-	}
-
-	/**
-	 * get the current vault TotalSentences count (this function declares that a sentence
-	 * is considered text separated by a line break);
-	 * */
-	async getTotalSentences(files: TFile[]): Promise<number> {
-		const metrics = await this.getContentMetrics(files);
-		return metrics.reduce((total, current) => total + current.sentences, 0);
 	}
 
 	/**
@@ -699,6 +698,7 @@ export class VaultService {
 	 * Read the supplied files once and analyze the content of each file.
 	 */
 	private async getContentMetrics(files: TFile[]) {
+		
 		const contents = await Promise.all(
 			files.map((file) => this.app.vault.cachedRead(file))
 		);
