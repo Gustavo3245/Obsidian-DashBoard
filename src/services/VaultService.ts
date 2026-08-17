@@ -2,8 +2,7 @@ import { App, getAllTags, TFile} from "obsidian";
 import { tagType } from "models/value_objects/TagType";
 import { ReadingTime } from "models/value_objects/ReadingTime";
 import { RANGE_DAYS, TimeRange } from "models/value_objects/TimeRange";
-import { FileMetrics } from "models/FileMetrics";
-import { ContentAnalyzer } from "analyzer/ContentAnalyzer";
+import { ContentAnalyzer, ContentMetrics } from "analyzer/ContentAnalyzer";
 import { MetadataAnalyzer } from "analyzer/MetadataAnalyzer";
 import { DailyMetrics } from "models/DailyMetrics";
 import { ActivityPeriod, DatedDailyMetrics } from "models/ActivityMetrics";
@@ -121,19 +120,16 @@ export class VaultService {
 	}
 
 	/**
-	 * Calculate an estimated duration from the total words in the supplied files
+	 * Calculate an estimated duration from a total word count
 	 * and a positive words-per-minute rate.
 	 */
-	async estimateTime(files: TFile[], wordsPerMinute: number): Promise<ReadingTime | string> {
-
-		const totalWords = await this.getTotalWords(files);
-
-		if(files.length === 0) {
+	estimateTime(totalWords: number, wordsPerMinute: number): ReadingTime | string {
+		if(totalWords <= 0) {
 			return "Nothing but Wind";
 		}
 
-		if(totalWords <= 0) {
-			return "Nothing but Wind";
+		if(!Number.isFinite(wordsPerMinute) || wordsPerMinute <= 0) {
+			throw new RangeError("Words per minute must be greater than zero");
 		}
 
 		const totalSeconds = Math.floor((totalWords / wordsPerMinute) * 60);
@@ -151,21 +147,19 @@ export class VaultService {
 	}
 
 	/**
-	 * Get the Estimated Reading Time based in medium per word readtime
-	 * using a Array range of Tfiles[]. This function uses the number 200 for
-	 * the medium Per minute readtime.
+	 * Get the estimated reading time for a total word count using 200 words per minute.
 	 */
-	async getVaultEstimateReadingTime(files: TFile[]): Promise<ReadingTime | string> {
+	getEstimatedReadingTime(totalWords: number): ReadingTime | string {
 		const WORDS_PER_MINUTE_READING = 200;
-		return this.estimateTime(files, WORDS_PER_MINUTE_READING);
+		return this.estimateTime(totalWords, WORDS_PER_MINUTE_READING);
 	}
 
 	/**
-	 * get the current estimated Speaking Time (for files, folders and complete Vault).
+	 * Get the estimated speaking time for a total word count using 130 words per minute.
 	 */
-	async getEstimatedSpeakingTime(files: TFile[]): Promise<ReadingTime | string> {
+	getEstimatedSpeakingTime(totalWords: number): ReadingTime | string {
 		const WORDS_PER_MINUTE_SPEAKING = 130;
-		return this.estimateTime(files, WORDS_PER_MINUTE_SPEAKING);
+		return this.estimateTime(totalWords, WORDS_PER_MINUTE_SPEAKING);
 	}
 
 	/**
@@ -343,33 +337,18 @@ export class VaultService {
 	}
 
 	/**
+	 * Read one Markdown file and return only its analyzed content values.
+	 */
+	async getFileContentMetrics(file: TFile): Promise<ContentMetrics> {
+		const content = await this.app.vault.cachedRead(file);
+		return ContentAnalyzer.analyze(content);
+	}
+
+	/**
 	 * Check whether a Markdown file has no tags, outgoing links or backlinks.
 	 */
 	isOrphanFile(file: TFile): boolean {
 		return this.metadataAnalyzer.isOrphanFile(file);
-	}
-
-	/**
-	 * Get content, reading time, orphan state and file information for one file.
-	 * The file content is read from the Obsidian Vault cache.
-	 */
-	async getFilesMetrics(file: TFile): Promise<FileMetrics> {
-		const content = await this.app.vault.cachedRead(file);
-		const { words, sentences, characters } = ContentAnalyzer.analyze(content);
-		const isOrphan = this.isOrphanFile(file);
-
-		const readingTime = await this.getVaultEstimateReadingTime([file]);
-
-		return {
-			characters,
-			words,
-			sentences,
-			readingTime,
-			isOrphanFile: isOrphan,
-			name: file.name,
-			path: file.path,
-			fileSize: file.stat.size
-		}
 	}
 
 	/**
@@ -698,11 +677,8 @@ export class VaultService {
 	 * Read the supplied files once and analyze the content of each file.
 	 */
 	private async getContentMetrics(files: TFile[]) {
-		
-		const contents = await Promise.all(
-			files.map((file) => this.app.vault.cachedRead(file))
+		return Promise.all(
+			files.map((file) => this.getFileContentMetrics(file))
 		);
-
-		return contents.map((content) => ContentAnalyzer.analyze(content));
 	}
 }

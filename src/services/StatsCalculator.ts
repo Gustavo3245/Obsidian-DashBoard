@@ -19,17 +19,17 @@ export class StatsCalculator {
 	}
 	 
 	async getFileMetrics(file: TFile): Promise<FileMetrics> {
-		const fileMetrics = await this.vaultService.getFilesMetrics(file);
+		const contentMetrics = await this.vaultService.getFileContentMetrics(file);
 
 		return {
 			name: file.name,
 			path: file.path,
 			fileSize: file.stat.size,
-			characters: fileMetrics.characters,
-			words: fileMetrics.words,
-			sentences: fileMetrics.sentences,
-			readingTime: fileMetrics.readingTime,
-			isOrphanFile: fileMetrics.isOrphanFile
+			characters: contentMetrics.characters,
+			words: contentMetrics.words,
+			sentences: contentMetrics.sentences,
+			readingTime: this.vaultService.getEstimatedReadingTime(contentMetrics.words),
+			isOrphanFile: this.vaultService.isOrphanFile(file)
 		}
 	}
 
@@ -67,7 +67,7 @@ export class StatsCalculator {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
 		
 		const filesMetrics = await Promise.all(
-			relevantFiles.map((file) => this.vaultService.getFilesMetrics(file))
+			relevantFiles.map((file) => this.getFileMetrics(file))
 		);
 
 		return {
@@ -91,7 +91,7 @@ export class StatsCalculator {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
 
 		const filesMetrics = await Promise.all(
-			relevantFiles.map((file) => this.vaultService.getFilesMetrics(file))
+			relevantFiles.map((file) => this.getFileMetrics(file))
 		);
 
 		const chars = filesMetrics.reduce((total, file) => total + file.characters, 0);
@@ -121,10 +121,9 @@ export class StatsCalculator {
 			this.stateManager.getDailyMetricsState()
 		);
 
-		const [estimatedReading, estimatedSpeaking] = await Promise.all([
-			this.vaultService.getVaultEstimateReadingTime(relevantFiles),
-			this.vaultService.getEstimatedSpeakingTime(relevantFiles)
-		]);
+		const totalWords = await this.vaultService.getTotalWords(relevantFiles);
+		const estimatedReading = this.vaultService.getEstimatedReadingTime(totalWords);
+		const estimatedSpeaking = this.vaultService.getEstimatedSpeakingTime(totalWords);
 
 		return {
 			estimatedReadingTime: estimatedReading,
