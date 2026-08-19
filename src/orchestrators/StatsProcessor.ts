@@ -179,6 +179,7 @@ export class StatProcessor {
 				totalOrphansFiles: currentVolume.totalOrphansFiles + (fileMetrics.isOrphanFile ? 1 : 0),
 				totalVaultSize: currentVolume.totalVaultSize + fileMetrics.fileSize,
 				averageWordsPerFile: totalWords / totalMarkdownFiles,
+				fileTypes: this.calculator.getFileTypeMetrics(),
 			}
 		});
 
@@ -207,6 +208,7 @@ export class StatProcessor {
 				totalOrphansFiles: Math.max(0, currentVolume.totalOrphansFiles - (cachedFileMetrics.isOrphanFile ? 1 : 0)),
 				totalVaultSize: Math.max(0, currentVolume.totalVaultSize - cachedFileMetrics.fileSize),
 				averageWordsPerFile: totalMarkdownFiles > 0 ? totalWords / totalMarkdownFiles : 0,
+				fileTypes: this.calculator.getFileTypeMetrics(),
 			}
 		});
 
@@ -233,6 +235,7 @@ export class StatProcessor {
 				totalFiles: currentVolume.totalFiles + 1,
 				totalAttachments: currentVolume.totalAttachments + 1,
 				totalVaultSize: currentVolume.totalVaultSize + file.stat.size,
+				fileTypes: this.calculator.getFileTypeMetrics(),
 			}
 		});
 	}
@@ -246,6 +249,7 @@ export class StatProcessor {
 				totalFiles: Math.max(0, currentVolume.totalFiles - 1),
 				totalAttachments: Math.max(0, currentVolume.totalAttachments - 1),
 				totalVaultSize: Math.max(0, currentVolume.totalVaultSize - file.stat.size),
+				fileTypes: this.calculator.getFileTypeMetrics(),
 			}
 		});
 	}
@@ -262,6 +266,13 @@ export class StatProcessor {
 	}
 
 	async processRenamedFile(file: TFile, oldPath: string): Promise<void> {
+		const currentVolume = this.stateManager.getVaultMetricsState().volume;
+		this.stateManager.emitNewState({
+			volume: {
+				...currentVolume,
+				fileTypes: this.calculator.getFileTypeMetrics(),
+			}
+		});
 		
 		if (file.extension !== "md") {
 			return;

@@ -7,6 +7,7 @@ import { SessionService } from "./SessionService";
 import { VaultService } from "./VaultService";
 import { MetadataAnalyzer } from "analyzer/MetadataAnalyzer";
 import { StateManager } from "state/StateManager";
+import { FileTypeMetric } from "models/value_objects/FileTypeMetric";
 
 export class StatsCalculator {
 	constructor(private vaultService: VaultService,
@@ -110,8 +111,26 @@ export class StatsCalculator {
 			totalAttachments: this.vaultService.getTotalAttachments(),
 			totalOrphansFiles: this.vaultService.getTotalOrphansFiles(relevantFiles),
 			totalVaultSize: this.vaultService.getTotalVaultSize(),
-			averageWordsPerFile: await this.vaultService.getAverageWordsPerFile(relevantFiles)
+			averageWordsPerFile: await this.vaultService.getAverageWordsPerFile(relevantFiles),
+			fileTypes: this.getFileTypeMetrics()
 		};
+	}
+
+	getFileTypeMetrics(): FileTypeMetric[] {
+		const counts = this.vaultService.getFileTypeCounts();
+		const totalFiles = Object.values(counts).reduce((total, count) => total + count, 0);
+
+		if (totalFiles === 0) {
+			return [];
+		}
+
+		return Object.entries(counts)
+			.map(([type, count]) => ({
+				type,
+				count,
+				percentage: (count / totalFiles) * 100,
+			}))
+			.sort((first, second) => second.count - first.count || first.type.localeCompare(second.type));
 	}
 
 	async getEstimatesMetric(range: TimeRange): Promise<VaultMetrics['estimates']> {

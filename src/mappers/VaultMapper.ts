@@ -13,6 +13,7 @@ export class VaultMapper {
 				totalOrphansFiles: 0,
 				totalVaultSize: 0,
 				averageWordsPerFile: 0,
+				fileTypes: [],
 			},
 			estimates: {
 				estimatedReadingTime: "Nothing but Wind",

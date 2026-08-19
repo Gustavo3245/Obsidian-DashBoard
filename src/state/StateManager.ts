@@ -21,7 +21,7 @@ export class StateManager {
 		initialDailyHistory: Record<string, DailyMetrics>,
 		private persistCallback: (data: { vaultMetrics: VaultMetrics, dailyHistory: Record<string, DailyMetrics> }) => Promise<void>
 	){
-		this.vaultMetricsState = initialVaultData ?? VaultMapper.getEmptyVaultMetrics();
+		this.vaultMetricsState = VaultMapper.mapToVaultMetrics(initialVaultData ?? {});
 		this.dailyMetricsHistory = initialDailyHistory ?? {};
 	}
 

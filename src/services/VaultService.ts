@@ -266,6 +266,24 @@ export class VaultService {
 	}
 
 	/**
+	 * Count all Vault files by normalized file type.
+	 */
+	getFileTypeCounts(): Record<string, number> {
+		const counts: Record<string, number> = {};
+
+		for (const file of this.app.vault.getFiles()) {
+			const lowerName = file.name.toLowerCase();
+			const type = lowerName.endsWith(".excalidraw.md")
+				? "excalidraw"
+				: file.extension.toLowerCase() || "other";
+			const normalizedType = type === "md" ? "markdown" : type;
+			counts[normalizedType] = (counts[normalizedType] ?? 0) + 1;
+		}
+
+		return counts;
+	}
+
+	/**
 	 * get the current average file length inside the files range,
 	 * the average file length is based in the (vault.files.length - vault.totalFiles).
 	 */

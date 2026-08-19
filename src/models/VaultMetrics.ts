@@ -1,5 +1,6 @@
 import { ReadingTime } from "./value_objects/ReadingTime";
 import { tagType } from "./value_objects/TagType";
+import { FileTypeMetric } from "./value_objects/FileTypeMetric";
 
 export interface VaultMetrics {
 
@@ -17,6 +18,7 @@ export interface VaultMetrics {
 		totalOrphansFiles: number; // Done
 		totalVaultSize: number; // Total size in bytes.
 		averageWordsPerFile: number; //Done
+		fileTypes: FileTypeMetric[];
 	}
 	// Measurements related to estimates and time.
 	estimates: {

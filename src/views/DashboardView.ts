@@ -12,7 +12,8 @@ type DashboardCardModifier =
 	| "medium"
 	| "large"
 	| "square"
-	| "square-third";
+	| "square-third"
+	| "file-types";
 
 interface DashboardHeightGroup {
 	size: "medium" | "large";
@@ -30,7 +31,7 @@ const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["summary", "large"],
 	["wide"],
 	["wide", "large"],
-	["detail"],
+	["detail", "file-types"],
 	["detail"],
 	["detail", "medium"],
 	["detail", "large"],
@@ -48,6 +49,7 @@ const DASHBOARD_HEIGHT_GROUPS: readonly DashboardHeightGroup[] = [
 
 export class DashboardView extends ItemView {
 	private streakCard: HTMLElement | null = null;
+	private fileTypesCard: HTMLElement | null = null;
 	private streakResizeObserver: ResizeObserver | null = null;
 	private unsubscribeState: (() => void) | null = null;
 
@@ -73,11 +75,13 @@ export class DashboardView extends ItemView {
 		this.containerEl.addClass("dynamic-dashboard-container");
 		this.contentEl.addClass("dynamic-dashboard-view");
 		this.renderLayout();
-		this.unsubscribeState = this.stateManager.subscribe(
-			() => this.renderWritingStreak()
-		);
+		this.unsubscribeState = this.stateManager.subscribe(() => {
+			this.renderWritingStreak();
+			this.renderFileTypes();
+		});
 		this.observeWritingStreak();
 		this.renderWritingStreak();
+		this.renderFileTypes();
 	}
 
 	protected async onClose(): Promise<void> {
@@ -86,6 +90,7 @@ export class DashboardView extends ItemView {
 		this.streakResizeObserver?.disconnect();
 		this.streakResizeObserver = null;
 		this.streakCard = null;
+		this.fileTypesCard = null;
 		this.containerEl.removeClass("dynamic-dashboard-container");
 		this.contentEl.removeClass("dynamic-dashboard-view");
 		this.contentEl.empty();
@@ -103,6 +108,10 @@ export class DashboardView extends ItemView {
 
 			if (modifiers.includes("streak")) {
 				this.streakCard = card;
+			}
+
+			if (modifiers.includes("file-types")) {
+				this.fileTypesCard = card;
 			}
 		}
 
@@ -136,6 +145,90 @@ export class DashboardView extends ItemView {
 			() => this.renderWritingStreak()
 		);
 		this.streakResizeObserver.observe(this.streakCard);
+	}
+
+	private renderFileTypes(): void {
+		if (!this.fileTypesCard) {
+			return;
+		}
+
+		const storedMetrics = this.stateManager.getVaultMetricsState().volume.fileTypes;
+		const primaryTypes = ["markdown", "canvas"];
+		const totalFiles = storedMetrics.reduce((total, metric) => total + metric.count, 0);
+		const visibleMetrics = primaryTypes.map((type) => ({
+			type,
+			count: storedMetrics.find((metric) => metric.type === type)?.count ?? 0,
+			percentage: 0,
+		}));
+		visibleMetrics.push({
+			type: "other",
+			count: storedMetrics
+				.filter((metric) => !primaryTypes.includes(metric.type))
+				.reduce((total, metric) => total + metric.count, 0),
+			percentage: 0,
+		});
+
+		for (const metric of visibleMetrics) {
+			metric.percentage = totalFiles > 0 ? (metric.count / totalFiles) * 100 : 0;
+		}
+
+		const colors = ["#8b5cf6", "#3b82f6", "#eab308"];
+		let accumulatedPercentage = 0;
+		const gradientStops = visibleMetrics.map((metric, index) => {
+			const color = colors[index] ?? colors[colors.length - 1]!;
+			const start = accumulatedPercentage;
+			accumulatedPercentage += totalFiles > 0 ? (metric.count / totalFiles) * 100 : 0;
+			return `${color} ${start}% ${accumulatedPercentage}%`;
+		});
+
+		this.fileTypesCard.empty();
+		this.fileTypesCard.createDiv({
+			cls: "dynamic-file-types-title",
+			text: "File types",
+		});
+		const body = this.fileTypesCard.createDiv({
+			cls: "dynamic-file-types-body",
+		});
+		const donut = body.createDiv({
+			cls: "dynamic-file-types-donut",
+		});
+		donut.style.setProperty(
+			"--dynamic-file-types-gradient",
+			totalFiles > 0
+				? `conic-gradient(${gradientStops.join(", ")})`
+				: "var(--background-modifier-border)"
+		);
+		donut.setAttribute(
+			"aria-label",
+			totalFiles > 0
+				? visibleMetrics.map((metric) => `${metric.type}: ${metric.percentage.toFixed(1)}%`).join(", ")
+				: "No files"
+		);
+		donut.setAttribute("role", "img");
+
+		const legend = body.createDiv({
+			cls: "dynamic-file-types-legend",
+		});
+
+		for (const [index, metric] of visibleMetrics.entries()) {
+			const color = colors[index] ?? colors[colors.length - 1]!;
+			const row = legend.createDiv({
+				cls: "dynamic-file-types-legend-row",
+			});
+			row.style.setProperty("--dynamic-file-type-color", color);
+			row.createSpan({
+				cls: "dynamic-file-types-name",
+				text: this.formatFileTypeName(metric.type),
+			});
+			row.createSpan({
+				cls: "dynamic-file-types-percentage",
+				text: `${metric.percentage.toFixed(1)}%`,
+			});
+		}
+	}
+
+	private formatFileTypeName(type: string): string {
+		return type.charAt(0).toUpperCase() + type.slice(1);
 	}
 
 	private renderWritingStreak(): void {
