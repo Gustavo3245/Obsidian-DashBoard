@@ -166,8 +166,54 @@
 	}
 }
 
-@container dynamic-dashboard (min-height: 680px) and (max-width: 559px) {
+@container dynamic-dashboard (min-height: 680px) {
+	.dynamic-dashboard-layout {
+		grid-template-rows:
+			minmax(0, 0.75fr)
+			minmax(0, 0.75fr)
+			minmax(0, 1fr)
+			minmax(0, 1.25fr)
+			minmax(0, 1.6fr)
+			minmax(0, 1.1fr);
+	}
+
+	.dynamic-dashboard-card--summary {
+		order: 1;
+	}
+
+	.dynamic-dashboard-height-group--medium {
+		display: none;
+	}
+
 	.dynamic-dashboard-height-group--large {
 		display: grid;
+		order: 2;
+	}
+
+	.dynamic-dashboard-card--wide {
+		grid-column: 1 / -1;
+		order: 3;
+	}
+
+	.dynamic-dashboard-card--large {
+		display: none;
+	}
+
+	.dynamic-dashboard-card--wide.dynamic-dashboard-card--large {
+		display: block;
+	}
+
+	.dynamic-dashboard-card--detail {
+		order: 4;
+	}
+
+	.dynamic-dashboard-card--streak {
+		order: 5;
+	}
+}
+
+@container dynamic-dashboard (min-height: 680px) and (min-width: 360px) {
+	.dynamic-dashboard-layout {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 }
