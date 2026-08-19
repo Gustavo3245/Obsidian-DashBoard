@@ -1,4 +1,4 @@
-import { CachedMetadata, TAbstractFile, TFile, TFolder } from "obsidian";
+import { TAbstractFile, TFile, TFolder } from "obsidian";
 import DashboardPlugin from "../main";
 import { StatProcessor } from "orchestrators/StatsProcessor";
 import { SessionService } from "services/SessionService";
@@ -78,7 +78,7 @@ export class VaultEventListener {
 				});
 
 				this.sessionService.pingActivity();
-				this.handleAbstractRenameFile(abstractFile, oldPath);
+				void this.handleAbstractRenameFile(abstractFile, oldPath);
 			})
 		);
 
@@ -87,15 +87,15 @@ export class VaultEventListener {
 
 				Logger.event("Metadata.deleted", {
 					path: file.path,
-					hasPreviousCache: previousCache
+					hasPreviousCache: previousCache !== null
 				})
 
-				this.handleDeletedMetadata(file);
+				void this.handleDeletedMetadata(file);
 			})
 		);
 
 		this.plugin.registerEvent(
-			this.plugin.app.metadataCache.on("changed", (file: TFile, data: string, cache: CachedMetadata) => {
+			this.plugin.app.metadataCache.on("changed", (file) => {
 
 				Logger.event("MetadataChace.changed", {
 					path: file.path,
@@ -127,8 +127,37 @@ export class VaultEventListener {
 
 		this.plugin.registerDomEvent(window, "focus", () => {
 			Logger.event("activity.focus");
-			this.sessionService.pingActivity();
+			if (activeDocument.visibilityState === "hidden") {
+				return;
+			}
+			this.sessionService.resumeTracking();
 		});
+
+		this.plugin.registerDomEvent(
+			activeDocument,
+			"visibilitychange", () => {
+				if(activeDocument.visibilityState === "hidden" || !activeDocument.hasFocus()) {
+
+					Logger.event("Window.visibility", {
+						visibility: activeDocument.visibilityState
+					});
+					this.sessionService.pauseTracking();
+					return;
+				}
+
+				Logger.event("window.visibility", {
+					visibility: activeDocument.visibilityState
+				});
+				this.sessionService.resumeTracking();
+			}
+		)
+
+		this.plugin.registerDomEvent(
+			window, "blur", () => {
+				Logger.event("activity.blur");
+				this.sessionService.pauseTracking();
+			}
+		)
 	}
 
 	/**
@@ -206,7 +235,7 @@ export class VaultEventListener {
 	private async handleAbstractRenameFile(abstractFile: TAbstractFile, oldPath: string) {
 
 		if (abstractFile instanceof TFile) {
-			this.processor.processRenamedFile(abstractFile, oldPath);
+			await this.processor.processRenamedFile(abstractFile, oldPath);
 		}
 
 		else if (abstractFile instanceof TFolder) {
@@ -231,7 +260,7 @@ export class VaultEventListener {
 	 * Schedule a debounced refresh after Obsidian finishes indexing changed
 	 * Markdown metadata. Consecutive changes share one metrics recalculation.
 	 */
-	private async handleChangedMetadata(file: TFile) {
+	private handleChangedMetadata(file: TFile): void {
 
 		if (file.extension !== "md") {
 			return;
@@ -243,7 +272,7 @@ export class VaultEventListener {
 
 		this.metadataChangedTimer = window.setTimeout(() => {
 			this.metadataChangedTimer = null;
-			this.processor.appearsLoad("all");
+			void this.processor.appearsLoad("all");
 		}, 300);
 	}
 

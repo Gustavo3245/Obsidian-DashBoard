@@ -5,12 +5,13 @@ export class SessionService {
 	private lastActivityTimestamp = Date.now();
 	private lastTickTimestamp = Date.now();
 	private heartbeatInterval: number | null = null;
+	private isPaused = false;
 	private readonly heartbeatMs = 10_000;
 
-	constructor(private idleLimitMinutes: number) {}
+	constructor(private idleLimitMinutes: number) { }
 
 	public startTracking(): number {
-		
+
 		if (this.heartbeatInterval !== null) {
 			return this.heartbeatInterval;
 		}
@@ -22,6 +23,11 @@ export class SessionService {
 			const now = Date.now();
 			const timeSinceLastActivity = now - this.lastActivityTimestamp;
 			const delta = now - this.lastTickTimestamp;
+
+			if (this.isPaused) {
+				this.lastTickTimestamp = now;
+				return;
+			}
 
 			if (timeSinceLastActivity <= this.idleLimitMinutes * 60_000) {
 				this.accumulatedMs += delta;
@@ -54,6 +60,19 @@ export class SessionService {
 		if (Number.isFinite(idleLimitMinutes) && idleLimitMinutes > 0) {
 			this.idleLimitMinutes = idleLimitMinutes;
 		}
+	}
+
+	public pauseTracking(): void {
+		this.isPaused = true;
+		this.lastTickTimestamp = Date.now();
+	}
+
+	public resumeTracking(): void {
+		const now = Date.now();
+
+		this.isPaused = false;
+		this.lastTickTimestamp = now;
+		this.lastActivityTimestamp = now;
 	}
 
 	public getActiveMinutes(): number {
