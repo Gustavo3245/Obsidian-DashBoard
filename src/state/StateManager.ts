@@ -12,6 +12,7 @@ export class StateManager {
 	private dailyMetricsHistory: Record<string, DailyMetrics>;
 	private fileStatsCacheState: Map<string, FileMetrics> = new Map();
 	private filePreviewCacheState: Map<string, FileMetrics> = new Map();
+	private stateListeners: Set<StateListener> = new Set();
 
 	private saveTimeout: number | null = null;
 
@@ -53,6 +54,11 @@ export class StateManager {
 		this.filePreviewCacheState.set(path, stats);
 	}
 
+	public subscribe(listener: StateListener): () => void {
+		this.stateListeners.add(listener);
+		return () => this.stateListeners.delete(listener);
+	}
+
 	public getDailyMetricsState(): Record<string, DailyMetrics> {
 		return this.dailyMetricsHistory;
 	}
@@ -75,6 +81,7 @@ export class StateManager {
 			patch,
 			state: this.dailyMetricsHistory[date],
 		});
+		this.notifyListeners();
 		this.triggerSave();
 	}
 	
@@ -88,7 +95,14 @@ export class StateManager {
 			patch,
 			state: this.vaultMetricsState,
 		});
+		this.notifyListeners();
 		this.triggerSave();
+	}
+
+	private notifyListeners(): void {
+		for (const listener of this.stateListeners) {
+			listener();
+		}
 	}
 
 	private triggerSave() {
