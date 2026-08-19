@@ -92,10 +92,6 @@ export class DashboardView extends ItemView {
 		for (const group of DASHBOARD_HEIGHT_GROUPS) {
 			this.createHeightGroup(dashboard, group);
 		}
-
-		dashboard.createDiv({
-			cls: "dynamic-dashboard-footer",
-		});
 	}
 
 	/**
