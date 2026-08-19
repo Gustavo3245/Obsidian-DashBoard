@@ -285,6 +285,10 @@ export class StatProcessor {
 		);
 	}
 
+	/**
+	 * Recalculate and emit metrics derived from the current metadata cache
+	 * for Markdown files inside the selected range.
+	 */
 	async refreshMetadataMetrics(range: TimeRange) {
 		const appears = await this.calculator.getAppearsMetrics(range);
 

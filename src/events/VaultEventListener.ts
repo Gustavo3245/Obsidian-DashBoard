@@ -11,6 +11,7 @@ export class VaultEventListener {
 		private processor: StatProcessor
 	) { }
 
+	/** Debounce timer used to group consecutive metadata cache changes. */
 	private metadataChangedTimer: number | null = null;
 	/**
 	 * Registers the Obsidian workspace and Vault events used by the plugin.
@@ -23,6 +24,8 @@ export class VaultEventListener {
 	 * - create: adds metrics for a new Markdown file, attachment, or folder.
 	 * - delete: removes metrics for a deleted Markdown file, attachment, or folder.
 	 * - rename: moves a Markdown cache entry or reconciles the folder count.
+	 * - metadata deleted: refreshes metadata-derived metrics after a cached file is removed.
+	 * - metadata changed: debounces metadata-derived metric refreshes after indexing.
 	 *
 	 * Plugin.registerEvent ensures that Obsidian removes these listeners when
 	 * the plugin is unloaded.
@@ -80,7 +83,7 @@ export class VaultEventListener {
 		);
 
 		this.plugin.registerEvent(
-			this.plugin.app.metadataCache.on("deleted", (file: TFile, previousCache: CachedMetadata) => {
+			this.plugin.app.metadataCache.on("deleted", (file, previousCache) => {
 
 				Logger.event("Metadata.deleted", {
 					path: file.path,
@@ -101,7 +104,6 @@ export class VaultEventListener {
 				this.handleChangedMetadata(file);
 			})
 		)
-
 	}
 
 	/**
@@ -197,6 +199,10 @@ export class VaultEventListener {
 		}
 	}
 
+	/**
+	 * Handle renamed Vault entries by moving Markdown cache data to the new path
+	 * or reconciling the folder count after a folder rename.
+	 */
 	private async handleAbstractRenameFile(abstractFile: TAbstractFile, oldPath: string) {
 
 		if (abstractFile instanceof TFile) {
@@ -208,6 +214,10 @@ export class VaultEventListener {
 		}
 	}
 
+	/**
+	 * Refresh metadata-derived metrics after a Markdown file is removed from
+	 * Obsidian's metadata cache. Non-Markdown files do not affect these metrics.
+	 */
 	private async handleDeletedMetadata(file: TFile) {
 
 		if (file.extension !== "md") {
@@ -217,6 +227,10 @@ export class VaultEventListener {
 		await this.processor.refreshMetadataMetrics("all");
 	}
 
+	/**
+	 * Schedule a debounced refresh after Obsidian finishes indexing changed
+	 * Markdown metadata. Consecutive changes share one metrics recalculation.
+	 */
 	private async handleChangedMetadata(file: TFile) {
 
 		if (file.extension !== "md") {
