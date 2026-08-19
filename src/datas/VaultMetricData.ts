@@ -1,9 +1,6 @@
 import { VaultMetrics } from "models/VaultMetrics";
 import { DailyMetrics } from "models/DailyMetrics";
-import {
-	DashboardSettings,
-	DEFAULT_SETTINGS,
-} from "models/DashboardSettings";
+import {DashboardSettings, DEFAULT_SETTINGS} from "models/DashboardSettings";
 
 export interface StorageData {
     vaultMetrics: VaultMetrics;
@@ -26,7 +23,7 @@ export const DEFAULT_STORAGE_DATA: StorageData = {
 		estimates: {
 			estimatedReadingTime: "Nothing but Wind",
 			estimatedSpeakingTime: "Nothing but Wind",
-			dailyAverageWords: null
+			dailyAverageWords: 0
 		},
 		appears: {
 			mostAppearsTag: "Nothing but Wind",

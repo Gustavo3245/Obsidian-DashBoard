@@ -85,8 +85,7 @@ export class StatProcessor {
 		const previousOrphanCount = previousFileMetrics?.isOrphanFile ? 1 : 0;
 		const updatedOrphanCount = updatedFileMetrics.isOrphanFile ? 1 : 0;
 
-		const totalWords = Math.max(
-			0,
+		const totalWords = Math.max(0,
 			currentVolume.snapshot.totalWords + updatedFileMetrics.words - previousWords
 		);
 
@@ -125,6 +124,38 @@ export class StatProcessor {
 			...this.stateManager.getVaultMetricsState().volume,
 			volume: volumeMetrics
 		})
+	}
+
+	async estimatesLoad(range: TimeRange): Promise<void> {
+		const estimatesMetrics = await this.calculator.getEstimatesMetric(range);
+
+		this.stateManager.emitNewState({
+			estimates: estimatesMetrics
+		});
+	}
+
+	async appearsLoad(range: TimeRange): Promise<void> {
+		const appearsMetrics = await this.calculator.getAppearsMetrics(range);
+
+		this.stateManager.emitNewState({
+			appears: appearsMetrics
+		});
+	}
+
+	async streakLoad(range: TimeRange): Promise<void> {
+		const streakMetrics = await this.calculator.getStreakMetrics(range);
+
+		this.stateManager.emitNewState({
+			streak: streakMetrics
+		});
+	}
+
+	async storageValuesLoad(range: TimeRange): Promise<void> {
+		const storageValuesMetrics = await this.calculator.storageValuesMetrics(range);
+
+		this.stateManager.emitNewState({
+			storageValues: storageValuesMetrics
+		});
 	}
 
 	async processNewMarkdownFile(file: TFile) {
@@ -252,6 +283,18 @@ export class StatProcessor {
 			file.path,
 			await this.calculator.getFileMetrics(file)
 		);
+	}
+
+	/**
+	 * Recalculate and emit metrics derived from the current metadata cache
+	 * for Markdown files inside the selected range.
+	 */
+	async refreshMetadataMetrics(range: TimeRange) {
+		const appears = await this.calculator.getAppearsMetrics(range);
+
+		this.stateManager.emitNewState({
+			appears,
+		});
 	}
 
 	async vaultLoad(range: TimeRange) {

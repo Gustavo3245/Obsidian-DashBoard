@@ -9,8 +9,10 @@ export class VaultEventListener {
 	constructor(private plugin: DashboardPlugin,
 		private sessionService: SessionService,
 		private processor: StatProcessor
-	) {}
+	) { }
 
+	/** Debounce timer used to group consecutive metadata cache changes. */
+	private metadataChangedTimer: number | null = null;
 	/**
 	 * Registers the Obsidian workspace and Vault events used by the plugin.
 	 * Every event reports user activity to SessionService and delegates metric
@@ -22,6 +24,8 @@ export class VaultEventListener {
 	 * - create: adds metrics for a new Markdown file, attachment, or folder.
 	 * - delete: removes metrics for a deleted Markdown file, attachment, or folder.
 	 * - rename: moves a Markdown cache entry or reconciles the folder count.
+	 * - metadata deleted: refreshes metadata-derived metrics after a cached file is removed.
+	 * - metadata changed: debounces metadata-derived metric refreshes after indexing.
 	 *
 	 * Plugin.registerEvent ensures that Obsidian removes these listeners when
 	 * the plugin is unloaded.
@@ -40,7 +44,7 @@ export class VaultEventListener {
 				void this.handlePreviewAbsctractFile(AbstractFile, data);
 			})
 		)
-		
+
 		this.plugin.registerEvent(
 			this.plugin.app.vault.on('modify', (AbstractFile) => {
 				Logger.event("vault.modify", this.describeFile(AbstractFile));
@@ -74,15 +78,32 @@ export class VaultEventListener {
 				});
 
 				this.sessionService.pingActivity();
-
-				if (abstractFile instanceof TFile) {
-					void this.processor.processRenamedFile(abstractFile, oldPath);
-				} else if (abstractFile instanceof TFolder) {
-					this.processor.processFolders();
-				}
+				void this.handleAbstractRenameFile(abstractFile, oldPath);
 			})
 		);
 
+		this.plugin.registerEvent(
+			this.plugin.app.metadataCache.on("deleted", (file, previousCache) => {
+
+				Logger.event("Metadata.deleted", {
+					path: file.path,
+					hasPreviousCache: previousCache !== null
+				})
+
+				void this.handleDeletedMetadata(file);
+			})
+		);
+
+		this.plugin.registerEvent(
+			this.plugin.app.metadataCache.on("changed", (file) => {
+
+				Logger.event("MetadataChace.changed", {
+					path: file.path,
+				});
+
+				this.handleChangedMetadata(file);
+			})
+		)
 	}
 
 	/**
@@ -106,8 +127,37 @@ export class VaultEventListener {
 
 		this.plugin.registerDomEvent(window, "focus", () => {
 			Logger.event("activity.focus");
-			this.sessionService.pingActivity();
+			if (activeDocument.visibilityState === "hidden") {
+				return;
+			}
+			this.sessionService.resumeTracking();
 		});
+
+		this.plugin.registerDomEvent(
+			activeDocument,
+			"visibilitychange", () => {
+				if(activeDocument.visibilityState === "hidden" || !activeDocument.hasFocus()) {
+
+					Logger.event("Window.visibility", {
+						visibility: activeDocument.visibilityState
+					});
+					this.sessionService.pauseTracking();
+					return;
+				}
+
+				Logger.event("window.visibility", {
+					visibility: activeDocument.visibilityState
+				});
+				this.sessionService.resumeTracking();
+			}
+		)
+
+		this.plugin.registerDomEvent(
+			window, "blur", () => {
+				Logger.event("activity.blur");
+				this.sessionService.pauseTracking();
+			}
+		)
 	}
 
 	/**
@@ -118,7 +168,7 @@ export class VaultEventListener {
 	 */
 	private async handleAbstractFileModification(AbstractFile: TAbstractFile) {
 
-		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
+		if (AbstractFile instanceof TFile && AbstractFile.extension === 'md') {
 			await this.processor.updateSnapshotLoad(AbstractFile);
 		} else if (AbstractFile instanceof TFile) {
 			this.processor.processModifiedAttachment();
@@ -133,13 +183,13 @@ export class VaultEventListener {
 	 */
 	private async handleAbstractFileCreation(AbstractFile: TAbstractFile) {
 
-		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
+		if (AbstractFile instanceof TFile && AbstractFile.extension === 'md') {
 			await this.processor.processNewMarkdownFile(AbstractFile);
 		}
 
-		else if(AbstractFile instanceof TFolder) {
+		else if (AbstractFile instanceof TFolder) {
 			this.processor.processFolders();
-		} 
+		}
 
 		else if (AbstractFile instanceof TFile) {
 			this.processor.processNewAttachment(AbstractFile);
@@ -154,11 +204,11 @@ export class VaultEventListener {
 	 */
 	private async handleAbstractFileDeletion(AbstractFile: TAbstractFile) {
 
-		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
+		if (AbstractFile instanceof TFile && AbstractFile.extension === 'md') {
 			await this.processor.processDeletedMarkdownFile(AbstractFile);
 		}
 
-		else if(AbstractFile instanceof TFolder){
+		else if (AbstractFile instanceof TFolder) {
 			this.processor.processFolders();
 		}
 
@@ -173,10 +223,57 @@ export class VaultEventListener {
 	 * without replacing the confirmed metrics used for incremental deltas.
 	 */
 	private async handlePreviewAbsctractFile(AbstractFile: TAbstractFile, data: string) {
-		if(AbstractFile instanceof TFile && AbstractFile.extension === 'md'){
+		if (AbstractFile instanceof TFile && AbstractFile.extension === 'md') {
 			this.processor.updatePreviewMetrics(AbstractFile.path, data);
 		}
-		
+	}
+
+	/**
+	 * Handle renamed Vault entries by moving Markdown cache data to the new path
+	 * or reconciling the folder count after a folder rename.
+	 */
+	private async handleAbstractRenameFile(abstractFile: TAbstractFile, oldPath: string) {
+
+		if (abstractFile instanceof TFile) {
+			await this.processor.processRenamedFile(abstractFile, oldPath);
+		}
+
+		else if (abstractFile instanceof TFolder) {
+			this.processor.processFolders();
+		}
+	}
+
+	/**
+	 * Refresh metadata-derived metrics after a Markdown file is removed from
+	 * Obsidian's metadata cache. Non-Markdown files do not affect these metrics.
+	 */
+	private async handleDeletedMetadata(file: TFile) {
+
+		if (file.extension !== "md") {
+			return;
+		}
+
+		await this.processor.refreshMetadataMetrics("all");
+	}
+
+	/**
+	 * Schedule a debounced refresh after Obsidian finishes indexing changed
+	 * Markdown metadata. Consecutive changes share one metrics recalculation.
+	 */
+	private handleChangedMetadata(file: TFile): void {
+
+		if (file.extension !== "md") {
+			return;
+		}
+
+		if (this.metadataChangedTimer !== null) {
+			window.clearTimeout(this.metadataChangedTimer);
+		}
+
+		this.metadataChangedTimer = window.setTimeout(() => {
+			this.metadataChangedTimer = null;
+			void this.processor.appearsLoad("all");
+		}, 300);
 	}
 
 	/**

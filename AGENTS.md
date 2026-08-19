@@ -89,15 +89,15 @@ Ao carregar o plugin, `DashboardPlugin.onload()`:
 4. cria `VaultEventListener`;
 5. registra listeners;
 6. inicia o rastreamento de sessão;
-7. executa `statsProcessor.vaultLoad("all")`;
-8. registra a sessão diária e a atualização periódica do tempo ativo.
+7. registra a sessão diária atual;
+8. executa `statsProcessor.vaultLoad("all")` e inicia a atualização periódica do tempo ativo.
 
 `vaultLoad("all")`:
 
 1. calcula e armazena `FileMetrics` de cada Markdown no cache em memória;
 2. calcula em paralelo os grupos `volume`, `estimates`, `appears`, `streak` e `storageValues`;
 3. emite um novo `VaultMetrics`;
-4. a inicialização registra separadamente as métricas da sessão diária.
+4. como a sessão diária já foi registrada, os cálculos históricos incluem o dia atual.
 
 Essa varredura lê o conteúdo dos arquivos várias vezes. Trate alterações nessa etapa como sensíveis a desempenho, principalmente em Vaults grandes e dispositivos móveis.
 
@@ -137,6 +137,9 @@ As definições abaixo descrevem o código existente, não necessariamente a def
 - intervalo `today`: arquivos com `mtime` desde o início do dia;
 - intervalo `week`: últimos 7 dias contando hoje;
 - intervalo `month`: últimos 30 dias contando hoje;
+- intervalo `quarter`: últimos 90 dias contando hoje;
+- intervalo `semester`: últimos 180 dias contando hoje;
+- intervalo `year`: últimos 365 dias contando hoje;
 - intervalo `all`: todos os Markdown;
 - palavras, caracteres e sentenças usam `ContentAnalyzer`, tanto no snapshot quanto no cache e preview;
 - o frontmatter inicial é removido antes da análise;
@@ -147,8 +150,8 @@ As definições abaixo descrevem o código existente, não necessariamente a def
 - fala estimada: 130 palavras por minuto;
 - anexo: qualquer arquivo que não seja Markdown;
 - arquivo órfão: sem tags, links de saída e backlinks resolvidos;
-- pasta mais ativa: pasta com mais filhos diretos que sejam arquivos;
-- tamanho: soma de `file.stat.size` de todos os arquivos, em bytes;
+- pasta mais ativa: caminho da pasta com mais arquivos Markdown diretos dentro do intervalo solicitado;
+- `totalVaultSize`: soma de `file.stat.size` de todos os arquivos, armazenada e retornada em bytes; qualquer conversão para KB, MB ou GB pertence à camada de apresentação;
 - tempo ocioso pretendido: 5 minutos;
 - heartbeat da sessão: 10 segundos.
 
@@ -182,7 +185,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 - `esbuild.config.mjs`: bundle de `src/main.ts` para `main.js`.
 - `tsconfig.json`: configuração TypeScript, imports absolutos e verificações estritas.
 - `eslint.config.mts`: flat config do ESLint com regras `obsidianmd`.
-- `styles.css`: estilos globais do plugin; atualmente contém apenas um estilo de template.
+- `styles.css`: dimensões responsivas e estilos globais da view do dashboard.
 - `LICENSE`: licença 0-BSD.
 - `.editorconfig`: UTF-8, LF, newline final e tabs de largura 4.
 - `.npmrc`: remove o prefixo `v` das tags geradas pelo npm.
@@ -196,12 +199,20 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 - `src/main.ts`: classe `DashboardPlugin`, carregamento/gravação dos dados e bootstrap. Deve permanecer pequeno e focado no lifecycle.
 - `src/settings.ts`: aba de configuração do limite de inatividade.
+- `src/commands/DashboardCommands.ts`: registra comandos para abrir o dashboard nos painéis laterais esquerdo ou direito.
 - `src/commands/VaultCommands.ts`: registra o comando `refresh-vault-metrics`.
 
 ### Eventos e orquestração
 
 - `src/events/VaultEventListener.ts`: registra eventos do workspace/Vault e encaminha alterações ao processador.
-- `src/orchestrators/StatsProcessor.ts`: coordena carga inicial, snapshot, métricas diárias, preview e processamento de criação/exclusão. O nome exportado é singular: `StatProcessor`.
+- `src/orchestrators/StatsProcessor.ts`: coordena carga inicial, carregamento individual dos grupos de `VaultMetrics`, métricas diárias, preview e processamento de criação/exclusão. O nome exportado é singular: `StatProcessor`.
+
+### Views
+
+- `src/views/DashboardView.ts`: registra a view e o wireframe responsivo do dashboard, seus identificadores e a abertura em qualquer painel lateral; a aba pode ser movida pelo drag-and-drop nativo do Obsidian.
+- a view e seu contêiner de leaf ocupam toda a largura e altura concedidas pelo painel; a leaf tem altura mínima de 75% da referência de 380px (285px), permitindo redução máxima de 25%, e as linhas são distribuídas proporcionalmente sem barras internas.
+- o wireframe começa com 7 regiões; exibe 9 a partir de 360px de largura ou 500px de altura e 12 a partir de 560px de largura ou 680px de altura.
+- regiões liberadas exclusivamente pela altura reutilizam o tamanho das células do grid: dois cards no modo compacto e um terceiro no nível alto apenas quando houver largura para três colunas.
 
 ### Serviços e análise
 
@@ -222,6 +233,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 ### Modelos
 
+- `src/models/ActivityMetrics.ts`: contratos normalizados de métricas diárias datadas e períodos agregados de atividade.
 - `src/models/VaultMetrics.ts`: contrato agregado, dividido em `volume`, `estimates`, `appears`, `streak` e `storageValues`.
 - `src/models/DailyMetrics.ts`: totais e tempo de uma data.
 - `src/models/FileMetrics.ts`: métricas e identidade de um arquivo.
@@ -229,11 +241,11 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 - `src/models/StatusBarMetrics.ts`: contrato planejado para status bar; ainda não usado.
 - `src/models/value_objects/ReadingTime.ts`: horas, minutos, segundos e total em segundos.
 - `src/models/value_objects/TagType.ts`: nome e contagem de tag. O tipo atual se chama `tagType`.
-- `src/models/value_objects/TimeRange.ts`: intervalos predefinidos e `DateBounds`.
+- `src/models/value_objects/TimeRange.ts`: fonte única dos intervalos predefinidos, suas quantidades de dias, o tipo `TimeRange` e `DateBounds`.
 
 ### Recursos
 
-- `src/assets/icons/DashboardIcon.ts`: retorna SVG como string e ainda não está conectado ao plugin.
+- `src/assets/icons/DashboardIcon.ts`: retorna o SVG registrado para a view e para a ribbon do dashboard.
 - `src/assets/icons/DashboardLeftIcon.ts`: segundo SVG como string, também ainda não conectado.
 
 ## Estado conhecido e débitos técnicos
@@ -246,7 +258,7 @@ No estado atual, `npm run build` e `npm run lint` passam. Preserve esse baseline
 
 ### Lifecycle e composição
 
-- comandos e settings tab estão registrados, mas os ícones e o dashboard visual ainda não são usados;
+- comandos, settings tab, ícone e wireframe visual estão registrados; os cards ainda não exibem métricas;
 - timers e eventos possuem cleanup pelo lifecycle do plugin;
 - mudanças no limite de inatividade afetam a sessão atual sem exigir reload.
 
@@ -261,7 +273,7 @@ No estado atual, `npm run build` e `npm run lint` passam. Preserve esse baseline
 
 ### Cálculos
 
-- streak, maior streak, média diária e dias/semanas/meses mais ativos retornam `null`.
+- streak, maior streak, média diária e dias/semanas/meses mais ativos são calculados a partir do histórico diário persistido.
 - leituras repetidas de todos os arquivos tornam o bootstrap pesado.
 - grupos de métricas como tags, estimativas e pasta mais ativa são recalculados na carga completa, não incrementalmente em todos os eventos.
 

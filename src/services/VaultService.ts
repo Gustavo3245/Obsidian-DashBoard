@@ -1,9 +1,8 @@
-import { App, getAllTags, TFile, TFolder} from "obsidian";
+import { App, getAllTags, TFile} from "obsidian";
 import { tagType } from "models/value_objects/TagType";
 import { ReadingTime } from "models/value_objects/ReadingTime";
-import { TimeRange } from "models/value_objects/TimeRange";
-import { FileMetrics } from "models/FileMetrics";
-import { ContentAnalyzer } from "analyzer/ContentAnalyzer";
+import { RANGE_DAYS, TimeRange } from "models/value_objects/TimeRange";
+import { ContentAnalyzer, ContentMetrics } from "analyzer/ContentAnalyzer";
 import { MetadataAnalyzer } from "analyzer/MetadataAnalyzer";
 import { DailyMetrics } from "models/DailyMetrics";
 import { ActivityPeriod, DatedDailyMetrics } from "models/ActivityMetrics";
@@ -21,8 +20,11 @@ export class VaultService {
 	}
 
 	/**
-	 * Get Markdown files modified within a predefined time range.
-	 * The all range returns every Markdown file in the vault.
+	 * Get Markdown files modified during a predefined rolling range.
+	 * Bounded ranges start at the beginning of the oldest included local day,
+	 * end at the end of the current local day,
+	 * while the all range returns every Markdown file in the vault.
+	 * Range names and day counts are defined centrally by RANGE_DAYS.
 	 */
 	getFilesByRange(range: TimeRange): TFile[] {
 		const files = this.app.vault.getMarkdownFiles();
@@ -31,18 +33,15 @@ export class VaultService {
 
 		const now = new Date();
 		const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+		const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - 1;
 
-		const getThreshold = (): number => {
-			switch(range) {
-				case 'today': return startOfToday;
-				case 'week': return startOfToday - (6 * 24 * 60 * 60 * 1000);
-				case 'month': return startOfToday - (29 * 24 * 60 * 60 * 1000);
-				default: return 0;
-			}
-		}
-		
-		const threshold = getThreshold();
-		return files.filter(file => file.stat.mtime >= threshold);
+		const days = RANGE_DAYS[range];
+		const getThreshold = startOfToday - ((days - 1) * DAY_IN_MILLISECONDS);
+
+		return files.filter(file => {
+			const mtime = file.stat.mtime;
+			return mtime >= getThreshold && mtime <= endOfToday;
+		});
 	}
 
 	/**
@@ -82,6 +81,15 @@ export class VaultService {
 	}
 
 	/**
+	 * get the current vault TotalSentences count (this function declares that a sentence
+	 * is considered text separated by a line break);
+	 * */
+	async getTotalSentences(files: TFile[]): Promise<number> {
+		const metrics = await this.getContentMetrics(files);
+		return metrics.reduce((total, current) => total + current.sentences, 0);
+	}
+
+	/**
 	 * Return a type tag with the name and count of the most used tag.
 	 * this calculation uses all tag appearances in the entire vault (content and FrontMatter).
 	 */
@@ -112,19 +120,15 @@ export class VaultService {
 	}
 
 	/**
-	 * Get the Estimated Reading Time based in medium per word readtime
-	 * using a Array range of Tfiles[]. This function uses the number 200 for
-	 * the medium Per minute readtime.
+	 * Calculate an estimated duration from a total word count
+	 * and a positive words-per-minute rate.
 	 */
-	async getVaultEstimateReadingTime(files: TFile[]): Promise<ReadingTime | string> {
-		const totalWords = await this.getTotalWords(files);
-		const WORD_PER_MINUTE_READTIME = 200;
-
-		if(totalWords == null || !totalWords){
-			return "Nothing But Wind";
+	estimateTime(totalWords: number, wordsPerMinute: number): ReadingTime | string {
+		if(totalWords <= 0) {
+			return "Nothing but Wind";
 		}
-		
-		const totalSeconds = Math.floor((totalWords / WORD_PER_MINUTE_READTIME) * 60);
+
+		const totalSeconds = Math.floor((totalWords / wordsPerMinute) * 60);
 
 		const hours = Math.floor(totalSeconds / 3600);
 		const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -139,19 +143,35 @@ export class VaultService {
 	}
 
 	/**
-	 * Get the current last modified MarkDown file in the vault.
-	 * Typically, the last modified file is the active one at the moment.
+	 * Get the estimated reading time for a total word count using 200 words per minute.
 	 */
-	getLastModifiedMarkDownFile(): TFile | string { 
-		const files = this.app.vault.getMarkdownFiles();
+	getEstimatedReadingTime(totalWords: number): ReadingTime | string {
+		const WORDS_PER_MINUTE_READING = 200;
+		return this.estimateTime(totalWords, WORDS_PER_MINUTE_READING);
+	}
 
+	/**
+	 * Get the estimated speaking time for a total word count using 130 words per minute.
+	 */
+	getEstimatedSpeakingTime(totalWords: number): ReadingTime | string {
+		const WORDS_PER_MINUTE_SPEAKING = 130;
+		return this.estimateTime(totalWords, WORDS_PER_MINUTE_SPEAKING);
+	}
+
+	/**
+	 * Get the path of the last modified Markdown file in the supplied range.
+	 * A serializable fallback message is returned when the range has no files.
+	 */
+	getLastModifiedMarkDownFile(files: TFile[]): string {
+		
 		if(files.length === 0){
 			return "Nothing But Wind";
 		}
-		
-		return files.reduce((previous, current) => 
+
+		const lastModifiedFile = files.reduce((previous, current) =>
 			(current.stat.mtime > previous.stat.mtime) ? current : previous);
 
+		return lastModifiedFile.path;
 	}
 
 	/**
@@ -207,16 +227,26 @@ export class VaultService {
 	}
 
 	/**
-	 * Get the paths of the files most recently opened in the workspace.
-	 * This function returns a fallback message when no file was opened.
+	 * Get recently opened paths that belong to the supplied Markdown file range.
+	 * This function returns a fallback message when no matching file exists.
 	 */
-	getActiveMarkDownFiles(): string[] | string {
-		const files = this.app.workspace.getLastOpenFiles();
+	getActiveMarkDownFiles(files: TFile[]): string[] | string {
 
-		if(files.length == 0) {
+		const relevantPaths = new Set(files.map((file) => file.path));
+		
+		const markdownFilePaths = this.app.workspace.getLastOpenFiles()
+			.filter((path) => {
+				const file = this.app.vault.getAbstractFileByPath(path);
+				
+				return file instanceof TFile
+					&& file.extension === "md" && relevantPaths.has(path);
+			});
+
+		if(markdownFilePaths.length === 0) {
 			return "Nothing but Wind";
 		}
-		return files;
+
+		return markdownFilePaths;
 	}
 
 	/**
@@ -239,7 +269,7 @@ export class VaultService {
 	 * get the current average file length inside the files range,
 	 * the average file length is based in the (vault.files.length - vault.totalFiles).
 	 */
-	async getAverageWordsPerFile(files: TFile[]): Promise<number>{
+	async getAverageWordsPerFile(files: TFile[]): Promise<number> {
 
 		if(files.length === 0){
 			return 0;
@@ -275,8 +305,8 @@ export class VaultService {
 	}
 
 	/**
-	 * get the total size (in MegaBytes) inside the vault.
-	 * this function returns a double number represent the actual vault size.
+	 * Get the total size in bytes of the supplied files or the complete vault.
+	 * File sizes come directly from TFile.stat.size.
 	*/
 	getTotalVaultSize(files: TFile[] = this.app.vault.getFiles()): number {
 
@@ -286,41 +316,6 @@ export class VaultService {
 		
 		const totalSizeBytes = files.reduce((total, file) => total + file.stat.size, 0);
 		return Number(totalSizeBytes.toFixed(2));
-	}
-
-	/**
-	 * get the current estimated Speaking Time (for files, folders and complete Vault).
-	*/
-	async getEstimatedSpeakingTime(files: TFile[]): Promise<ReadingTime | string> {
-		const totalWords = await this.getTotalWords(files);
-		const WORDS_PER_MINUTE_SPEAKTIME = 130;
-
-		if(!totalWords || totalWords <= 0){
-			return "Nothing But Wind";
-		}
-		
-		const totalSeconds = Math.floor((totalWords / WORDS_PER_MINUTE_SPEAKTIME) * 60);
-
-		const hours = Math.floor(totalSeconds / 3600);
-		const minutes = Math.floor((totalSeconds % 3600) / 60);
-		const seconds = totalSeconds % 60;
-
-		return {
-			hours,
-			minutes,
-			seconds,
-			totalSeconds
-		};
-
-	}
-
-	/**
-	 * get the current vault TotalSentences count (this function declares that a sentence
-	 * is considered text separated by a line break);
-	 * */
-	async getTotalSentences(files: TFile[]): Promise<number> {
-		const metrics = await this.getContentMetrics(files);
-		return metrics.reduce((total, current) => total + current.sentences, 0);
 	}
 
 	/**
@@ -338,6 +333,14 @@ export class VaultService {
 	}
 
 	/**
+	 * Read one Markdown file and return only its analyzed content values.
+	 */
+	async getFileContentMetrics(file: TFile): Promise<ContentMetrics> {
+		const content = await this.app.vault.cachedRead(file);
+		return ContentAnalyzer.analyze(content);
+	}
+
+	/**
 	 * Check whether a Markdown file has no tags, outgoing links or backlinks.
 	 */
 	isOrphanFile(file: TFile): boolean {
@@ -345,53 +348,26 @@ export class VaultService {
 	}
 
 	/**
-	 * Get content, reading time, orphan state and file information for one file.
-	 * The file content is read from the Obsidian Vault cache.
+	 * Get the folder with the greatest number of direct files in the supplied range.
+	 * This function returns a fallback message when no ranged file belongs to a folder.
 	 */
-	async getFilesMetrics(file: TFile): Promise<FileMetrics> {
-		const content = await this.app.vault.cachedRead(file);
-		const { words, sentences, characters } = ContentAnalyzer.analyze(content);
-		const isOrphan = this.isOrphanFile(file);
+	mostActiveFolder(files: TFile[]): string {
+		const folderCounts = new Map<string, number>();
 
-		const readingTime = await this.getVaultEstimateReadingTime([file]);
+		for (const file of files) {
+			const folder = file.parent;
 
-		return {
-			characters,
-			words,
-			sentences,
-			readingTime,
-			isOrphanFile: isOrphan,
-			name: file.name,
-			path: file.path,
-			fileSize: file.stat.size
-		}
-	}
-
-	/**
-	 * Get the name of the folder with the greatest number of direct file children.
-	 * This function returns a fallback message when the vault has no folders.
-	 */
-	mostActiveFolder(): string {
-		const tfolders: TFolder[] = this.app.vault.getAllFolders(false);
-		const [firstFolder] = tfolders;
-
-		if (!firstFolder) {
-			return "Nothing but Wind";
-		}
-
-		let mostActiveFolder = firstFolder;
-		let maxFileCount = -1; 
-
-		for (const folder of tfolders) {
-			const fileCount = folder.children.filter(child => child instanceof TFile).length;
-
-			if (fileCount > maxFileCount) {
-				maxFileCount = fileCount;
-				mostActiveFolder = folder;
+			if (folder?.isRoot() !== false) {
+				continue;
 			}
+
+			folderCounts.set(folder.path, (folderCounts.get(folder.path) ?? 0) + 1);
 		}
 
-		return mostActiveFolder.name;
+		const mostActiveFolder = [...folderCounts.entries()]
+			.sort((first, second) => second[1] - first[1] || first[0].localeCompare(second[0]))[0];
+
+		return mostActiveFolder?.[0] ?? "Nothing but Wind";
 	}
 
 	/**
@@ -481,6 +457,24 @@ export class VaultService {
 				&& this.hasDailyActivity(dailyMetrics.metrics)
 			)
 			.sort((first, second) => first.date - second.date);
+	}
+
+	/**
+	 * Get the average word count across active days in the selected history.
+	 * Empty histories return zero.
+	 */
+	calculateDailyAverageWords(dailyMetrics: DatedDailyMetrics[]): number {
+		
+		if (dailyMetrics.length === 0) {
+			return 0;
+		}
+
+		const totalWords = dailyMetrics.reduce(
+			(total, dailyMetric) => total + dailyMetric.metrics.words,
+			0
+		);
+
+		return totalWords / dailyMetrics.length;
 	}
 
 	/**
@@ -633,16 +627,11 @@ export class VaultService {
 	 * Get the oldest accepted date for the selected predefined time range.
 	 */
 	private getMinimumDateForRange(range: TimeRange, today: number): number {
-		switch (range) {
-			case "today":
-				return today;
-			case "week":
-				return today - (6 * DAY_IN_MILLISECONDS);
-			case "month":
-				return today - (29 * DAY_IN_MILLISECONDS);
-			case "all":
-				return Number.NEGATIVE_INFINITY;
+		if (range === "all") {
+			return Number.NEGATIVE_INFINITY;
 		}
+
+		return today - ((RANGE_DAYS[range] - 1) * DAY_IN_MILLISECONDS);
 	}
 
 	/**
@@ -685,10 +674,8 @@ export class VaultService {
 	 * Read the supplied files once and analyze the content of each file.
 	 */
 	private async getContentMetrics(files: TFile[]) {
-		const contents = await Promise.all(
-			files.map((file) => this.app.vault.cachedRead(file))
+		return Promise.all(
+			files.map((file) => this.getFileContentMetrics(file))
 		);
-
-		return contents.map((content) => ContentAnalyzer.analyze(content));
 	}
 }

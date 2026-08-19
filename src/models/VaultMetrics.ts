@@ -1,4 +1,3 @@
-import { TFile, TFolder } from "obsidian";
 import { ReadingTime } from "./value_objects/ReadingTime";
 import { tagType } from "./value_objects/TagType";
 
@@ -16,14 +15,14 @@ export interface VaultMetrics {
 		totalFolders: number; // Done
 		totalAttachments: number; // Done
 		totalOrphansFiles: number; // Done
-		totalVaultSize: number; // Done
+		totalVaultSize: number; // Total size in bytes.
 		averageWordsPerFile: number; //Done
 	}
 	// Measurements related to estimates and time.
 	estimates: {
 		estimatedReadingTime: ReadingTime | string; // Done
 		estimatedSpeakingTime: ReadingTime | string; // Done
-		dailyAverageWords: null | undefined;
+		dailyAverageWords: number;
 	}
 	// appearances
 	appears: {
@@ -31,8 +30,8 @@ export interface VaultMetrics {
 		mostAppearsTagInFrontMatter: tagType | string; // Done
 		minorAppearsTag: tagType | string; // Done
 		totalUniqueTags: number; // Done
-		mostActiveFolder: TFolder | string;
-		lastModifiedFile: TFile | string; // Done
+		mostActiveFolder: string;
+		lastModifiedFile: string; // Done
 		lastModifiedFiles: string[] | string; // Done
 	}
 	// streak
