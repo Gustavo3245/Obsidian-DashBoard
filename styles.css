@@ -72,10 +72,6 @@
 	overflow: hidden;
 }
 
-.dynamic-dashboard-height-group--large {
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
 .dynamic-dashboard-card--square {
 	width: 100%;
 	height: 100%;
@@ -332,11 +328,10 @@
 
 .dynamic-recent-activity-item {
 	display: flex;
-	flex: 1 1 0;
+	flex: 0 0 clamp(20px, 3.5cqh, 28px);
 	align-items: center;
 	gap: 6px;
 	min-width: 0;
-	min-height: 18px;
 }
 
 .dynamic-recent-activity-icon {
@@ -384,7 +379,6 @@
 @container dynamic-dashboard (max-width: 220px) {
 	.dynamic-dashboard-layout {
 		gap: 6px;
-		padding: 2px;
 	}
 
 	.dynamic-dashboard-height-group {
@@ -396,7 +390,6 @@
 	.dynamic-dashboard-layout {
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 10px;
-		padding: 2px;
 	}
 
 	.dynamic-dashboard-card--medium {
@@ -405,10 +398,6 @@
 
 	.dynamic-dashboard-card--recent-activity {
 		display: flex;
-	}
-
-	.dynamic-dashboard-height-group {
-		gap: 10px;
 	}
 
 	.dynamic-dashboard-height-group--large {

@@ -2,7 +2,6 @@ import { TFile } from "obsidian";
 
 export interface DashboardFileTypeMetric {
 	type: "markdown" | "canvas" | "other";
-	count: number;
 	percentage: number;
 }
 
@@ -36,14 +35,13 @@ export function getDashboardFileTypes(files: TFile[]): DashboardFileTypeMetric[]
 	return (Object.entries(counts) as Array<[DashboardFileTypeMetric["type"], number]>)
 		.map(([type, count]) => ({
 			type,
-			count,
 			percentage: totalFiles > 0 ? (count / totalFiles) * 100 : 0,
 		}));
 }
 
 export function getDashboardRecentActivities(
 	files: TFile[],
-	limit = 50
+	limit = 10
 ): DashboardRecentActivity[] {
 	const activities: DashboardRecentActivity[] = [];
 

@@ -1,6 +1,5 @@
 import { ItemView, setIcon, Side, Workspace, WorkspaceLeaf } from "obsidian";
 import { StateManager } from "state/StateManager";
-import type { DashboardRecentActivity } from "views/DashboardViewData";
 import {
 	getDashboardFileTypes,
 	getDashboardRecentActivities,
@@ -21,15 +20,6 @@ type DashboardCardModifier =
 	| "file-types"
 	| "recent-activity";
 
-interface DashboardHeightGroup {
-	size: "medium" | "large";
-	cardCount: number;
-	conditionalCard?: {
-		index: number;
-		modifier: DashboardCardModifier;
-	};
-}
-
 const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["summary"],
 	["summary"],
@@ -44,15 +34,6 @@ const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["wide", "streak"],
 ];
 
-const DASHBOARD_HEIGHT_GROUPS: readonly DashboardHeightGroup[] = [
-	{ size: "medium", cardCount: 2 },
-	{
-		size: "large",
-		cardCount: 3,
-		conditionalCard: { index: 2, modifier: "square-third" },
-	},
-];
-
 const FILE_TYPE_COLORS = ["#8b5cf6", "#3b82f6", "#eab308"] as const;
 const FILE_TYPE_LABELS = {
 	markdown: "Markdown",
@@ -65,11 +46,8 @@ export class DashboardView extends ItemView {
 	private fileTypesCard: HTMLElement | null = null;
 	private recentActivityCard: HTMLElement | null = null;
 	private streakResizeObserver: ResizeObserver | null = null;
-	private recentActivityResizeObserver: ResizeObserver | null = null;
 	private unsubscribeState: (() => void) | null = null;
-	private presentationRefreshTimer: number | null = null;
-	private fileTypesDirty = false;
-	private recentActivities: DashboardRecentActivity[] = [];
+	private recentActivityRefreshTimer: number | null = null;
 
 	constructor(leaf: WorkspaceLeaf, private stateManager: StateManager) {
 		super(leaf);
@@ -97,11 +75,15 @@ export class DashboardView extends ItemView {
 			() => this.renderWritingStreak()
 		);
 		this.registerPresentationEvents();
-		this.observeWritingStreak();
-		this.observeRecentActivity();
+		if (this.streakCard) {
+			this.streakResizeObserver = new ResizeObserver(
+				() => this.renderWritingStreak()
+			);
+			this.streakResizeObserver.observe(this.streakCard);
+		}
 		this.renderWritingStreak();
 		this.renderFileTypes();
-		this.refreshRecentActivities();
+		this.renderRecentActivity();
 	}
 
 	protected async onClose(): Promise<void> {
@@ -109,14 +91,10 @@ export class DashboardView extends ItemView {
 		this.unsubscribeState = null;
 		this.streakResizeObserver?.disconnect();
 		this.streakResizeObserver = null;
-		this.recentActivityResizeObserver?.disconnect();
-		this.recentActivityResizeObserver = null;
-		if (this.presentationRefreshTimer !== null) {
-			window.clearTimeout(this.presentationRefreshTimer);
-			this.presentationRefreshTimer = null;
+		if (this.recentActivityRefreshTimer !== null) {
+			window.clearTimeout(this.recentActivityRefreshTimer);
+			this.recentActivityRefreshTimer = null;
 		}
-		this.fileTypesDirty = false;
-		this.recentActivities = [];
 		this.streakCard = null;
 		this.fileTypesCard = null;
 		this.recentActivityCard = null;
@@ -148,8 +126,13 @@ export class DashboardView extends ItemView {
 			}
 		}
 
-		for (const group of DASHBOARD_HEIGHT_GROUPS) {
-			this.createHeightGroup(dashboard, group);
+		for (const [size, cardCount] of [["medium", 2], ["large", 3]] as const) {
+			const group = dashboard.createDiv({
+				cls: `dynamic-dashboard-height-group dynamic-dashboard-height-group--${size}`,
+			});
+			for (let index = 0; index < cardCount; index++) {
+				this.createCard(group, index === 2 ? ["square", "square-third"] : ["square"]);
+			}
 		}
 	}
 
@@ -169,64 +152,34 @@ export class DashboardView extends ItemView {
 		});
 	}
 
-	private observeWritingStreak(): void {
-		if (!this.streakCard) {
-			return;
-		}
-
-		this.streakResizeObserver = new ResizeObserver(
-			() => this.renderWritingStreak()
-		);
-		this.streakResizeObserver.observe(this.streakCard);
-	}
-
-	private observeRecentActivity(): void {
-		if (!this.recentActivityCard) {
-			return;
-		}
-
-		this.recentActivityResizeObserver = new ResizeObserver(
-			() => this.renderRecentActivity()
-		);
-		this.recentActivityResizeObserver.observe(this.recentActivityCard);
-	}
-
 	private registerPresentationEvents(): void {
+		const refreshFiles = () => {
+			this.renderFileTypes();
+			this.scheduleRecentActivityRefresh();
+		};
 		this.registerEvent(
-			this.app.vault.on("create", () => this.schedulePresentationRefresh(true))
+			this.app.vault.on("create", refreshFiles)
 		);
 		this.registerEvent(
-			this.app.vault.on("delete", () => this.schedulePresentationRefresh(true))
+			this.app.vault.on("delete", refreshFiles)
 		);
 		this.registerEvent(
-			this.app.vault.on("rename", () => this.schedulePresentationRefresh(true))
+			this.app.vault.on("rename", refreshFiles)
 		);
 		this.registerEvent(
-			this.app.vault.on("modify", () => this.schedulePresentationRefresh())
+			this.app.vault.on("modify", () => this.scheduleRecentActivityRefresh())
 		);
 	}
 
-	private schedulePresentationRefresh(refreshFileTypes = false): void {
-		this.fileTypesDirty ||= refreshFileTypes;
-		if (this.presentationRefreshTimer !== null) {
-			window.clearTimeout(this.presentationRefreshTimer);
+	private scheduleRecentActivityRefresh(): void {
+		if (this.recentActivityRefreshTimer !== null) {
+			window.clearTimeout(this.recentActivityRefreshTimer);
 		}
 
-		this.presentationRefreshTimer = window.setTimeout(() => {
-			this.presentationRefreshTimer = null;
-			if (this.fileTypesDirty) {
-				this.fileTypesDirty = false;
-				this.renderFileTypes();
-			}
-			this.refreshRecentActivities();
+		this.recentActivityRefreshTimer = window.setTimeout(() => {
+			this.recentActivityRefreshTimer = null;
+			this.renderRecentActivity();
 		}, 150);
-	}
-
-	private refreshRecentActivities(): void {
-		this.recentActivities = getDashboardRecentActivities(
-			this.app.vault.getMarkdownFiles()
-		);
-		this.renderRecentActivity();
 	}
 
 	private renderRecentActivity(): void {
@@ -234,10 +187,7 @@ export class DashboardView extends ItemView {
 			return;
 		}
 
-		const visibleCount = Math.max(
-			1,
-			Math.min(10, Math.floor((this.recentActivityCard.clientHeight - 26) / 24))
-		);
+		const activities = getDashboardRecentActivities(this.app.vault.getMarkdownFiles());
 
 		this.recentActivityCard.empty();
 		this.recentActivityCard.createDiv({
@@ -248,7 +198,7 @@ export class DashboardView extends ItemView {
 			cls: "dynamic-recent-activity-list",
 		});
 
-		for (const activity of this.recentActivities.slice(0, visibleCount)) {
+		for (const activity of activities) {
 			const item = list.createDiv({
 				cls: `dynamic-recent-activity-item dynamic-recent-activity-item--${activity.type}`,
 			});
@@ -274,7 +224,7 @@ export class DashboardView extends ItemView {
 			});
 		}
 
-		if (this.recentActivities.length === 0) {
+		if (activities.length === 0) {
 			list.createDiv({
 				cls: "dynamic-recent-activity-empty",
 				text: "No recent activity",
@@ -308,7 +258,7 @@ export class DashboardView extends ItemView {
 		}
 
 		const visibleMetrics = getDashboardFileTypes(this.app.vault.getFiles());
-		const hasFiles = visibleMetrics.some((metric) => metric.count > 0);
+		const hasFiles = visibleMetrics.some((metric) => metric.percentage > 0);
 		let accumulatedPercentage = 0;
 		const gradientStops = visibleMetrics.map((metric, index) => {
 			const color = FILE_TYPE_COLORS[index] ?? FILE_TYPE_COLORS.at(-1)!;
@@ -511,27 +461,6 @@ export class DashboardView extends ItemView {
 		return `${year}-${month}-${day}`;
 	}
 
-	/**
-	 * Create a responsive group containing a configurable number of square cards.
-	 */
-	private createHeightGroup(
-		parent: HTMLElement,
-		config: DashboardHeightGroup
-	): void {
-		const group = parent.createDiv({
-			cls: `dynamic-dashboard-height-group dynamic-dashboard-height-group--${config.size}`,
-		});
-
-		for (let index = 0; index < config.cardCount; index++) {
-			const modifiers: DashboardCardModifier[] = ["square"];
-
-			if (index === config.conditionalCard?.index) {
-				modifiers.push(config.conditionalCard.modifier);
-			}
-
-			this.createCard(group, modifiers);
-		}
-	}
 }
 
 export async function openDashboardView(
