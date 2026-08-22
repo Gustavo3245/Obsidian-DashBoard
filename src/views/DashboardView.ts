@@ -1,5 +1,9 @@
-import { ItemView, Side, Workspace, WorkspaceLeaf } from "obsidian";
+import { ItemView, setIcon, Side, Workspace, WorkspaceLeaf } from "obsidian";
 import { StateManager } from "state/StateManager";
+import {
+	getDashboardFileTypes,
+	getDashboardRecentActivities,
+} from "views/DashboardViewData";
 
 export const DASHBOARD_VIEW_TYPE = "dynamic-dashboard-view";
 export const DASHBOARD_ICON_ID = "dynamic-dashboard";
@@ -13,7 +17,8 @@ type DashboardCardModifier =
 	| "large"
 	| "square"
 	| "square-third"
-	| "file-types";
+	| "file-types"
+	| "recent-activity";
 
 interface DashboardHeightGroup {
 	size: "medium" | "large";
@@ -33,7 +38,7 @@ const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["wide", "large"],
 	["detail", "file-types"],
 	["detail"],
-	["detail", "medium"],
+	["detail", "medium", "recent-activity"],
 	["detail", "large"],
 	["wide", "streak"],
 ];
@@ -50,8 +55,11 @@ const DASHBOARD_HEIGHT_GROUPS: readonly DashboardHeightGroup[] = [
 export class DashboardView extends ItemView {
 	private streakCard: HTMLElement | null = null;
 	private fileTypesCard: HTMLElement | null = null;
+	private recentActivityCard: HTMLElement | null = null;
 	private streakResizeObserver: ResizeObserver | null = null;
+	private recentActivityResizeObserver: ResizeObserver | null = null;
 	private unsubscribeState: (() => void) | null = null;
+	private presentationRefreshTimer: number | null = null;
 
 	constructor(leaf: WorkspaceLeaf, private stateManager: StateManager) {
 		super(leaf);
@@ -75,13 +83,15 @@ export class DashboardView extends ItemView {
 		this.containerEl.addClass("dynamic-dashboard-container");
 		this.contentEl.addClass("dynamic-dashboard-view");
 		this.renderLayout();
-		this.unsubscribeState = this.stateManager.subscribe(() => {
-			this.renderWritingStreak();
-			this.renderFileTypes();
-		});
+		this.unsubscribeState = this.stateManager.subscribe(
+			() => this.renderWritingStreak()
+		);
+		this.registerPresentationEvents();
 		this.observeWritingStreak();
+		this.observeRecentActivity();
 		this.renderWritingStreak();
 		this.renderFileTypes();
+		this.renderRecentActivity();
 	}
 
 	protected async onClose(): Promise<void> {
@@ -89,8 +99,15 @@ export class DashboardView extends ItemView {
 		this.unsubscribeState = null;
 		this.streakResizeObserver?.disconnect();
 		this.streakResizeObserver = null;
+		this.recentActivityResizeObserver?.disconnect();
+		this.recentActivityResizeObserver = null;
+		if (this.presentationRefreshTimer !== null) {
+			window.clearTimeout(this.presentationRefreshTimer);
+			this.presentationRefreshTimer = null;
+		}
 		this.streakCard = null;
 		this.fileTypesCard = null;
+		this.recentActivityCard = null;
 		this.containerEl.removeClass("dynamic-dashboard-container");
 		this.contentEl.removeClass("dynamic-dashboard-view");
 		this.contentEl.empty();
@@ -112,6 +129,10 @@ export class DashboardView extends ItemView {
 
 			if (modifiers.includes("file-types")) {
 				this.fileTypesCard = card;
+			}
+
+			if (modifiers.includes("recent-activity")) {
+				this.recentActivityCard = card;
 			}
 		}
 
@@ -147,31 +168,127 @@ export class DashboardView extends ItemView {
 		this.streakResizeObserver.observe(this.streakCard);
 	}
 
+	private observeRecentActivity(): void {
+		if (!this.recentActivityCard) {
+			return;
+		}
+
+		this.recentActivityResizeObserver = new ResizeObserver(
+			() => this.renderRecentActivity()
+		);
+		this.recentActivityResizeObserver.observe(this.recentActivityCard);
+	}
+
+	private registerPresentationEvents(): void {
+		this.registerEvent(
+			this.app.vault.on("create", () => this.schedulePresentationRefresh())
+		);
+		this.registerEvent(
+			this.app.vault.on("delete", () => this.schedulePresentationRefresh())
+		);
+		this.registerEvent(
+			this.app.vault.on("rename", () => this.schedulePresentationRefresh())
+		);
+		this.registerEvent(
+			this.app.vault.on("modify", () => this.schedulePresentationRefresh())
+		);
+	}
+
+	private schedulePresentationRefresh(): void {
+		if (this.presentationRefreshTimer !== null) {
+			window.clearTimeout(this.presentationRefreshTimer);
+		}
+
+		this.presentationRefreshTimer = window.setTimeout(() => {
+			this.presentationRefreshTimer = null;
+			this.renderFileTypes();
+			this.renderRecentActivity();
+		}, 150);
+	}
+
+	private renderRecentActivity(): void {
+		if (!this.recentActivityCard) {
+			return;
+		}
+
+		const activities = getDashboardRecentActivities(
+			this.app.vault.getMarkdownFiles()
+		);
+		const visibleCount = Math.max(
+			1,
+			Math.min(10, Math.floor((this.recentActivityCard.clientHeight - 26) / 24))
+		);
+
+		this.recentActivityCard.empty();
+		this.recentActivityCard.createDiv({
+			cls: "dynamic-recent-activity-title",
+			text: "Recent activity",
+		});
+		const list = this.recentActivityCard.createDiv({
+			cls: "dynamic-recent-activity-list",
+		});
+
+		for (const activity of activities.slice(0, visibleCount)) {
+			const item = list.createDiv({
+				cls: `dynamic-recent-activity-item dynamic-recent-activity-item--${activity.type}`,
+			});
+			item.setAttribute(
+				"aria-label",
+				`${activity.name}: note ${activity.type}, ${this.formatRelativeTime(activity.timestamp)}`
+			);
+			item.setAttribute("title", activity.path);
+			const icon = item.createSpan({
+				cls: "dynamic-recent-activity-icon",
+			});
+			setIcon(icon, activity.type === "created" ? "file-plus-2" : "file-pen-line");
+			const content = item.createDiv({
+				cls: "dynamic-recent-activity-content",
+			});
+			content.createDiv({
+				cls: "dynamic-recent-activity-label",
+				text: activity.type === "created" ? "Note created" : "Note edited",
+			});
+			content.createDiv({
+				cls: "dynamic-recent-activity-time",
+				text: this.formatRelativeTime(activity.timestamp),
+			});
+		}
+
+		if (activities.length === 0) {
+			list.createDiv({
+				cls: "dynamic-recent-activity-empty",
+				text: "No recent activity",
+			});
+		}
+	}
+
+	private formatRelativeTime(timestamp: number): string {
+		const elapsedMinutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60_000));
+
+		if (elapsedMinutes < 1) {
+			return "just now";
+		}
+
+		if (elapsedMinutes < 60) {
+			return `${elapsedMinutes}m ago`;
+		}
+
+		const elapsedHours = Math.floor(elapsedMinutes / 60);
+		if (elapsedHours < 24) {
+			return `${elapsedHours}h ago`;
+		}
+
+		const elapsedDays = Math.floor(elapsedHours / 24);
+		return `${elapsedDays}d ago`;
+	}
+
 	private renderFileTypes(): void {
 		if (!this.fileTypesCard) {
 			return;
 		}
 
-		const storedMetrics = this.stateManager.getVaultMetricsState().volume.fileTypes;
-		const primaryTypes = ["markdown", "canvas"];
-		const totalFiles = storedMetrics.reduce((total, metric) => total + metric.count, 0);
-		const visibleMetrics = primaryTypes.map((type) => ({
-			type,
-			count: storedMetrics.find((metric) => metric.type === type)?.count ?? 0,
-			percentage: 0,
-		}));
-		visibleMetrics.push({
-			type: "other",
-			count: storedMetrics
-				.filter((metric) => !primaryTypes.includes(metric.type))
-				.reduce((total, metric) => total + metric.count, 0),
-			percentage: 0,
-		});
-
-		for (const metric of visibleMetrics) {
-			metric.percentage = totalFiles > 0 ? (metric.count / totalFiles) * 100 : 0;
-		}
-
+		const visibleMetrics = getDashboardFileTypes(this.app.vault.getFiles());
+		const totalFiles = visibleMetrics.reduce((total, metric) => total + metric.count, 0);
 		const colors = ["#8b5cf6", "#3b82f6", "#eab308"];
 		let accumulatedPercentage = 0;
 		const gradientStops = visibleMetrics.map((metric, index) => {

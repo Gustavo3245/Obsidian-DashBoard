@@ -18,8 +18,7 @@ export const DEFAULT_STORAGE_DATA: StorageData = {
             totalAttachments: 0,
             totalOrphansFiles: 0,
             totalVaultSize: 0,
-            averageWordsPerFile: 0,
-			fileTypes: []
+            averageWordsPerFile: 0
         },
 		estimates: {
 			estimatedReadingTime: "Nothing but Wind",
