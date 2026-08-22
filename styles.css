@@ -1,9 +1,7 @@
 .dynamic-dashboard-container,
 .dynamic-dashboard-view {
 	--dynamic-dashboard-default-height: 400px;
-	--dynamic-dashboard-min-height: calc(
-		var(--dynamic-dashboard-default-height) * 1.0
-	);
+	--dynamic-dashboard-min-height: var(--dynamic-dashboard-default-height);
 }
 
 .dynamic-dashboard-container {
@@ -307,10 +305,6 @@
 	flex: 0 0 auto;
 	color: var(--dynamic-file-type-color);
 	font-weight: var(--font-semibold);
-}
-
-.dynamic-file-types-empty {
-	color: var(--text-faint);
 }
 
 .dynamic-dashboard-card--recent-activity {

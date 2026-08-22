@@ -1,5 +1,6 @@
 import { ItemView, setIcon, Side, Workspace, WorkspaceLeaf } from "obsidian";
 import { StateManager } from "state/StateManager";
+import type { DashboardRecentActivity } from "views/DashboardViewData";
 import {
 	getDashboardFileTypes,
 	getDashboardRecentActivities,
@@ -52,6 +53,13 @@ const DASHBOARD_HEIGHT_GROUPS: readonly DashboardHeightGroup[] = [
 	},
 ];
 
+const FILE_TYPE_COLORS = ["#8b5cf6", "#3b82f6", "#eab308"] as const;
+const FILE_TYPE_LABELS = {
+	markdown: "Markdown",
+	canvas: "Canvas",
+	other: "Other",
+} as const;
+
 export class DashboardView extends ItemView {
 	private streakCard: HTMLElement | null = null;
 	private fileTypesCard: HTMLElement | null = null;
@@ -60,6 +68,8 @@ export class DashboardView extends ItemView {
 	private recentActivityResizeObserver: ResizeObserver | null = null;
 	private unsubscribeState: (() => void) | null = null;
 	private presentationRefreshTimer: number | null = null;
+	private fileTypesDirty = false;
+	private recentActivities: DashboardRecentActivity[] = [];
 
 	constructor(leaf: WorkspaceLeaf, private stateManager: StateManager) {
 		super(leaf);
@@ -91,7 +101,7 @@ export class DashboardView extends ItemView {
 		this.observeRecentActivity();
 		this.renderWritingStreak();
 		this.renderFileTypes();
-		this.renderRecentActivity();
+		this.refreshRecentActivities();
 	}
 
 	protected async onClose(): Promise<void> {
@@ -105,6 +115,8 @@ export class DashboardView extends ItemView {
 			window.clearTimeout(this.presentationRefreshTimer);
 			this.presentationRefreshTimer = null;
 		}
+		this.fileTypesDirty = false;
+		this.recentActivities = [];
 		this.streakCard = null;
 		this.fileTypesCard = null;
 		this.recentActivityCard = null;
@@ -181,29 +193,40 @@ export class DashboardView extends ItemView {
 
 	private registerPresentationEvents(): void {
 		this.registerEvent(
-			this.app.vault.on("create", () => this.schedulePresentationRefresh())
+			this.app.vault.on("create", () => this.schedulePresentationRefresh(true))
 		);
 		this.registerEvent(
-			this.app.vault.on("delete", () => this.schedulePresentationRefresh())
+			this.app.vault.on("delete", () => this.schedulePresentationRefresh(true))
 		);
 		this.registerEvent(
-			this.app.vault.on("rename", () => this.schedulePresentationRefresh())
+			this.app.vault.on("rename", () => this.schedulePresentationRefresh(true))
 		);
 		this.registerEvent(
 			this.app.vault.on("modify", () => this.schedulePresentationRefresh())
 		);
 	}
 
-	private schedulePresentationRefresh(): void {
+	private schedulePresentationRefresh(refreshFileTypes = false): void {
+		this.fileTypesDirty ||= refreshFileTypes;
 		if (this.presentationRefreshTimer !== null) {
 			window.clearTimeout(this.presentationRefreshTimer);
 		}
 
 		this.presentationRefreshTimer = window.setTimeout(() => {
 			this.presentationRefreshTimer = null;
-			this.renderFileTypes();
-			this.renderRecentActivity();
+			if (this.fileTypesDirty) {
+				this.fileTypesDirty = false;
+				this.renderFileTypes();
+			}
+			this.refreshRecentActivities();
 		}, 150);
+	}
+
+	private refreshRecentActivities(): void {
+		this.recentActivities = getDashboardRecentActivities(
+			this.app.vault.getMarkdownFiles()
+		);
+		this.renderRecentActivity();
 	}
 
 	private renderRecentActivity(): void {
@@ -211,9 +234,6 @@ export class DashboardView extends ItemView {
 			return;
 		}
 
-		const activities = getDashboardRecentActivities(
-			this.app.vault.getMarkdownFiles()
-		);
 		const visibleCount = Math.max(
 			1,
 			Math.min(10, Math.floor((this.recentActivityCard.clientHeight - 26) / 24))
@@ -228,7 +248,7 @@ export class DashboardView extends ItemView {
 			cls: "dynamic-recent-activity-list",
 		});
 
-		for (const activity of activities.slice(0, visibleCount)) {
+		for (const activity of this.recentActivities.slice(0, visibleCount)) {
 			const item = list.createDiv({
 				cls: `dynamic-recent-activity-item dynamic-recent-activity-item--${activity.type}`,
 			});
@@ -254,7 +274,7 @@ export class DashboardView extends ItemView {
 			});
 		}
 
-		if (activities.length === 0) {
+		if (this.recentActivities.length === 0) {
 			list.createDiv({
 				cls: "dynamic-recent-activity-empty",
 				text: "No recent activity",
@@ -288,13 +308,12 @@ export class DashboardView extends ItemView {
 		}
 
 		const visibleMetrics = getDashboardFileTypes(this.app.vault.getFiles());
-		const totalFiles = visibleMetrics.reduce((total, metric) => total + metric.count, 0);
-		const colors = ["#8b5cf6", "#3b82f6", "#eab308"];
+		const hasFiles = visibleMetrics.some((metric) => metric.count > 0);
 		let accumulatedPercentage = 0;
 		const gradientStops = visibleMetrics.map((metric, index) => {
-			const color = colors[index] ?? colors[colors.length - 1]!;
+			const color = FILE_TYPE_COLORS[index] ?? FILE_TYPE_COLORS.at(-1)!;
 			const start = accumulatedPercentage;
-			accumulatedPercentage += totalFiles > 0 ? (metric.count / totalFiles) * 100 : 0;
+			accumulatedPercentage += metric.percentage;
 			return `${color} ${start}% ${accumulatedPercentage}%`;
 		});
 
@@ -311,13 +330,13 @@ export class DashboardView extends ItemView {
 		});
 		donut.style.setProperty(
 			"--dynamic-file-types-gradient",
-			totalFiles > 0
+			hasFiles
 				? `conic-gradient(${gradientStops.join(", ")})`
 				: "var(--background-modifier-border)"
 		);
 		donut.setAttribute(
 			"aria-label",
-			totalFiles > 0
+			hasFiles
 				? visibleMetrics.map((metric) => `${metric.type}: ${metric.percentage.toFixed(1)}%`).join(", ")
 				: "No files"
 		);
@@ -328,24 +347,20 @@ export class DashboardView extends ItemView {
 		});
 
 		for (const [index, metric] of visibleMetrics.entries()) {
-			const color = colors[index] ?? colors[colors.length - 1]!;
+			const color = FILE_TYPE_COLORS[index] ?? FILE_TYPE_COLORS.at(-1)!;
 			const row = legend.createDiv({
 				cls: "dynamic-file-types-legend-row",
 			});
 			row.style.setProperty("--dynamic-file-type-color", color);
 			row.createSpan({
 				cls: "dynamic-file-types-name",
-				text: this.formatFileTypeName(metric.type),
+				text: FILE_TYPE_LABELS[metric.type],
 			});
 			row.createSpan({
 				cls: "dynamic-file-types-percentage",
 				text: `${metric.percentage.toFixed(1)}%`,
 			});
 		}
-	}
-
-	private formatFileTypeName(type: string): string {
-		return type.charAt(0).toUpperCase() + type.slice(1);
 	}
 
 	private renderWritingStreak(): void {
@@ -356,14 +371,12 @@ export class DashboardView extends ItemView {
 		const cardWidth = this.streakCard.clientWidth;
 		const cardHeight = this.streakCard.clientHeight;
 		const cellGap = 2;
-		const targetCellSize = 9;
 		const availableWidth = Math.max(0, cardWidth - 38);
 		const availableGridHeight = Math.max(0, cardHeight - 41);
 		const cellSize = Math.max(
 			4,
 			Math.min(
-				10,
-				targetCellSize,
+				9,
 				Math.floor((availableGridHeight - (6 * cellGap)) / 7)
 			)
 		);
