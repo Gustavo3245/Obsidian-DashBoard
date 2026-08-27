@@ -13,24 +13,15 @@ type DashboardCardModifier =
 	| "wide"
 	| "detail"
 	| "streak"
-	| "medium"
-	| "large"
-	| "square"
-	| "square-third"
 	| "file-types"
 	| "recent-activity";
 
 const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["summary"],
 	["summary"],
-	["summary", "medium"],
-	["summary", "large"],
 	["wide"],
-	["wide", "large"],
 	["detail", "file-types"],
 	["detail", "recent-activity"],
-	["detail", "medium"],
-	["detail", "large"],
 	["wide", "streak"],
 ];
 
@@ -46,7 +37,6 @@ export class DashboardView extends ItemView {
 	private streakCard: HTMLElement | null = null;
 	private fileTypesCard: HTMLElement | null = null;
 	private recentActivityCard: HTMLElement | null = null;
-	private streakResizeObserver: ResizeObserver | null = null;
 	private unsubscribeState: (() => void) | null = null;
 	private recentActivityRefreshTimer: number | null = null;
 
@@ -76,12 +66,6 @@ export class DashboardView extends ItemView {
 			() => this.renderWritingStreak()
 		);
 		this.registerPresentationEvents();
-		if (this.streakCard) {
-			this.streakResizeObserver = new ResizeObserver(
-				() => this.renderWritingStreak()
-			);
-			this.streakResizeObserver.observe(this.streakCard);
-		}
 		this.renderWritingStreak();
 		this.renderFileTypes();
 		this.renderRecentActivity();
@@ -90,8 +74,6 @@ export class DashboardView extends ItemView {
 	protected async onClose(): Promise<void> {
 		this.unsubscribeState?.();
 		this.unsubscribeState = null;
-		this.streakResizeObserver?.disconnect();
-		this.streakResizeObserver = null;
 		if (this.recentActivityRefreshTimer !== null) {
 			window.clearTimeout(this.recentActivityRefreshTimer);
 			this.recentActivityRefreshTimer = null;
@@ -104,9 +86,7 @@ export class DashboardView extends ItemView {
 		this.contentEl.empty();
 	}
 
-	/**
-	 * Render the empty responsive regions used by the future dashboard cards.
-	 */
+	/** Render the cards used by the compact dashboard. */
 	private renderLayout(): void {
 		const dashboard = this.contentEl.createDiv({
 			cls: "dynamic-dashboard-layout",
@@ -124,15 +104,6 @@ export class DashboardView extends ItemView {
 
 			if (modifiers.includes("recent-activity")) {
 				this.recentActivityCard = card;
-			}
-		}
-
-		for (const [size, cardCount] of [["medium", 2], ["large", 3]] as const) {
-			const group = dashboard.createDiv({
-				cls: `dynamic-dashboard-height-group dynamic-dashboard-height-group--${size}`,
-			});
-			for (let index = 0; index < cardCount; index++) {
-				this.createCard(group, index === 2 ? ["square", "square-third"] : ["square"]);
 			}
 		}
 	}
@@ -301,26 +272,9 @@ export class DashboardView extends ItemView {
 			return;
 		}
 
-		const cardWidth = this.streakCard.clientWidth;
-		const cardHeight = this.streakCard.clientHeight;
-		const cellGap = 2;
-		const availableWidth = Math.max(0, cardWidth - 38);
-		const availableGridHeight = Math.max(0, cardHeight - 41);
-		const cellSize = Math.max(
-			4,
-			Math.min(
-				9,
-				Math.floor((availableGridHeight - (6 * cellGap)) / 7)
-			)
-		);
-		const visibleWeeks = Math.max(
-			4,
-			Math.min(53, Math.floor((availableWidth + cellGap) / (cellSize + cellGap)))
-		);
+		const visibleWeeks = 18;
 
 		this.streakCard.empty();
-		this.streakCard.style.setProperty("--dynamic-streak-cell-size", `${cellSize}px`);
-		this.streakCard.style.setProperty("--dynamic-streak-cell-gap", `${cellGap}px`);
 
 		const header = this.streakCard.createDiv({
 			cls: "dynamic-writing-streak-header",

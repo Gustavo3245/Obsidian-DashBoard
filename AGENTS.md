@@ -209,11 +209,10 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 ### Views
 
-- `src/views/DashboardView.ts`: registra a view e o wireframe responsivo do dashboard, seus identificadores e a abertura em qualquer painel lateral; a aba pode ser movida pelo drag-and-drop nativo do Obsidian.
+- `src/views/DashboardView.ts`: registra a view e o layout-base compacto do dashboard, seus identificadores e a abertura em qualquer painel lateral; a aba pode ser movida pelo drag-and-drop nativo do Obsidian.
 - `src/views/DashboardViewData.ts`: deriva dados transitórios exclusivos da apresentação, como tipos de arquivo e atividade recente, diretamente dos arquivos do Vault; esses dados não integram nem são persistidos em `VaultMetrics`.
-- a view e seu contêiner de leaf ocupam toda a largura e altura concedidas pelo painel; a leaf tem altura mínima de 75% da referência de 380px (285px), permitindo redução máxima de 25%, e as linhas são distribuídas proporcionalmente sem barras internas.
-- o wireframe começa com 7 regiões; exibe 9 a partir de 360px de largura ou 500px de altura e 12 a partir de 560px de largura ou 680px de altura.
-- regiões liberadas exclusivamente pela altura reutilizam o tamanho das células do grid: dois cards no modo compacto e um terceiro no nível alto apenas quando houver largura para três colunas.
+- o layout-base possui seis regiões fixas em duas colunas e quatro linhas, sem adicionar cards ou alterar sua composição conforme a largura ou a altura.
+- os três estados definitivos da view e seu limite máximo de largura ainda serão implementados.
 
 ### Serviços e análise
 
@@ -259,7 +258,7 @@ No estado atual, `npm run build` e `npm run lint` passam. Preserve esse baseline
 
 ### Lifecycle e composição
 
-- comandos, settings tab, ícone e wireframe visual estão registrados; os cards ainda não exibem métricas;
+- comandos, settings tab e ícone estão registrados; `File types`, `Recent activity` e `Writing streak` já possuem apresentação no layout-base;
 - timers e eventos possuem cleanup pelo lifecycle do plugin;
 - mudanças no limite de inatividade afetam a sessão atual sem exigir reload.
 
