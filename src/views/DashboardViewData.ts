@@ -1,7 +1,7 @@
 import { TFile } from "obsidian";
 
 export interface DashboardFileTypeMetric {
-	type: "markdown" | "canvas" | "other";
+	type: "markdown" | "canvas" | "excalidraw" | "other";
 	percentage: number;
 }
 
@@ -16,13 +16,16 @@ export function getDashboardFileTypes(files: TFile[]): DashboardFileTypeMetric[]
 	const counts = {
 		markdown: 0,
 		canvas: 0,
+		excalidraw: 0,
 		other: 0,
 	};
 
 	for (const file of files) {
 		const lowerName = file.name.toLowerCase();
 
-		if (file.extension.toLowerCase() === "md" && !lowerName.endsWith(".excalidraw.md")) {
+		if (lowerName.endsWith(".excalidraw.md")) {
+			counts.excalidraw++;
+		} else if (file.extension.toLowerCase() === "md") {
 			counts.markdown++;
 		} else if (file.extension.toLowerCase() === "canvas") {
 			counts.canvas++;

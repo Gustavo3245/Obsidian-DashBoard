@@ -28,16 +28,17 @@ const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["wide"],
 	["wide", "large"],
 	["detail", "file-types"],
-	["detail"],
-	["detail", "medium", "recent-activity"],
+	["detail", "recent-activity"],
+	["detail", "medium"],
 	["detail", "large"],
 	["wide", "streak"],
 ];
 
-const FILE_TYPE_COLORS = ["#8b5cf6", "#3b82f6", "#eab308"] as const;
+const FILE_TYPE_COLORS = ["#8b5cf6", "#38bdf8", "#22c55e", "#facc15"] as const;
 const FILE_TYPE_LABELS = {
 	markdown: "Markdown",
 	canvas: "Canvas",
+	excalidraw: "Excalidraw",
 	other: "Other",
 } as const;
 
@@ -258,58 +259,40 @@ export class DashboardView extends ItemView {
 		}
 
 		const visibleMetrics = getDashboardFileTypes(this.app.vault.getFiles());
-		const hasFiles = visibleMetrics.some((metric) => metric.percentage > 0);
-		let accumulatedPercentage = 0;
-		const gradientStops = visibleMetrics.map((metric, index) => {
-			const color = FILE_TYPE_COLORS[index] ?? FILE_TYPE_COLORS.at(-1)!;
-			const start = accumulatedPercentage;
-			accumulatedPercentage += metric.percentage;
-			return `${color} ${start}% ${accumulatedPercentage}%`;
-		});
 
 		this.fileTypesCard.empty();
-		this.fileTypesCard.createDiv({
+		const title = this.fileTypesCard.createDiv({
 			cls: "dynamic-file-types-title",
-			text: "File types",
 		});
+		const titleIcon = title.createSpan({ cls: "dynamic-file-types-title-icon" });
+		setIcon(titleIcon, "files");
+		title.createSpan({ text: "File types" });
 		const body = this.fileTypesCard.createDiv({
 			cls: "dynamic-file-types-body",
-		});
-		const donut = body.createDiv({
-			cls: "dynamic-file-types-donut",
-		});
-		donut.style.setProperty(
-			"--dynamic-file-types-gradient",
-			hasFiles
-				? `conic-gradient(${gradientStops.join(", ")})`
-				: "var(--background-modifier-border)"
-		);
-		donut.setAttribute(
-			"aria-label",
-			hasFiles
-				? visibleMetrics.map((metric) => `${metric.type}: ${metric.percentage.toFixed(1)}%`).join(", ")
-				: "No files"
-		);
-		donut.setAttribute("role", "img");
-
-		const legend = body.createDiv({
-			cls: "dynamic-file-types-legend",
 		});
 
 		for (const [index, metric] of visibleMetrics.entries()) {
 			const color = FILE_TYPE_COLORS[index] ?? FILE_TYPE_COLORS.at(-1)!;
-			const row = legend.createDiv({
-				cls: "dynamic-file-types-legend-row",
+			const row = body.createDiv({
+				cls: "dynamic-file-types-row",
 			});
 			row.style.setProperty("--dynamic-file-type-color", color);
-			row.createSpan({
+			row.setAttribute("aria-label", `${FILE_TYPE_LABELS[metric.type]}: ${metric.percentage.toFixed(1)}%`);
+			const icon = row.createSpan({ cls: "dynamic-file-types-icon" });
+			setIcon(icon, "file-text");
+			const details = row.createDiv({ cls: "dynamic-file-types-details" });
+			const header = details.createDiv({ cls: "dynamic-file-types-row-header" });
+			header.createSpan({
 				cls: "dynamic-file-types-name",
 				text: FILE_TYPE_LABELS[metric.type],
 			});
-			row.createSpan({
+			header.createSpan({
 				cls: "dynamic-file-types-percentage",
 				text: `${metric.percentage.toFixed(1)}%`,
 			});
+			const track = details.createDiv({ cls: "dynamic-file-types-track" });
+			const fill = track.createDiv({ cls: "dynamic-file-types-fill" });
+			fill.style.width = `${metric.percentage}%`;
 		}
 	}
 
