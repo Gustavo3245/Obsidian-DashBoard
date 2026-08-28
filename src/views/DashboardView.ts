@@ -13,13 +13,17 @@ type DashboardCardModifier =
 	| "wide"
 	| "detail"
 	| "streak"
+	| "tall"
 	| "file-types"
 	| "recent-activity";
 
 const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["summary"],
 	["summary"],
+	["summary", "tall"],
+	["summary", "tall"],
 	["wide"],
+	["wide", "tall"],
 	["detail", "file-types"],
 	["detail", "recent-activity"],
 	["wide", "streak"],

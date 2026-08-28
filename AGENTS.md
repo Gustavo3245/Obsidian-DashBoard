@@ -211,7 +211,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 - `src/views/DashboardView.ts`: registra a view e o layout-base compacto do dashboard, seus identificadores e a abertura em qualquer painel lateral; a aba pode ser movida pelo drag-and-drop nativo do Obsidian.
 - `src/views/DashboardViewData.ts`: deriva dados transitórios exclusivos da apresentação, como tipos de arquivo e atividade recente, diretamente dos arquivos do Vault; esses dados não integram nem são persistidos em `VaultMetrics`.
-- o layout-base possui seis regiões fixas em duas colunas e quatro linhas, sem adicionar cards ou alterar sua composição conforme a largura ou a altura.
+- o layout-base possui seis regiões em duas colunas e quatro linhas; no estado lateral alto, dois cards adicionais formam uma segunda linha de quadrados e um segundo card largo aparece antes dos detalhes.
 - os três estados definitivos da view e seu limite máximo de largura ainda serão implementados.
 
 ### Serviços e análise

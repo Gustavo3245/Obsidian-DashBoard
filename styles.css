@@ -1,10 +1,21 @@
+.dynamic-dashboard-container,
+.dynamic-dashboard-view {
+	--dynamic-dashboard-min-height: 400px;
+}
+
+.dynamic-dashboard-container {
+	min-height: var(--dynamic-dashboard-min-height);
+}
+
 .dynamic-dashboard-container .dynamic-dashboard-view {
 	box-sizing: border-box;
+	container-name: dynamic-dashboard;
+	container-type: size;
 	width: calc(100% - 10px);
 	min-width: 0;
 	max-width: calc(100% - 10px);
 	height: 100%;
-	min-height: 0;
+	min-height: min(var(--dynamic-dashboard-min-height), 100%);
 	max-height: 100%;
 	overflow: hidden;
 	margin: 5px;
@@ -40,6 +51,10 @@
 
 .dynamic-dashboard-card--wide {
 	grid-column: 1 / -1;
+}
+
+.dynamic-dashboard-card--tall {
+	display: none;
 }
 
 .dynamic-dashboard-card--streak {
@@ -352,4 +367,18 @@
 	color: var(--text-faint);
 	font-size: 7px;
 	line-height: 1.1;
+}
+
+@container dynamic-dashboard (min-height: 680px) {
+	.dynamic-dashboard-layout {
+		grid-template-rows: auto auto repeat(4, minmax(0, 1fr));
+	}
+
+	.dynamic-dashboard-card--summary {
+		aspect-ratio: 1;
+	}
+
+	.dynamic-dashboard-card--tall {
+		display: block;
+	}
 }
