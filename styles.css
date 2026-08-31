@@ -228,6 +228,8 @@
 }
 
 .dynamic-dashboard-card--file-types {
+	container-name: file-types;
+	container-type: size;
 	display: flex;
 	flex-direction: column;
 	padding: 7px 8px;
@@ -237,9 +239,9 @@
 	display: flex;
 	align-items: center;
 	gap: 5px;
-	margin-bottom: 5px;
+	margin-bottom: 6px;
 	color: var(--text-normal);
-	font-size: 9px;
+	font-size: 10px;
 	font-weight: var(--font-semibold);
 	line-height: 1;
 	text-transform: uppercase;
@@ -254,8 +256,8 @@
 }
 
 .dynamic-file-types-title-icon {
-	width: 11px;
-	height: 11px;
+	width: 13px;
+	height: 13px;
 	color: var(--text-muted);
 }
 
@@ -263,8 +265,8 @@
 	display: flex;
 	flex: 1 1 auto;
 	flex-direction: column;
-	justify-content: center;
-	gap: 3px;
+	justify-content: space-between;
+	gap: 2px;
 	min-width: 0;
 	min-height: 0;
 	overflow: hidden;
@@ -272,6 +274,7 @@
 
 .dynamic-file-types-row {
 	display: grid;
+	flex: 1 1 0;
 	grid-template-columns: max-content minmax(0, 1fr);
 	align-items: center;
 	gap: 4px;
@@ -279,8 +282,8 @@
 }
 
 .dynamic-file-types-icon {
-	width: 12px;
-	height: 12px;
+	width: 14px;
+	height: 14px;
 	color: var(--dynamic-file-type-color);
 }
 
@@ -300,7 +303,7 @@
 	justify-content: space-between;
 	gap: 4px;
 	min-width: 0;
-	font-size: 7px;
+	font-size: 9.5px;
 	line-height: 1;
 }
 
@@ -319,7 +322,7 @@
 }
 
 .dynamic-file-types-track {
-	height: 3px;
+	height: 4px;
 	margin-top: 3px;
 	overflow: hidden;
 	border-radius: 999px;
@@ -330,6 +333,37 @@
 	height: 100%;
 	border-radius: inherit;
 	background: var(--dynamic-file-type-color);
+}
+
+@container file-types (min-height: 150px) {
+	.dynamic-file-types-title {
+		gap: 7px;
+		margin-bottom: 8px;
+		font-size: 11px;
+	}
+
+	.dynamic-file-types-title-icon {
+		width: 15px;
+		height: 15px;
+	}
+
+	.dynamic-file-types-row {
+		gap: 6px;
+	}
+
+	.dynamic-file-types-icon {
+		width: 16px;
+		height: 16px;
+	}
+
+	.dynamic-file-types-row-header {
+		font-size: 10px;
+	}
+
+	.dynamic-file-types-track {
+		height: 5px;
+		margin-top: 4px;
+	}
 }
 
 .dynamic-dashboard-card--recent-activity {
@@ -396,7 +430,7 @@
 .dynamic-recent-activity-label {
 	overflow: hidden;
 	color: var(--text-muted);
-	font-size: 8px;
+	font-size: 9.5px;
 	line-height: 1.1;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -405,7 +439,7 @@
 .dynamic-recent-activity-time,
 .dynamic-recent-activity-empty {
 	color: var(--text-faint);
-	font-size: 7px;
+	font-size: 9px;
 	line-height: 1.1;
 }
 
