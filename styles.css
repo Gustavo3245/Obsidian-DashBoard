@@ -1,6 +1,6 @@
 .dynamic-dashboard-container,
 .dynamic-dashboard-view {
-	--dynamic-dashboard-min-height: 400px;
+	--dynamic-dashboard-min-height: 500px;
 }
 
 .dynamic-dashboard-container {
@@ -11,14 +11,15 @@
 	box-sizing: border-box;
 	container-name: dynamic-dashboard;
 	container-type: size;
-	width: calc(100% - 10px);
+	width: min(calc(100% - 10px), 480px);
 	min-width: 0;
-	max-width: calc(100% - 10px);
+	max-width: 480px;
 	height: 100%;
 	min-height: min(var(--dynamic-dashboard-min-height), 100%);
 	max-height: 100%;
-	overflow: hidden;
-	margin: 5px;
+	overflow-x: hidden;
+	overflow-y: auto;
+	margin: 5px auto;
 	padding: 3px !important;
 	background: var(--background-secondary);
 }
@@ -55,6 +56,42 @@
 
 .dynamic-dashboard-card--tall {
 	display: none;
+}
+
+.dynamic-dashboard-card--expanded,
+.dynamic-dashboard-overview {
+	display: none;
+}
+
+.dynamic-dashboard-overview {
+	grid-column: 1 / -1;
+	align-items: center;
+	justify-content: space-between;
+	min-width: 0;
+	padding: 0 3px;
+	color: var(--text-muted);
+}
+
+.dynamic-dashboard-overview-title {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--text-normal);
+	font-size: 13px;
+	font-weight: var(--font-semibold);
+	text-transform: uppercase;
+}
+
+.dynamic-dashboard-overview-title svg {
+	width: 14px;
+	height: 14px;
+}
+
+.dynamic-dashboard-overview-range {
+	padding: 6px 10px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	font-size: 10px;
 }
 
 .dynamic-dashboard-card--streak {
@@ -296,6 +333,8 @@
 }
 
 .dynamic-dashboard-card--recent-activity {
+	container-name: recent-activity;
+	container-type: inline-size;
 	display: flex;
 	flex-direction: column;
 	padding: 7px 8px;
@@ -311,9 +350,11 @@
 }
 
 .dynamic-recent-activity-list {
-	display: flex;
+	display: grid;
 	flex: 1 1 auto;
-	flex-direction: column;
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-rows: repeat(10, 20px);
+	grid-auto-flow: column;
 	gap: 3px;
 	min-height: 0;
 	overflow: hidden;
@@ -321,7 +362,6 @@
 
 .dynamic-recent-activity-item {
 	display: flex;
-	flex: 0 0 20px;
 	align-items: center;
 	gap: 6px;
 	min-width: 0;
@@ -369,6 +409,14 @@
 	line-height: 1.1;
 }
 
+@container recent-activity (min-width: 210px) {
+	.dynamic-recent-activity-list {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-rows: repeat(5, 20px);
+		column-gap: 5px;
+	}
+}
+
 @container dynamic-dashboard (min-height: 680px) {
 	.dynamic-dashboard-layout {
 		grid-template-rows: auto auto repeat(4, minmax(0, 1fr));
@@ -380,5 +428,32 @@
 
 	.dynamic-dashboard-card--tall {
 		display: block;
+	}
+}
+
+@container dynamic-dashboard (min-width: 400px) {
+	.dynamic-dashboard-layout {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		grid-template-rows: 38px repeat(2, 110px) 140px 175px 160px 150px;
+		height: auto;
+		min-height: 901px;
+	}
+
+	.dynamic-dashboard-overview {
+		display: flex;
+	}
+
+	.dynamic-dashboard-card--tall,
+	.dynamic-dashboard-card--expanded {
+		display: block;
+	}
+
+	.dynamic-dashboard-card--summary {
+		aspect-ratio: auto;
+	}
+
+	.dynamic-dashboard-card--wide,
+	.dynamic-dashboard-card--streak {
+		grid-column: 1 / -1;
 	}
 }

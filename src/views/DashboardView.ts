@@ -14,6 +14,8 @@ type DashboardCardModifier =
 	| "detail"
 	| "streak"
 	| "tall"
+	| "expanded"
+	| "active-days"
 	| "file-types"
 	| "recent-activity";
 
@@ -22,9 +24,12 @@ const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["summary"],
 	["summary", "tall"],
 	["summary", "tall"],
+	["summary", "expanded"],
+	["summary", "expanded"],
 	["wide"],
 	["wide", "tall"],
 	["detail", "file-types"],
+	["detail", "expanded", "active-days"],
 	["detail", "recent-activity"],
 	["wide", "streak"],
 ];
@@ -41,6 +46,7 @@ export class DashboardView extends ItemView {
 	private streakCard: HTMLElement | null = null;
 	private fileTypesCard: HTMLElement | null = null;
 	private recentActivityCard: HTMLElement | null = null;
+	private streakResizeObserver: ResizeObserver | null = null;
 	private unsubscribeState: (() => void) | null = null;
 	private recentActivityRefreshTimer: number | null = null;
 
@@ -70,6 +76,12 @@ export class DashboardView extends ItemView {
 			() => this.renderWritingStreak()
 		);
 		this.registerPresentationEvents();
+		if (this.streakCard) {
+			this.streakResizeObserver = new ResizeObserver(
+				() => this.renderWritingStreak()
+			);
+			this.streakResizeObserver.observe(this.streakCard);
+		}
 		this.renderWritingStreak();
 		this.renderFileTypes();
 		this.renderRecentActivity();
@@ -78,6 +90,8 @@ export class DashboardView extends ItemView {
 	protected async onClose(): Promise<void> {
 		this.unsubscribeState?.();
 		this.unsubscribeState = null;
+		this.streakResizeObserver?.disconnect();
+		this.streakResizeObserver = null;
 		if (this.recentActivityRefreshTimer !== null) {
 			window.clearTimeout(this.recentActivityRefreshTimer);
 			this.recentActivityRefreshTimer = null;
@@ -95,6 +109,17 @@ export class DashboardView extends ItemView {
 		const dashboard = this.contentEl.createDiv({
 			cls: "dynamic-dashboard-layout",
 		});
+		const overview = dashboard.createDiv({ cls: "dynamic-dashboard-overview" });
+		const overviewTitle = overview.createSpan({
+			cls: "dynamic-dashboard-overview-title",
+		});
+		setIcon(overviewTitle.createSpan(), "chart-no-axes-column-increasing");
+		overviewTitle.appendText("Overview");
+		overview.createSpan({
+			cls: "dynamic-dashboard-overview-range",
+			text: "All time",
+		});
+
 		for (const modifiers of DASHBOARD_CARD_LAYOUT) {
 			const card = this.createCard(dashboard, modifiers);
 
@@ -276,7 +301,13 @@ export class DashboardView extends ItemView {
 			return;
 		}
 
-		const visibleWeeks = 18;
+		const cellSize = 9;
+		const cellGap = 2;
+		const availableWidth = Math.max(0, this.streakCard.clientWidth - 38);
+		const visibleWeeks = Math.max(
+			4,
+			Math.min(53, Math.floor((availableWidth + cellGap) / (cellSize + cellGap)))
+		);
 
 		this.streakCard.empty();
 
@@ -314,11 +345,16 @@ export class DashboardView extends ItemView {
 		});
 		const history = this.stateManager.getDailyMetricsState();
 		const dates = this.getStreakDates(visibleWeeks);
+		const today = this.getStartOfLocalDay(new Date()).getTime();
+		const oldestVisibleDate = new Date(today);
+		oldestVisibleDate.setDate(oldestVisibleDate.getDate() - 364);
+		const oldestVisibleTime = oldestVisibleDate.getTime();
 		const maximumWords = Math.max(
 			0,
-			...dates.map((date) => history[this.toLocalDateKey(date)]?.words ?? 0)
+			...dates
+				.filter((date) => date.getTime() >= oldestVisibleTime && date.getTime() <= today)
+				.map((date) => history[this.toLocalDateKey(date)]?.words ?? 0)
 		);
-		const today = this.getStartOfLocalDay(new Date()).getTime();
 
 		for (let weekIndex = 0; weekIndex < visibleWeeks; weekIndex++) {
 			const week = calendar.createDiv({
@@ -329,13 +365,13 @@ export class DashboardView extends ItemView {
 				const date = dates[(weekIndex * 7) + dayIndex]!;
 				const dateKey = this.toLocalDateKey(date);
 				const words = history[dateKey]?.words ?? 0;
-				const isFuture = date.getTime() > today;
-				const level = isFuture ? 0 : this.getStreakLevel(words, maximumWords);
+				const isOutsideYear = date.getTime() < oldestVisibleTime || date.getTime() > today;
+				const level = isOutsideYear ? 0 : this.getStreakLevel(words, maximumWords);
 				const cell = week.createDiv({
 					cls: `dynamic-writing-streak-cell dynamic-writing-streak-cell--level-${level}`,
 				});
 
-				if (isFuture) {
+				if (isOutsideYear) {
 					cell.addClass("dynamic-writing-streak-cell--future");
 				}
 
