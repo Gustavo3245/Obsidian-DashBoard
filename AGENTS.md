@@ -211,7 +211,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 - `src/views/DashboardView.ts`: registra a view e o layout-base compacto do dashboard, seus identificadores e a abertura em qualquer painel lateral; a aba pode ser movida pelo drag-and-drop nativo do Obsidian.
 - `src/views/DashboardViewData.ts`: deriva dados transitórios exclusivos da apresentação, como tipos de arquivo e atividade recente, diretamente dos arquivos do Vault; esses dados não integram nem são persistidos em `VaultMetrics`.
-- o layout-base possui seis regiões em duas colunas e quatro linhas; entre 350px e 469px de largura, dois cards adicionais formam a segunda linha superior sem trocar o grid de duas colunas; ao alcançar 850px de altura, o estado lateral completo também adiciona um segundo card largo antes dos detalhes; as duas linhas superiores mantêm 110px.
+- o layout-base possui seis regiões em duas colunas e quatro linhas; entre 350px e 469px e somente com pelo menos 680px de altura, as duas linhas superiores preservam seus dois cards e recebem um terceiro card cada, formando um grid intermediário de três colunas; ao alcançar 850px de altura, o estado lateral completo também adiciona um segundo card largo antes dos detalhes; as linhas superiores mantêm 110px.
 - o calendário de `Writing streak` adiciona semanas conforme a largura disponível, limitado visualmente aos últimos 365 dias.
 - `Recent activity` usa uma lista vertical e, quando o próprio card alcança 150px, distribui os dez registros em duas colunas compactas de cinco.
 - próximo ao limite visual, a partir de 470px internos, o estado expandido usa três colunas: seis resumos, dois cards largos, três detalhes e o streak completo; sua página tem altura própria e rolagem quando necessário.

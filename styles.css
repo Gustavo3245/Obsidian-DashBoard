@@ -452,13 +452,19 @@
 	}
 }
 
-@container dynamic-dashboard (min-width: 350px) and (max-width: 469px) {
+@container dynamic-dashboard (min-width: 350px) and (max-width: 469px) and (min-height: 680px) {
 	.dynamic-dashboard-layout {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 		grid-template-rows: repeat(2, 110px) repeat(3, minmax(0, 1fr));
 	}
 
-	.dynamic-dashboard-card--extra-summary {
+	.dynamic-dashboard-card--upper-row,
+	.dynamic-dashboard-card--third-column {
 		display: block;
+	}
+
+	.dynamic-dashboard-card--recent-activity {
+		grid-column: span 2;
 	}
 }
 
