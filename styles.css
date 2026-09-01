@@ -377,7 +377,7 @@
 .dynamic-recent-activity-title {
 	margin-bottom: 6px;
 	color: var(--text-normal);
-	font-size: 9px;
+	font-size: 10px;
 	font-weight: var(--font-semibold);
 	line-height: 1;
 	text-transform: uppercase;
@@ -443,21 +443,28 @@
 	line-height: 1.1;
 }
 
-@container recent-activity (min-width: 210px) {
+@container recent-activity (min-width: 150px) {
 	.dynamic-recent-activity-list {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-		grid-template-rows: repeat(5, 20px);
-		column-gap: 5px;
+		grid-template-rows: repeat(5, 17px);
+		align-content: space-between;
+		gap: 0 5px;
 	}
 }
 
-@container dynamic-dashboard (min-height: 680px) {
+@container dynamic-dashboard (min-width: 350px) and (max-width: 469px) {
 	.dynamic-dashboard-layout {
-		grid-template-rows: auto auto repeat(4, minmax(0, 1fr));
+		grid-template-rows: repeat(2, 110px) repeat(3, minmax(0, 1fr));
 	}
 
-	.dynamic-dashboard-card--summary {
-		aspect-ratio: 1;
+	.dynamic-dashboard-card--extra-summary {
+		display: block;
+	}
+}
+
+@container dynamic-dashboard (min-height: 850px) {
+	.dynamic-dashboard-layout {
+		grid-template-rows: repeat(2, 110px) repeat(4, minmax(0, 1fr));
 	}
 
 	.dynamic-dashboard-card--tall {
@@ -465,7 +472,7 @@
 	}
 }
 
-@container dynamic-dashboard (min-width: 400px) {
+@container dynamic-dashboard (min-width: 470px) {
 	.dynamic-dashboard-layout {
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		grid-template-rows: 38px repeat(2, 110px) 140px 175px 160px 150px;
@@ -480,10 +487,6 @@
 	.dynamic-dashboard-card--tall,
 	.dynamic-dashboard-card--expanded {
 		display: block;
-	}
-
-	.dynamic-dashboard-card--summary {
-		aspect-ratio: auto;
 	}
 
 	.dynamic-dashboard-card--wide,

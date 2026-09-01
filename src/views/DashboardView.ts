@@ -14,6 +14,7 @@ type DashboardCardModifier =
 	| "detail"
 	| "streak"
 	| "tall"
+	| "extra-summary"
 	| "expanded"
 	| "active-days"
 	| "file-types"
@@ -22,8 +23,8 @@ type DashboardCardModifier =
 const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["summary"],
 	["summary"],
-	["summary", "tall"],
-	["summary", "tall"],
+	["summary", "tall", "extra-summary"],
+	["summary", "tall", "extra-summary"],
 	["summary", "expanded"],
 	["summary", "expanded"],
 	["wide"],
