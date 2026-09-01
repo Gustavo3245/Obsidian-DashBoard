@@ -1,4 +1,12 @@
-import { ItemView, setIcon, Side, Workspace, WorkspaceLeaf } from "obsidian";
+import {
+	ItemView,
+	setIcon,
+	Side,
+	Workspace,
+	WorkspaceItem,
+	WorkspaceLeaf,
+	WorkspaceSidedock,
+} from "obsidian";
 import { StateManager } from "state/StateManager";
 import {
 	getDashboardFileTypes,
@@ -17,6 +25,9 @@ type DashboardCardModifier =
 	| "upper-row"
 	| "third-column"
 	| "expanded"
+	| "workspace"
+	| "estimated"
+	| "daily-average"
 	| "active-days"
 	| "file-types"
 	| "recent-activity";
@@ -28,8 +39,10 @@ const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["summary", "tall", "upper-row"],
 	["summary", "tall", "upper-row"],
 	["summary", "expanded", "third-column"],
-	["wide"],
-	["wide", "tall"],
+	["summary", "workspace"],
+	["summary", "workspace"],
+	["wide", "estimated"],
+	["wide", "tall", "daily-average"],
 	["detail", "file-types"],
 	["detail", "expanded", "active-days"],
 	["detail", "recent-activity"],
@@ -73,11 +86,15 @@ export class DashboardView extends ItemView {
 		this.contentEl.empty();
 		this.containerEl.addClass("dynamic-dashboard-container");
 		this.contentEl.addClass("dynamic-dashboard-view");
+		this.updateLayoutMode();
 		this.renderLayout();
 		this.unsubscribeState = this.stateManager.subscribe(
 			() => this.renderWritingStreak()
 		);
 		this.registerPresentationEvents();
+		this.registerEvent(
+			this.app.workspace.on("layout-change", () => this.updateLayoutMode())
+		);
 		if (this.streakCard) {
 			this.streakResizeObserver = new ResizeObserver(
 				() => this.renderWritingStreak()
@@ -102,8 +119,53 @@ export class DashboardView extends ItemView {
 		this.fileTypesCard = null;
 		this.recentActivityCard = null;
 		this.containerEl.removeClass("dynamic-dashboard-container");
+		this.containerEl.removeClass("dynamic-dashboard-container--workspace");
 		this.contentEl.removeClass("dynamic-dashboard-view");
 		this.contentEl.empty();
+	}
+
+	onResize(): void {
+		super.onResize();
+		this.updateLayoutMode();
+	}
+
+	private updateLayoutMode(): void {
+		if (!this.containerEl.hasClass("dynamic-dashboard-container")) {
+			return;
+		}
+
+		const isWorkspace = !this.isInsideSidedock();
+		const wasWorkspace = this.containerEl.hasClass(
+			"dynamic-dashboard-container--workspace"
+		);
+
+		if (isWorkspace === wasWorkspace) {
+			return;
+		}
+
+		this.containerEl.toggleClass(
+			"dynamic-dashboard-container--workspace",
+			isWorkspace
+		);
+		this.renderWritingStreak();
+	}
+
+	private isInsideSidedock(): boolean {
+		let item: WorkspaceItem | null = this.leaf.parent;
+
+		for (let depth = 0; item && depth < 10; depth++) {
+			if (item instanceof WorkspaceSidedock) {
+				return true;
+			}
+
+			const parent: WorkspaceItem | null = item.parent ?? null;
+			if (parent === item) {
+				break;
+			}
+			item = parent;
+		}
+
+		return false;
 	}
 
 	/** Render the cards used by the compact dashboard. */
@@ -303,8 +365,11 @@ export class DashboardView extends ItemView {
 			return;
 		}
 
-		const cellSize = 9;
-		const cellGap = 2;
+		const isWorkspace = this.containerEl.hasClass(
+			"dynamic-dashboard-container--workspace"
+		);
+		const cellSize = isWorkspace ? 14 : 9;
+		const cellGap = isWorkspace ? 3 : 2;
 		const availableWidth = Math.max(0, this.streakCard.clientWidth - 38);
 		const visibleWeeks = Math.max(
 			4,

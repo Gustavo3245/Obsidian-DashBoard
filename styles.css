@@ -59,6 +59,7 @@
 }
 
 .dynamic-dashboard-card--expanded,
+.dynamic-dashboard-card--workspace,
 .dynamic-dashboard-overview {
 	display: none;
 }
@@ -125,6 +126,7 @@
 .dynamic-writing-streak-current {
 	min-width: 0;
 	overflow: hidden;
+	font-weight: var(--font-bold);
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
@@ -152,7 +154,7 @@
 .dynamic-writing-streak-weekdays {
 	flex: 0 0 9px;
 	color: var(--text-faint);
-	font-size: 7px;
+	font-size: 9px;
 	line-height: var(--dynamic-streak-cell-size);
 	text-align: center;
 }
@@ -192,6 +194,7 @@
 	position: absolute;
 	top: 0;
 	left: 0;
+	font-weight: var(--font-bold);
 	white-space: nowrap;
 }
 
@@ -367,8 +370,6 @@
 }
 
 .dynamic-dashboard-card--recent-activity {
-	container-name: recent-activity;
-	container-type: inline-size;
 	display: flex;
 	flex-direction: column;
 	padding: 7px 8px;
@@ -388,7 +389,7 @@
 	flex: 1 1 auto;
 	grid-template-columns: minmax(0, 1fr);
 	grid-template-rows: repeat(10, 20px);
-	grid-auto-flow: column;
+	grid-auto-flow: row;
 	gap: 3px;
 	min-height: 0;
 	overflow: hidden;
@@ -443,15 +444,6 @@
 	line-height: 1.1;
 }
 
-@container recent-activity (min-width: 150px) {
-	.dynamic-recent-activity-list {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		grid-template-rows: repeat(5, 17px);
-		align-content: space-between;
-		gap: 0 5px;
-	}
-}
-
 @container dynamic-dashboard (min-width: 350px) and (max-width: 469px) and (min-height: 680px) {
 	.dynamic-dashboard-layout {
 		grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -459,12 +451,9 @@
 	}
 
 	.dynamic-dashboard-card--upper-row,
-	.dynamic-dashboard-card--third-column {
+	.dynamic-dashboard-card--third-column,
+	.dynamic-dashboard-card--active-days {
 		display: block;
-	}
-
-	.dynamic-dashboard-card--recent-activity {
-		grid-column: span 2;
 	}
 }
 
@@ -499,4 +488,130 @@
 	.dynamic-dashboard-card--streak {
 		grid-column: 1 / -1;
 	}
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-view {
+	width: calc(100% - 10px);
+	max-width: none;
+	overflow-x: hidden;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-layout {
+	grid-template-columns: repeat(20, minmax(0, 1fr));
+	grid-template-rows:
+		52px
+		repeat(2, minmax(110px, 1fr))
+		minmax(260px, 2.4fr)
+		minmax(180px, 1.5fr);
+	gap: 18px;
+	height: 100%;
+	min-height: 760px;
+	overflow: visible;
+	padding: 12px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-overview {
+	display: flex;
+	grid-column: 1 / -1;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--summary {
+	display: block;
+	grid-column: span 5;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--tall,
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--expanded,
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--workspace {
+	display: block;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--estimated {
+	display: none;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--active-days {
+	display: none;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--daily-average {
+	grid-column: span 8;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--file-types {
+	grid-column: span 8;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--recent-activity {
+	grid-column: span 4;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--streak {
+	--dynamic-streak-cell-size: 14px;
+	--dynamic-streak-cell-gap: 3px;
+	grid-column: span 16;
+	padding: 14px 18px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-file-types-title,
+.dynamic-dashboard-container--workspace .dynamic-recent-activity-title {
+	margin-bottom: 14px;
+	font-size: 13px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--file-types,
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--recent-activity {
+	padding: 16px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-file-types-row {
+	gap: 8px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-file-types-icon {
+	width: 18px;
+	height: 18px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-file-types-row-header {
+	font-size: 12px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-file-types-track {
+	height: 6px;
+	margin-top: 5px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-recent-activity-list {
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-rows: repeat(5, minmax(0, 1fr));
+	grid-auto-flow: row;
+	gap: 6px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-recent-activity-item:nth-child(n + 6) {
+	display: none;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-recent-activity-icon {
+	width: 16px;
+	height: 16px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-recent-activity-label {
+	font-size: 12px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-recent-activity-time {
+	font-size: 11px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-writing-streak-header {
+	margin-bottom: 10px;
+	font-size: 12px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-writing-streak-weekdays,
+.dynamic-dashboard-container--workspace .dynamic-writing-streak-months {
+	font-size: 9px;
 }
