@@ -30,6 +30,7 @@ type DashboardCardModifier =
 	| "estimated"
 	| "daily-average"
 	| "total-words"
+	| "total-characters"
 	| "tag-insights"
 	| "file-types"
 	| "recent-activity";
@@ -38,7 +39,7 @@ const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["summary", "total-words"],
 	["summary"],
 	["summary", "expanded", "third-column"],
-	["summary", "tall", "upper-row"],
+	["summary", "tall", "upper-row", "total-characters"],
 	["summary", "tall", "upper-row"],
 	["summary", "expanded", "third-column"],
 	["summary", "workspace"],
@@ -62,6 +63,7 @@ const FILE_TYPE_LABELS = {
 export class DashboardView extends ItemView {
 	private dailyAverageCard: HTMLElement | null = null;
 	private estimatedTimeCard: HTMLElement | null = null;
+	private totalCharactersCard: HTMLElement | null = null;
 	private totalWordsCard: HTMLElement | null = null;
 	private streakCard: HTMLElement | null = null;
 	private fileTypesCard: HTMLElement | null = null;
@@ -98,6 +100,7 @@ export class DashboardView extends ItemView {
 		this.unsubscribeState = this.stateManager.subscribe(() => {
 			this.renderDailyAverageWords();
 			this.renderEstimatedTime();
+			this.renderTotalCharacters();
 			this.renderTotalWords();
 			this.renderWritingStreak();
 			this.renderTagInsights();
@@ -120,6 +123,7 @@ export class DashboardView extends ItemView {
 		}
 		this.renderDailyAverageWords();
 		this.renderEstimatedTime();
+		this.renderTotalCharacters();
 		this.renderTotalWords();
 		this.renderWritingStreak();
 		this.renderFileTypes();
@@ -140,6 +144,7 @@ export class DashboardView extends ItemView {
 		}
 		this.dailyAverageCard = null;
 		this.estimatedTimeCard = null;
+		this.totalCharactersCard = null;
 		this.totalWordsCard = null;
 		this.streakCard = null;
 		this.fileTypesCard = null;
@@ -221,6 +226,10 @@ export class DashboardView extends ItemView {
 
 			if (modifiers.includes("total-words")) {
 				this.totalWordsCard = card;
+			}
+
+			if (modifiers.includes("total-characters")) {
+				this.totalCharactersCard = card;
 			}
 
 			if (modifiers.includes("daily-average")) {
@@ -489,26 +498,60 @@ export class DashboardView extends ItemView {
 		const totalWords = this.stateManager
 			.getVaultMetricsState()
 			.volume.snapshot.totalWords;
+		this.renderSummaryMetric(
+			this.totalWordsCard,
+			"Total words",
+			totalWords,
+			"pen-line",
+			"words"
+		);
+	}
 
-		this.totalWordsCard.empty();
-		const content = this.totalWordsCard.createDiv({
+	private renderTotalCharacters(): void {
+		if (!this.totalCharactersCard) {
+			return;
+		}
+
+		const totalCharacters = this.stateManager
+			.getVaultMetricsState()
+			.volume.snapshot.totalCharacters;
+		this.renderSummaryMetric(
+			this.totalCharactersCard,
+			"Total characters",
+			totalCharacters,
+			"case-sensitive",
+			"characters"
+		);
+	}
+
+	private renderSummaryMetric(
+		card: HTMLElement,
+		label: string,
+		value: number,
+		iconName: string,
+		iconModifier: "words" | "characters"
+	): void {
+		const normalizedValue = Math.max(0, value);
+
+		card.empty();
+		const content = card.createDiv({
 			cls: "dynamic-summary-metric",
 		});
 		const title = content.createDiv({
 			cls: "dynamic-summary-metric-title",
 		});
 		const icon = title.createSpan({
-			cls: "dynamic-summary-metric-icon dynamic-summary-metric-icon--words",
+			cls: `dynamic-summary-metric-icon dynamic-summary-metric-icon--${iconModifier}`,
 		});
-		setIcon(icon, "pen-line");
-		title.createSpan({ text: "Total words" });
+		setIcon(icon, iconName);
+		title.createSpan({ text: label });
 		content.createDiv({
 			cls: "dynamic-summary-metric-value",
-			text: Math.max(0, totalWords).toLocaleString("en-US"),
+			text: normalizedValue.toLocaleString("en-US"),
 		});
 		content.setAttribute(
 			"aria-label",
-			`Total words: ${Math.max(0, totalWords)}`
+			`${label}: ${normalizedValue}`
 		);
 	}
 
