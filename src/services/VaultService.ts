@@ -265,6 +265,7 @@ export class VaultService {
 		return attachments;
 	}
 
+
 	/**
 	 * get the current average file length inside the files range,
 	 * the average file length is based in the (vault.files.length - vault.totalFiles).

@@ -262,7 +262,6 @@ export class StatProcessor {
 	}
 
 	async processRenamedFile(file: TFile, oldPath: string): Promise<void> {
-		
 		if (file.extension !== "md") {
 			return;
 		}

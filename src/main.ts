@@ -139,7 +139,10 @@ export default class DashboardPlugin extends Plugin {
 		addIcon(DASHBOARD_ICON_ID, getDashboardIcon());
 		this.registerView(
 			DASHBOARD_VIEW_TYPE,
-			(leaf) => new DashboardView(leaf)
+			(leaf) => new DashboardView(
+				leaf,
+				this.serviceContainer.stateManager
+			)
 		);
 		this.addRibbonIcon(
 			DASHBOARD_ICON_ID,

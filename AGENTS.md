@@ -209,10 +209,18 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 ### Views
 
-- `src/views/DashboardView.ts`: registra a view e o wireframe responsivo do dashboard, seus identificadores e a abertura em qualquer painel lateral; a aba pode ser movida pelo drag-and-drop nativo do Obsidian.
-- a view e seu contêiner de leaf ocupam toda a largura e altura concedidas pelo painel; a leaf tem altura mínima de 75% da referência de 380px (285px), permitindo redução máxima de 25%, e as linhas são distribuídas proporcionalmente sem barras internas.
-- o wireframe começa com 7 regiões; exibe 9 a partir de 360px de largura ou 500px de altura e 12 a partir de 560px de largura ou 680px de altura.
-- regiões liberadas exclusivamente pela altura reutilizam o tamanho das células do grid: dois cards no modo compacto e um terceiro no nível alto apenas quando houver largura para três colunas.
+- `src/views/DashboardView.ts`: registra a view e o layout-base compacto do dashboard, seus identificadores e a abertura em qualquer painel lateral; a aba pode ser movida pelo drag-and-drop nativo do Obsidian.
+- `src/views/DashboardViewData.ts`: deriva dados transitórios exclusivos da apresentação, como tipos de arquivo, atividade recente e as duas janelas do gráfico diário; esses dados não integram nem são persistidos em `VaultMetrics`.
+- o layout-base possui seis regiões em duas colunas e quatro linhas; entre 350px e 469px e somente com pelo menos 680px de altura, as duas linhas superiores e a fileira de detalhes preservam seus cards e recebem um terceiro card de insights de tags, formando um grid intermediário de três colunas; ao alcançar 850px de altura, o estado lateral completo também adiciona um segundo card largo antes dos detalhes; as linhas superiores mantêm 110px.
+- o calendário de `Writing streak` adiciona semanas conforme a largura disponível, limitado visualmente aos últimos 365 dias; na área central, depois de acomodar o ano, as células crescem conforme a largura e a altura disponíveis.
+- `Daily average words` deriva do histórico persistido duas janelas consecutivas de 30 dias, incluindo dias sem atividade como zero; a janela atual produz o valor e as barras, e a anterior produz a variação percentual. A quantidade de barras e suas dimensões acompanham o tamanho real do card, limitada aos 30 dias atuais.
+- `Estimated time` lê `estimatedReadingTime` e `estimatedSpeakingTime` do grupo persistido `estimates` e divide o card lateral igualmente entre leitura e fala; no workspace central esse card combinado permanece oculto porque as duas métricas ocupam resumos próprios.
+- a primeira fileira começa com `Words` de `volume.snapshot.totalWords`, `Folders` de `volume.totalFolders` e, quando a terceira coluna está disponível, `Vault size` de `volume.totalVaultSize`; a segunda exibe `Characters` de `volume.snapshot.totalCharacters`, `Files` de `volume.totalFiles` e `Avg words per file` de `volume.averageWordsPerFile`. Todos reutilizam o mesmo renderizador, formatação numérica e escala tipográfica baseada no tamanho do card; seus rodapés apresentam razões derivadas, incluindo palavras por sentença no card `Words`, e o card de média reutiliza a tendência de escrita dos períodos atual e anterior de 30 dias.
+- `Recent activity` começa com uma lista vertical; entre 320px e 469px, enquanto a fileira ainda tiver dois cards, distribui os dez registros em duas colunas de cinco. Quando altura e largura permitem revelar o terceiro card, retorna a uma lista vertical.
+- `Tag insights` lê do grupo persistido `appears` as tags mais usadas no Vault e no frontmatter, a tag menos usada e o total de tags únicas, apresentando quatro métricas em uma lista ordenada; esse card existe apenas nos estados laterais de três colunas.
+- próximo ao limite visual, a partir de 470px internos, o estado expandido usa três colunas: seis resumos, dois cards largos, três detalhes e o streak completo; sua página tem altura própria e rolagem quando necessário.
+- quando a view está na área central, a hierarquia do `WorkspaceLeaf` ativa um layout horizontal próprio com vinte colunas: oito resumos, gráfico diário, tipos de arquivo, atividade recente e streak; o gráfico e os tipos de arquivo dividem igualmente o espaço anterior à atividade recente. Mover a aba entre a área central e os painéis recalcula esse modo.
+- nos painéis laterais, a largura visual do dashboard é limitada a 480px; a área central não usa esse limite.
 
 ### Serviços e análise
 
@@ -258,7 +266,7 @@ No estado atual, `npm run build` e `npm run lint` passam. Preserve esse baseline
 
 ### Lifecycle e composição
 
-- comandos, settings tab, ícone e wireframe visual estão registrados; os cards ainda não exibem métricas;
+- comandos, settings tab e ícone estão registrados; `Words`, `Folders`, `Vault size`, `Characters`, `Files`, `Avg words per file`, `Estimated time`, `Daily average words`, `File types`, `Tag insights`, `Recent activity` e `Writing streak` já possuem apresentação no layout-base;
 - timers e eventos possuem cleanup pelo lifecycle do plugin;
 - mudanças no limite de inatividade afetam a sessão atual sem exigir reload.
 
