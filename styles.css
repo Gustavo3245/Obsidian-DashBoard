@@ -96,7 +96,8 @@
 }
 
 .dynamic-dashboard-card--total-words,
-.dynamic-dashboard-card--total-characters {
+.dynamic-dashboard-card--total-characters,
+.dynamic-dashboard-card--total-folders {
 	container-name: summary-metric;
 	container-type: size;
 }
@@ -121,7 +122,7 @@
 	min-width: 0;
 	overflow: hidden;
 	color: var(--text-muted);
-	font-size: 8px;
+	font-size: 10px;
 	font-weight: var(--font-medium);
 	line-height: 1;
 	text-overflow: ellipsis;
@@ -151,6 +152,10 @@
 	color: #58a6ff;
 }
 
+.dynamic-summary-metric-icon--folders {
+	color: #58a6ff;
+}
+
 .dynamic-summary-metric-value {
 	display: flex;
 	flex: 1 1 auto;
@@ -168,13 +173,13 @@
 	white-space: nowrap;
 }
 
-@container summary-metric (min-width: 150px) and (min-height: 100px) {
+@container summary-metric (min-width: 110px) and (min-height: 90px) {
 	.dynamic-summary-metric {
 		padding: 12px 14px;
 	}
 
 	.dynamic-summary-metric-title {
-		font-size: 10px;
+		font-size: 12px;
 	}
 
 	.dynamic-summary-metric-icon {
@@ -187,13 +192,13 @@
 	}
 }
 
-@container summary-metric (min-width: 240px) and (min-height: 110px) {
+@container summary-metric (min-width: 200px) and (min-height: 100px) {
 	.dynamic-summary-metric {
 		padding: 15px 18px;
 	}
 
 	.dynamic-summary-metric-title {
-		font-size: 12px;
+		font-size: 13px;
 	}
 
 	.dynamic-summary-metric-icon {
@@ -1244,6 +1249,20 @@
 		display: flex;
 	}
 
+	.dynamic-summary-metric-title {
+		align-items: flex-start;
+		overflow: visible;
+		font-size: 13px;
+		line-height: 1.15;
+		text-overflow: clip;
+		white-space: normal;
+	}
+
+	.dynamic-summary-metric-title > span:last-child {
+		min-width: 0;
+		white-space: normal;
+	}
+
 	.dynamic-recent-activity-list {
 		grid-template-columns: minmax(0, 1fr);
 		grid-template-rows: repeat(10, 20px);
@@ -1284,6 +1303,20 @@
 		display: flex;
 	}
 
+	.dynamic-summary-metric-title {
+		align-items: flex-start;
+		overflow: visible;
+		font-size: 13px;
+		line-height: 1.15;
+		text-overflow: clip;
+		white-space: normal;
+	}
+
+	.dynamic-summary-metric-title > span:last-child {
+		min-width: 0;
+		white-space: normal;
+	}
+
 	.dynamic-dashboard-card--wide,
 	.dynamic-dashboard-card--streak {
 		grid-column: 1 / -1;
@@ -1318,6 +1351,19 @@
 .dynamic-dashboard-container--workspace .dynamic-dashboard-card--summary {
 	display: block;
 	grid-column: span 5;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-summary-metric-title {
+	align-items: center;
+	overflow: hidden;
+	font-size: 13px;
+	line-height: 1;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-summary-metric-title > span:last-child {
+	white-space: nowrap;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-card--tall,

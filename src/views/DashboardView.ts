@@ -31,13 +31,14 @@ type DashboardCardModifier =
 	| "daily-average"
 	| "total-words"
 	| "total-characters"
+	| "total-folders"
 	| "tag-insights"
 	| "file-types"
 	| "recent-activity";
 
 const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["summary", "total-words"],
-	["summary"],
+	["summary", "total-folders"],
 	["summary", "expanded", "third-column"],
 	["summary", "tall", "upper-row", "total-characters"],
 	["summary", "tall", "upper-row"],
@@ -64,6 +65,7 @@ export class DashboardView extends ItemView {
 	private dailyAverageCard: HTMLElement | null = null;
 	private estimatedTimeCard: HTMLElement | null = null;
 	private totalCharactersCard: HTMLElement | null = null;
+	private totalFoldersCard: HTMLElement | null = null;
 	private totalWordsCard: HTMLElement | null = null;
 	private streakCard: HTMLElement | null = null;
 	private fileTypesCard: HTMLElement | null = null;
@@ -101,6 +103,7 @@ export class DashboardView extends ItemView {
 			this.renderDailyAverageWords();
 			this.renderEstimatedTime();
 			this.renderTotalCharacters();
+			this.renderTotalFolders();
 			this.renderTotalWords();
 			this.renderWritingStreak();
 			this.renderTagInsights();
@@ -124,6 +127,7 @@ export class DashboardView extends ItemView {
 		this.renderDailyAverageWords();
 		this.renderEstimatedTime();
 		this.renderTotalCharacters();
+		this.renderTotalFolders();
 		this.renderTotalWords();
 		this.renderWritingStreak();
 		this.renderFileTypes();
@@ -145,6 +149,7 @@ export class DashboardView extends ItemView {
 		this.dailyAverageCard = null;
 		this.estimatedTimeCard = null;
 		this.totalCharactersCard = null;
+		this.totalFoldersCard = null;
 		this.totalWordsCard = null;
 		this.streakCard = null;
 		this.fileTypesCard = null;
@@ -230,6 +235,10 @@ export class DashboardView extends ItemView {
 
 			if (modifiers.includes("total-characters")) {
 				this.totalCharactersCard = card;
+			}
+
+			if (modifiers.includes("total-folders")) {
+				this.totalFoldersCard = card;
 			}
 
 			if (modifiers.includes("daily-average")) {
@@ -524,12 +533,29 @@ export class DashboardView extends ItemView {
 		);
 	}
 
+	private renderTotalFolders(): void {
+		if (!this.totalFoldersCard) {
+			return;
+		}
+
+		const totalFolders = this.stateManager
+			.getVaultMetricsState()
+			.volume.totalFolders;
+		this.renderSummaryMetric(
+			this.totalFoldersCard,
+			"Total folders",
+			totalFolders,
+			"folder",
+			"folders"
+		);
+	}
+
 	private renderSummaryMetric(
 		card: HTMLElement,
 		label: string,
 		value: number,
 		iconName: string,
-		iconModifier: "words" | "characters"
+		iconModifier: "words" | "characters" | "folders"
 	): void {
 		const normalizedValue = Math.max(0, value);
 
