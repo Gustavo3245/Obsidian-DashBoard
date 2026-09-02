@@ -214,6 +214,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 - o layout-base possui seis regiões em duas colunas e quatro linhas; entre 350px e 469px e somente com pelo menos 680px de altura, as duas linhas superiores e a fileira de detalhes preservam seus cards e recebem um terceiro card de insights de tags, formando um grid intermediário de três colunas; ao alcançar 850px de altura, o estado lateral completo também adiciona um segundo card largo antes dos detalhes; as linhas superiores mantêm 110px.
 - o calendário de `Writing streak` adiciona semanas conforme a largura disponível, limitado visualmente aos últimos 365 dias; na área central, depois de acomodar o ano, as células crescem conforme a largura e a altura disponíveis.
 - `Daily average words` deriva do histórico persistido duas janelas consecutivas de 30 dias, incluindo dias sem atividade como zero; a janela atual produz o valor e as barras, e a anterior produz a variação percentual. A quantidade de barras e suas dimensões acompanham o tamanho real do card, limitada aos 30 dias atuais.
+- `Estimated time` lê `estimatedReadingTime` e `estimatedSpeakingTime` do grupo persistido `estimates` e divide o card lateral igualmente entre leitura e fala; no workspace central esse card combinado permanece oculto porque as duas métricas ocupam resumos próprios.
 - `Recent activity` começa com uma lista vertical; entre 320px e 469px, enquanto a fileira ainda tiver dois cards, distribui os dez registros em duas colunas de cinco. Quando altura e largura permitem revelar o terceiro card, retorna a uma lista vertical.
 - `Tag insights` lê do grupo persistido `appears` as tags mais usadas no Vault e no frontmatter, a tag menos usada e o total de tags únicas, apresentando quatro métricas em uma lista ordenada; esse card existe apenas nos estados laterais de três colunas.
 - próximo ao limite visual, a partir de 470px internos, o estado expandido usa três colunas: seis resumos, dois cards largos, três detalhes e o streak completo; sua página tem altura própria e rolagem quando necessário.
@@ -264,7 +265,7 @@ No estado atual, `npm run build` e `npm run lint` passam. Preserve esse baseline
 
 ### Lifecycle e composição
 
-- comandos, settings tab e ícone estão registrados; `Daily average words`, `File types`, `Tag insights`, `Recent activity` e `Writing streak` já possuem apresentação no layout-base;
+- comandos, settings tab e ícone estão registrados; `Estimated time`, `Daily average words`, `File types`, `Tag insights`, `Recent activity` e `Writing streak` já possuem apresentação no layout-base;
 - timers e eventos possuem cleanup pelo lifecycle do plugin;
 - mudanças no limite de inatividade afetam a sessão atual sem exigir reload.
 

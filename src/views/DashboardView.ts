@@ -60,6 +60,7 @@ const FILE_TYPE_LABELS = {
 
 export class DashboardView extends ItemView {
 	private dailyAverageCard: HTMLElement | null = null;
+	private estimatedTimeCard: HTMLElement | null = null;
 	private streakCard: HTMLElement | null = null;
 	private fileTypesCard: HTMLElement | null = null;
 	private tagInsightsCard: HTMLElement | null = null;
@@ -94,6 +95,7 @@ export class DashboardView extends ItemView {
 		this.renderLayout();
 		this.unsubscribeState = this.stateManager.subscribe(() => {
 			this.renderDailyAverageWords();
+			this.renderEstimatedTime();
 			this.renderWritingStreak();
 			this.renderTagInsights();
 		});
@@ -114,6 +116,7 @@ export class DashboardView extends ItemView {
 			this.streakResizeObserver.observe(this.streakCard);
 		}
 		this.renderDailyAverageWords();
+		this.renderEstimatedTime();
 		this.renderWritingStreak();
 		this.renderFileTypes();
 		this.renderTagInsights();
@@ -132,6 +135,7 @@ export class DashboardView extends ItemView {
 			this.recentActivityRefreshTimer = null;
 		}
 		this.dailyAverageCard = null;
+		this.estimatedTimeCard = null;
 		this.streakCard = null;
 		this.fileTypesCard = null;
 		this.tagInsightsCard = null;
@@ -205,6 +209,10 @@ export class DashboardView extends ItemView {
 
 		for (const modifiers of DASHBOARD_CARD_LAYOUT) {
 			const card = this.createCard(dashboard, modifiers);
+
+			if (modifiers.includes("estimated")) {
+				this.estimatedTimeCard = card;
+			}
 
 			if (modifiers.includes("daily-average")) {
 				this.dailyAverageCard = card;
@@ -464,6 +472,100 @@ export class DashboardView extends ItemView {
 		}
 	}
 
+	private renderEstimatedTime(): void {
+		if (!this.estimatedTimeCard) {
+			return;
+		}
+
+		const estimates = this.stateManager.getVaultMetricsState().estimates;
+		const readingTime = this.formatEstimatedTime(estimates.estimatedReadingTime);
+		const speakingTime = this.formatEstimatedTime(estimates.estimatedSpeakingTime);
+
+		this.estimatedTimeCard.empty();
+		const content = this.estimatedTimeCard.createDiv({
+			cls: "dynamic-estimated-time",
+		});
+		const title = content.createDiv({
+			cls: "dynamic-estimated-time-title",
+		});
+		const titleIcon = title.createSpan({
+			cls: "dynamic-estimated-time-title-icon",
+		});
+		setIcon(titleIcon, "clock-3");
+		title.createSpan({ text: "Estimated time" });
+
+		const metrics = content.createDiv({
+			cls: "dynamic-estimated-time-metrics",
+		});
+		this.renderEstimatedTimeMetric(
+			metrics,
+			"Reading time",
+			readingTime,
+			"clock-3",
+			"book-open",
+			"reading"
+		);
+		this.renderEstimatedTimeMetric(
+			metrics,
+			"Speaking time",
+			speakingTime,
+			"mic",
+			"audio-lines",
+			"speaking"
+		);
+	}
+
+	private renderEstimatedTimeMetric(
+		parent: HTMLElement,
+		label: string,
+		value: string,
+		valueIconName: string,
+		labelIconName: string,
+		labelIconModifier: "reading" | "speaking"
+	): void {
+		const metric = parent.createDiv({
+			cls: "dynamic-estimated-time-metric",
+		});
+		const metricLabel = metric.createDiv({
+			cls: "dynamic-estimated-time-label",
+		});
+		const labelIcon = metricLabel.createSpan({
+			cls: `dynamic-estimated-time-label-icon dynamic-estimated-time-label-icon--${labelIconModifier}`,
+		});
+		setIcon(labelIcon, labelIconName);
+		metricLabel.createSpan({ text: label });
+
+		const metricValue = metric.createDiv({
+			cls: "dynamic-estimated-time-value",
+		});
+		const valueIcon = metricValue.createSpan({
+			cls: "dynamic-estimated-time-value-icon",
+		});
+		setIcon(valueIcon, valueIconName);
+		metricValue.createSpan({
+			cls: "dynamic-estimated-time-value-text",
+			text: value,
+		});
+		const hourglassIcon = metricValue.createSpan({
+			cls: "dynamic-estimated-time-hourglass-icon",
+		});
+		setIcon(hourglassIcon, "hourglass");
+		metric.setAttribute("aria-label", `${label}: ${value}`);
+	}
+
+	private formatEstimatedTime(
+		value: { hours: number; minutes: number; seconds: number } | string
+	): string {
+		if (typeof value === "string") {
+			return "00h 00m 00s";
+		}
+
+		const formatUnit = (unit: number) => String(
+			Math.max(0, Math.floor(unit))
+		).padStart(2, "0");
+		return `${formatUnit(value.hours)}h ${formatUnit(value.minutes)}m ${formatUnit(value.seconds)}s`;
+	}
+
 	private renderDailyAverageWords(): void {
 		if (!this.dailyAverageCard) {
 			return;
@@ -519,7 +621,7 @@ export class DashboardView extends ItemView {
 			cls: "dynamic-daily-average-change",
 			text: `${metric.changePercentage > 0
 				? "↑"
-				: metric.changePercentage < 0 ? "↓" : "→"} ${Math.abs(metric.changePercentage).toFixed(1)}%`,
+				: metric.changePercentage < 0 ? "↓" : "→"} ${metric.changePercentage.toFixed(1)}%`,
 		});
 		trend.createDiv({
 			cls: "dynamic-daily-average-comparison",
