@@ -97,7 +97,8 @@
 
 .dynamic-dashboard-card--total-words,
 .dynamic-dashboard-card--total-characters,
-.dynamic-dashboard-card--total-folders {
+.dynamic-dashboard-card--total-folders,
+.dynamic-dashboard-card--total-files {
 	container-name: summary-metric;
 	container-type: size;
 }
@@ -156,6 +157,10 @@
 	color: #58a6ff;
 }
 
+.dynamic-summary-metric-icon--files {
+	color: #a371f7;
+}
+
 .dynamic-summary-metric-value {
 	display: flex;
 	flex: 1 1 auto;
@@ -171,6 +176,60 @@
 	text-align: center;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.dynamic-summary-metric-footer {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 5px;
+	width: 100%;
+	min-width: 0;
+	padding-top: 5px;
+	overflow: hidden;
+	border-top: 2px solid var(--dynamic-summary-footer-color);
+	color: var(--text-faint);
+	font-size: 8px;
+	font-weight: var(--font-medium);
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.dynamic-summary-metric-footer--words {
+	--dynamic-summary-footer-color: #8957e5;
+}
+
+.dynamic-summary-metric-footer--characters {
+	--dynamic-summary-footer-color: #1f6feb;
+}
+
+.dynamic-summary-metric-footer--folders {
+	--dynamic-summary-footer-color: #1f6feb;
+}
+
+.dynamic-summary-metric-footer--files {
+	--dynamic-summary-footer-color: #8957e5;
+}
+
+.dynamic-summary-metric-footer-icon {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
+	width: 11px;
+	height: 11px;
+	color: var(--dynamic-summary-footer-color);
+}
+
+.dynamic-summary-metric-footer-icon svg {
+	width: 100%;
+	height: 100%;
+}
+
+.dynamic-summary-metric-footer-text {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 @container summary-metric (min-width: 110px) and (min-height: 90px) {
@@ -190,6 +249,15 @@
 	.dynamic-summary-metric-value {
 		font-size: 28px;
 	}
+
+	.dynamic-summary-metric-footer {
+		font-size: 9px;
+	}
+
+	.dynamic-summary-metric-footer-icon {
+		width: 12px;
+		height: 12px;
+	}
 }
 
 @container summary-metric (min-width: 200px) and (min-height: 100px) {
@@ -208,6 +276,16 @@
 
 	.dynamic-summary-metric-value {
 		font-size: 34px;
+	}
+
+	.dynamic-summary-metric-footer {
+		padding-top: 7px;
+		font-size: 10px;
+	}
+
+	.dynamic-summary-metric-footer-icon {
+		width: 14px;
+		height: 14px;
 	}
 }
 

@@ -32,6 +32,7 @@ type DashboardCardModifier =
 	| "total-words"
 	| "total-characters"
 	| "total-folders"
+	| "total-files"
 	| "tag-insights"
 	| "file-types"
 	| "recent-activity";
@@ -41,7 +42,7 @@ const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["summary", "total-folders"],
 	["summary", "expanded", "third-column"],
 	["summary", "tall", "upper-row", "total-characters"],
-	["summary", "tall", "upper-row"],
+	["summary", "tall", "upper-row", "total-files"],
 	["summary", "expanded", "third-column"],
 	["summary", "workspace"],
 	["summary", "workspace"],
@@ -65,6 +66,7 @@ export class DashboardView extends ItemView {
 	private dailyAverageCard: HTMLElement | null = null;
 	private estimatedTimeCard: HTMLElement | null = null;
 	private totalCharactersCard: HTMLElement | null = null;
+	private totalFilesCard: HTMLElement | null = null;
 	private totalFoldersCard: HTMLElement | null = null;
 	private totalWordsCard: HTMLElement | null = null;
 	private streakCard: HTMLElement | null = null;
@@ -103,6 +105,7 @@ export class DashboardView extends ItemView {
 			this.renderDailyAverageWords();
 			this.renderEstimatedTime();
 			this.renderTotalCharacters();
+			this.renderTotalFiles();
 			this.renderTotalFolders();
 			this.renderTotalWords();
 			this.renderWritingStreak();
@@ -127,6 +130,7 @@ export class DashboardView extends ItemView {
 		this.renderDailyAverageWords();
 		this.renderEstimatedTime();
 		this.renderTotalCharacters();
+		this.renderTotalFiles();
 		this.renderTotalFolders();
 		this.renderTotalWords();
 		this.renderWritingStreak();
@@ -149,6 +153,7 @@ export class DashboardView extends ItemView {
 		this.dailyAverageCard = null;
 		this.estimatedTimeCard = null;
 		this.totalCharactersCard = null;
+		this.totalFilesCard = null;
 		this.totalFoldersCard = null;
 		this.totalWordsCard = null;
 		this.streakCard = null;
@@ -239,6 +244,10 @@ export class DashboardView extends ItemView {
 
 			if (modifiers.includes("total-folders")) {
 				this.totalFoldersCard = card;
+			}
+
+			if (modifiers.includes("total-files")) {
+				this.totalFilesCard = card;
 			}
 
 			if (modifiers.includes("daily-average")) {
@@ -507,12 +516,21 @@ export class DashboardView extends ItemView {
 		const totalWords = this.stateManager
 			.getVaultMetricsState()
 			.volume.snapshot.totalWords;
+		const averageWordsPerFile = Math.max(
+			0,
+			this.stateManager.getVaultMetricsState().volume.averageWordsPerFile
+		);
 		this.renderSummaryMetric(
 			this.totalWordsCard,
-			"Total words",
+			"Words",
 			totalWords,
 			"pen-line",
-			"words"
+			"words",
+			{
+				iconName: "file-text",
+				modifier: "words",
+				text: `${this.formatSummaryRatio(averageWordsPerFile)} words / file`,
+			}
 		);
 	}
 
@@ -524,12 +542,23 @@ export class DashboardView extends ItemView {
 		const totalCharacters = this.stateManager
 			.getVaultMetricsState()
 			.volume.snapshot.totalCharacters;
+		const totalWords = this.stateManager
+			.getVaultMetricsState()
+			.volume.snapshot.totalWords;
+		const charactersPerWord = totalWords > 0
+			? totalCharacters / totalWords
+			: 0;
 		this.renderSummaryMetric(
 			this.totalCharactersCard,
-			"Total characters",
+			"Characters",
 			totalCharacters,
 			"case-sensitive",
-			"characters"
+			"characters",
+			{
+				iconName: "languages",
+				modifier: "characters",
+				text: `${charactersPerWord.toFixed(1)} chars / word`,
+			}
 		);
 	}
 
@@ -541,12 +570,51 @@ export class DashboardView extends ItemView {
 		const totalFolders = this.stateManager
 			.getVaultMetricsState()
 			.volume.totalFolders;
+		const totalFiles = this.stateManager
+			.getVaultMetricsState()
+			.volume.totalFiles;
+		const filesPerFolder = totalFolders > 0
+			? totalFiles / totalFolders
+			: 0;
 		this.renderSummaryMetric(
 			this.totalFoldersCard,
-			"Total folders",
+			"Folders",
 			totalFolders,
 			"folder",
-			"folders"
+			"folders",
+			{
+				iconName: "files",
+				modifier: "folders",
+				text: `${this.formatSummaryRatio(filesPerFolder)} files / folder`,
+			}
+		);
+	}
+
+	private renderTotalFiles(): void {
+		if (!this.totalFilesCard) {
+			return;
+		}
+
+		const totalFiles = this.stateManager
+			.getVaultMetricsState()
+			.volume.totalFiles;
+		const totalFolders = this.stateManager
+			.getVaultMetricsState()
+			.volume.totalFolders;
+		const filesPerFolder = totalFolders > 0
+			? totalFiles / totalFolders
+			: 0;
+		this.renderSummaryMetric(
+			this.totalFilesCard,
+			"Files",
+			totalFiles,
+			"file-text",
+			"files",
+			{
+				iconName: "folder",
+				modifier: "files",
+				text: `${this.formatSummaryRatio(filesPerFolder)} files / folder`,
+			}
 		);
 	}
 
@@ -555,7 +623,12 @@ export class DashboardView extends ItemView {
 		label: string,
 		value: number,
 		iconName: string,
-		iconModifier: "words" | "characters" | "folders"
+		iconModifier: "words" | "characters" | "folders" | "files",
+		footer?: {
+			iconName: string;
+			modifier: "words" | "characters" | "folders" | "files";
+			text: string;
+		}
 	): void {
 		const normalizedValue = Math.max(0, value);
 
@@ -575,10 +648,27 @@ export class DashboardView extends ItemView {
 			cls: "dynamic-summary-metric-value",
 			text: normalizedValue.toLocaleString("en-US"),
 		});
+		if (footer) {
+			const footerElement = content.createDiv({
+				cls: `dynamic-summary-metric-footer dynamic-summary-metric-footer--${footer.modifier}`,
+			});
+			const footerIcon = footerElement.createSpan({
+				cls: "dynamic-summary-metric-footer-icon",
+			});
+			setIcon(footerIcon, footer.iconName);
+			footerElement.createSpan({
+				cls: "dynamic-summary-metric-footer-text",
+				text: footer.text,
+			});
+		}
 		content.setAttribute(
 			"aria-label",
-			`${label}: ${normalizedValue}`
+			`${label}: ${normalizedValue}${footer ? `, ${footer.text}` : ""}`
 		);
+	}
+
+	private formatSummaryRatio(value: number): string {
+		return value.toFixed(1).replace(/\.0$/, "");
 	}
 
 	private renderEstimatedTime(): void {
