@@ -29,12 +29,13 @@ type DashboardCardModifier =
 	| "workspace"
 	| "estimated"
 	| "daily-average"
+	| "total-words"
 	| "tag-insights"
 	| "file-types"
 	| "recent-activity";
 
 const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
-	["summary"],
+	["summary", "total-words"],
 	["summary"],
 	["summary", "expanded", "third-column"],
 	["summary", "tall", "upper-row"],
@@ -61,6 +62,7 @@ const FILE_TYPE_LABELS = {
 export class DashboardView extends ItemView {
 	private dailyAverageCard: HTMLElement | null = null;
 	private estimatedTimeCard: HTMLElement | null = null;
+	private totalWordsCard: HTMLElement | null = null;
 	private streakCard: HTMLElement | null = null;
 	private fileTypesCard: HTMLElement | null = null;
 	private tagInsightsCard: HTMLElement | null = null;
@@ -96,6 +98,7 @@ export class DashboardView extends ItemView {
 		this.unsubscribeState = this.stateManager.subscribe(() => {
 			this.renderDailyAverageWords();
 			this.renderEstimatedTime();
+			this.renderTotalWords();
 			this.renderWritingStreak();
 			this.renderTagInsights();
 		});
@@ -117,6 +120,7 @@ export class DashboardView extends ItemView {
 		}
 		this.renderDailyAverageWords();
 		this.renderEstimatedTime();
+		this.renderTotalWords();
 		this.renderWritingStreak();
 		this.renderFileTypes();
 		this.renderTagInsights();
@@ -136,6 +140,7 @@ export class DashboardView extends ItemView {
 		}
 		this.dailyAverageCard = null;
 		this.estimatedTimeCard = null;
+		this.totalWordsCard = null;
 		this.streakCard = null;
 		this.fileTypesCard = null;
 		this.tagInsightsCard = null;
@@ -212,6 +217,10 @@ export class DashboardView extends ItemView {
 
 			if (modifiers.includes("estimated")) {
 				this.estimatedTimeCard = card;
+			}
+
+			if (modifiers.includes("total-words")) {
+				this.totalWordsCard = card;
 			}
 
 			if (modifiers.includes("daily-average")) {
@@ -470,6 +479,37 @@ export class DashboardView extends ItemView {
 				`${insight.label}: ${metric.name}, ${metric.count}`
 			);
 		}
+	}
+
+	private renderTotalWords(): void {
+		if (!this.totalWordsCard) {
+			return;
+		}
+
+		const totalWords = this.stateManager
+			.getVaultMetricsState()
+			.volume.snapshot.totalWords;
+
+		this.totalWordsCard.empty();
+		const content = this.totalWordsCard.createDiv({
+			cls: "dynamic-summary-metric",
+		});
+		const title = content.createDiv({
+			cls: "dynamic-summary-metric-title",
+		});
+		const icon = title.createSpan({
+			cls: "dynamic-summary-metric-icon dynamic-summary-metric-icon--words",
+		});
+		setIcon(icon, "pen-line");
+		title.createSpan({ text: "Total words" });
+		content.createDiv({
+			cls: "dynamic-summary-metric-value",
+			text: Math.max(0, totalWords).toLocaleString("en-US"),
+		});
+		content.setAttribute(
+			"aria-label",
+			`Total words: ${Math.max(0, totalWords)}`
+		);
 	}
 
 	private renderEstimatedTime(): void {
