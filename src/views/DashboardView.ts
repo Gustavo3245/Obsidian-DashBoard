@@ -28,7 +28,7 @@ type DashboardCardModifier =
 	| "workspace"
 	| "estimated"
 	| "daily-average"
-	| "active-days"
+	| "tag-insights"
 	| "file-types"
 	| "recent-activity";
 
@@ -44,7 +44,7 @@ const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["wide", "estimated"],
 	["wide", "tall", "daily-average"],
 	["detail", "file-types"],
-	["detail", "expanded", "active-days"],
+	["detail", "expanded", "tag-insights"],
 	["detail", "recent-activity"],
 	["wide", "streak"],
 ];
@@ -60,6 +60,7 @@ const FILE_TYPE_LABELS = {
 export class DashboardView extends ItemView {
 	private streakCard: HTMLElement | null = null;
 	private fileTypesCard: HTMLElement | null = null;
+	private tagInsightsCard: HTMLElement | null = null;
 	private recentActivityCard: HTMLElement | null = null;
 	private streakResizeObserver: ResizeObserver | null = null;
 	private unsubscribeState: (() => void) | null = null;
@@ -88,9 +89,10 @@ export class DashboardView extends ItemView {
 		this.contentEl.addClass("dynamic-dashboard-view");
 		this.updateLayoutMode();
 		this.renderLayout();
-		this.unsubscribeState = this.stateManager.subscribe(
-			() => this.renderWritingStreak()
-		);
+		this.unsubscribeState = this.stateManager.subscribe(() => {
+			this.renderWritingStreak();
+			this.renderTagInsights();
+		});
 		this.registerPresentationEvents();
 		this.registerEvent(
 			this.app.workspace.on("layout-change", () => this.updateLayoutMode())
@@ -103,6 +105,7 @@ export class DashboardView extends ItemView {
 		}
 		this.renderWritingStreak();
 		this.renderFileTypes();
+		this.renderTagInsights();
 		this.renderRecentActivity();
 	}
 
@@ -117,6 +120,7 @@ export class DashboardView extends ItemView {
 		}
 		this.streakCard = null;
 		this.fileTypesCard = null;
+		this.tagInsightsCard = null;
 		this.recentActivityCard = null;
 		this.containerEl.removeClass("dynamic-dashboard-container");
 		this.containerEl.removeClass("dynamic-dashboard-container--workspace");
@@ -193,6 +197,10 @@ export class DashboardView extends ItemView {
 
 			if (modifiers.includes("file-types")) {
 				this.fileTypesCard = card;
+			}
+
+			if (modifiers.includes("tag-insights")) {
+				this.tagInsightsCard = card;
 			}
 
 			if (modifiers.includes("recent-activity")) {
@@ -357,6 +365,79 @@ export class DashboardView extends ItemView {
 			const track = details.createDiv({ cls: "dynamic-file-types-track" });
 			const fill = track.createDiv({ cls: "dynamic-file-types-fill" });
 			fill.style.width = `${metric.percentage}%`;
+		}
+	}
+
+	private renderTagInsights(): void {
+		if (!this.tagInsightsCard) {
+			return;
+		}
+
+		const appears = this.stateManager.getVaultMetricsState().appears;
+		const insights = [
+			{
+				label: "Most used tag",
+				metric: appears.mostAppearsTag,
+				color: "#8b5cf6",
+			},
+			{
+				label: "Most used frontmatter tag",
+				metric: appears.mostAppearsTagInFrontMatter,
+				color: "#38bdf8",
+			},
+			{
+				label: "Least used tag",
+				metric: appears.minorAppearsTag,
+				color: "#22c55e",
+			},
+			{
+				label: "Total unique tags",
+				metric: { name: "Unique", count: appears.totalUniqueTags },
+				color: "#facc15",
+			},
+		] as const;
+
+		this.tagInsightsCard.empty();
+		const title = this.tagInsightsCard.createDiv({
+			cls: "dynamic-tag-insights-title",
+		});
+		const titleIcon = title.createSpan({
+			cls: "dynamic-tag-insights-title-icon",
+		});
+		setIcon(titleIcon, "tag");
+		title.createSpan({ text: "Tag insights" });
+
+		const list = this.tagInsightsCard.createEl("ol", {
+			cls: "dynamic-tag-insights-list",
+		});
+
+		for (const insight of insights) {
+			const metric = typeof insight.metric === "string"
+				? { name: "No tags", count: 0 }
+				: insight.metric;
+			const item = list.createEl("li", {
+				cls: "dynamic-tag-insights-item",
+			});
+			item.style.setProperty("--dynamic-tag-insight-color", insight.color);
+			item.createDiv({
+				cls: "dynamic-tag-insights-label",
+				text: insight.label,
+			});
+			const value = item.createDiv({
+				cls: "dynamic-tag-insights-value",
+			});
+			value.createSpan({
+				cls: "dynamic-tag-insights-badge",
+				text: metric.name,
+			});
+			value.createSpan({
+				cls: "dynamic-tag-insights-count",
+				text: metric.count.toLocaleString(),
+			});
+			item.setAttribute(
+				"aria-label",
+				`${insight.label}: ${metric.name}, ${metric.count}`
+			);
 		}
 	}
 
