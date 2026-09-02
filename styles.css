@@ -390,7 +390,7 @@
 	grid-template-columns: minmax(0, 1fr);
 	grid-template-rows: repeat(10, 20px);
 	grid-auto-flow: row;
-	gap: 3px;
+	gap: 5px;
 	min-height: 0;
 	overflow: hidden;
 }
@@ -444,6 +444,16 @@
 	line-height: 1.1;
 }
 
+@container dynamic-dashboard (min-width: 320px) and (max-width: 469px) {
+	.dynamic-recent-activity-list {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-rows: repeat(5, 17px);
+		grid-auto-flow: column;
+		align-content: space-between;
+		gap: 5px 5px;
+	}
+}
+
 @container dynamic-dashboard (min-width: 350px) and (max-width: 469px) and (min-height: 680px) {
 	.dynamic-dashboard-layout {
 		grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -454,6 +464,14 @@
 	.dynamic-dashboard-card--third-column,
 	.dynamic-dashboard-card--active-days {
 		display: block;
+	}
+
+	.dynamic-recent-activity-list {
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-rows: repeat(10, 20px);
+		grid-auto-flow: row;
+		align-content: normal;
+		gap: 5px;
 	}
 }
 
@@ -550,7 +568,7 @@
 	--dynamic-streak-cell-size: 14px;
 	--dynamic-streak-cell-gap: 3px;
 	grid-column: span 16;
-	padding: 14px 18px;
+	padding: 8px 10px;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-file-types-title,

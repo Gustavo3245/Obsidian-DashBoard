@@ -368,9 +368,30 @@ export class DashboardView extends ItemView {
 		const isWorkspace = this.containerEl.hasClass(
 			"dynamic-dashboard-container--workspace"
 		);
-		const cellSize = isWorkspace ? 14 : 9;
 		const cellGap = isWorkspace ? 3 : 2;
+		const baseCellSize = isWorkspace ? 14 : 9;
+		const horizontalCellSize = Math.floor(
+			(this.streakCard.clientWidth - 48 - (52 * cellGap)) / 53
+		);
+		const verticalCellSize = Math.floor(
+			(this.streakCard.clientHeight - 54 - (6 * cellGap)) / 7
+		);
+		const cellSize = isWorkspace
+			? Math.max(
+				baseCellSize,
+				Math.min(20, horizontalCellSize, verticalCellSize)
+			)
+			: baseCellSize;
 		const availableWidth = Math.max(0, this.streakCard.clientWidth - 38);
+
+		this.streakCard.style.setProperty(
+			"--dynamic-streak-cell-size",
+			`${cellSize}px`
+		);
+		this.streakCard.style.setProperty(
+			"--dynamic-streak-cell-gap",
+			`${cellGap}px`
+		);
 		const visibleWeeks = Math.max(
 			4,
 			Math.min(53, Math.floor((availableWidth + cellGap) / (cellSize + cellGap)))
