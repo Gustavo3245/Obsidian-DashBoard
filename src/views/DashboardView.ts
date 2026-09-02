@@ -9,6 +9,7 @@ import {
 } from "obsidian";
 import { StateManager } from "state/StateManager";
 import {
+	getDashboardDailyAverageWords,
 	getDashboardFileTypes,
 	getDashboardRecentActivities,
 } from "views/DashboardViewData";
@@ -58,10 +59,12 @@ const FILE_TYPE_LABELS = {
 } as const;
 
 export class DashboardView extends ItemView {
+	private dailyAverageCard: HTMLElement | null = null;
 	private streakCard: HTMLElement | null = null;
 	private fileTypesCard: HTMLElement | null = null;
 	private tagInsightsCard: HTMLElement | null = null;
 	private recentActivityCard: HTMLElement | null = null;
+	private dailyAverageResizeObserver: ResizeObserver | null = null;
 	private streakResizeObserver: ResizeObserver | null = null;
 	private unsubscribeState: (() => void) | null = null;
 	private recentActivityRefreshTimer: number | null = null;
@@ -90,6 +93,7 @@ export class DashboardView extends ItemView {
 		this.updateLayoutMode();
 		this.renderLayout();
 		this.unsubscribeState = this.stateManager.subscribe(() => {
+			this.renderDailyAverageWords();
 			this.renderWritingStreak();
 			this.renderTagInsights();
 		});
@@ -97,12 +101,19 @@ export class DashboardView extends ItemView {
 		this.registerEvent(
 			this.app.workspace.on("layout-change", () => this.updateLayoutMode())
 		);
+		if (this.dailyAverageCard) {
+			this.dailyAverageResizeObserver = new ResizeObserver(
+				() => this.renderDailyAverageWords()
+			);
+			this.dailyAverageResizeObserver.observe(this.dailyAverageCard);
+		}
 		if (this.streakCard) {
 			this.streakResizeObserver = new ResizeObserver(
 				() => this.renderWritingStreak()
 			);
 			this.streakResizeObserver.observe(this.streakCard);
 		}
+		this.renderDailyAverageWords();
 		this.renderWritingStreak();
 		this.renderFileTypes();
 		this.renderTagInsights();
@@ -112,12 +123,15 @@ export class DashboardView extends ItemView {
 	protected async onClose(): Promise<void> {
 		this.unsubscribeState?.();
 		this.unsubscribeState = null;
+		this.dailyAverageResizeObserver?.disconnect();
+		this.dailyAverageResizeObserver = null;
 		this.streakResizeObserver?.disconnect();
 		this.streakResizeObserver = null;
 		if (this.recentActivityRefreshTimer !== null) {
 			window.clearTimeout(this.recentActivityRefreshTimer);
 			this.recentActivityRefreshTimer = null;
 		}
+		this.dailyAverageCard = null;
 		this.streakCard = null;
 		this.fileTypesCard = null;
 		this.tagInsightsCard = null;
@@ -151,6 +165,7 @@ export class DashboardView extends ItemView {
 			"dynamic-dashboard-container--workspace",
 			isWorkspace
 		);
+		this.renderDailyAverageWords();
 		this.renderWritingStreak();
 	}
 
@@ -190,6 +205,10 @@ export class DashboardView extends ItemView {
 
 		for (const modifiers of DASHBOARD_CARD_LAYOUT) {
 			const card = this.createCard(dashboard, modifiers);
+
+			if (modifiers.includes("daily-average")) {
+				this.dailyAverageCard = card;
+			}
 
 			if (modifiers.includes("streak")) {
 				this.streakCard = card;
@@ -263,10 +282,14 @@ export class DashboardView extends ItemView {
 		const activities = getDashboardRecentActivities(this.app.vault.getMarkdownFiles());
 
 		this.recentActivityCard.empty();
-		this.recentActivityCard.createDiv({
+		const title = this.recentActivityCard.createDiv({
 			cls: "dynamic-recent-activity-title",
-			text: "Recent activity",
 		});
+		const titleIcon = title.createSpan({
+			cls: "dynamic-recent-activity-title-icon",
+		});
+		setIcon(titleIcon, "history");
+		title.createSpan({ text: "Recent activity" });
 		const list = this.recentActivityCard.createDiv({
 			cls: "dynamic-recent-activity-list",
 		});
@@ -439,6 +462,160 @@ export class DashboardView extends ItemView {
 				`${insight.label}: ${metric.name}, ${metric.count}`
 			);
 		}
+	}
+
+	private renderDailyAverageWords(): void {
+		if (!this.dailyAverageCard) {
+			return;
+		}
+
+		const metric = getDashboardDailyAverageWords(
+			this.stateManager.getDailyMetricsState()
+		);
+		const availablePlotWidth = Math.max(0, this.dailyAverageCard.clientWidth - 115);
+		const visibleDays = Math.max(
+			7,
+			Math.min(30, Math.floor((availablePlotWidth + 3) / 9))
+		);
+		const points = metric.points.slice(-visibleDays);
+		const axisMaximum = this.getDailyWordsAxisMaximum(
+			points.map((point) => point.words),
+			metric.currentAverage
+		);
+		const changeDirection = metric.changePercentage > 0
+			? "positive"
+			: metric.changePercentage < 0 ? "negative" : "neutral";
+
+		this.dailyAverageCard.empty();
+		const content = this.dailyAverageCard.createDiv({
+			cls: "dynamic-daily-average",
+		});
+		content.setAttribute(
+			"aria-label",
+			`Daily average words: ${metric.currentAverage.toFixed(1)}, ${metric.changePercentage.toFixed(1)}% versus the previous 30 days`
+		);
+		const header = content.createDiv({
+			cls: "dynamic-daily-average-header",
+		});
+		const heading = header.createDiv({
+			cls: "dynamic-daily-average-heading",
+		});
+		const title = heading.createDiv({
+			cls: "dynamic-daily-average-title",
+		});
+		const titleIcon = title.createSpan({
+			cls: "dynamic-daily-average-title-icon",
+		});
+		setIcon(titleIcon, "trending-up");
+		title.createSpan({ text: "Daily average words" });
+		heading.createDiv({
+			cls: "dynamic-daily-average-subtitle",
+			text: "Based on the last 30 days",
+		});
+		const trend = header.createDiv({
+			cls: `dynamic-daily-average-trend dynamic-daily-average-trend--${changeDirection}`,
+		});
+		trend.createDiv({
+			cls: "dynamic-daily-average-change",
+			text: `${metric.changePercentage > 0
+				? "↑"
+				: metric.changePercentage < 0 ? "↓" : "→"} ${Math.abs(metric.changePercentage).toFixed(1)}%`,
+		});
+		trend.createDiv({
+			cls: "dynamic-daily-average-comparison",
+			text: "vs previous 30 days",
+		});
+
+		const body = content.createDiv({
+			cls: "dynamic-daily-average-body",
+		});
+		body.createDiv({
+			cls: "dynamic-daily-average-value",
+			text: metric.currentAverage.toFixed(1),
+		});
+		const graph = body.createDiv({
+			cls: "dynamic-daily-average-graph",
+		});
+		const yAxis = graph.createDiv({
+			cls: "dynamic-daily-average-y-axis",
+		});
+		for (const value of [axisMaximum, axisMaximum / 2, 0]) {
+			yAxis.createSpan({ text: this.formatDailyWordsAxisValue(value) });
+		}
+
+		const plot = graph.createDiv({
+			cls: "dynamic-daily-average-plot",
+		});
+		plot.style.gridTemplateColumns = `repeat(${points.length}, minmax(0, 1fr))`;
+		const averageLine = plot.createDiv({
+			cls: "dynamic-daily-average-line",
+		});
+		averageLine.style.bottom = axisMaximum > 0
+			? `${Math.min(100, (metric.currentAverage / axisMaximum) * 100)}%`
+			: "0";
+
+		for (const point of points) {
+			const bar = plot.createDiv({
+				cls: "dynamic-daily-average-bar",
+			});
+			bar.style.height = axisMaximum > 0
+				? `${Math.min(100, (point.words / axisMaximum) * 100)}%`
+				: "0";
+			bar.setAttribute("title", `${point.dateKey}: ${point.words} words`);
+			bar.setAttribute("aria-label", `${point.dateKey}: ${point.words} words`);
+		}
+
+		const xAxis = graph.createDiv({
+			cls: "dynamic-daily-average-x-axis",
+		});
+		xAxis.style.gridTemplateColumns = `repeat(${points.length}, minmax(0, 1fr))`;
+		const labelIndexes = new Set(
+			[0, 0.25, 0.5, 0.75, 1].map((ratio) =>
+				Math.round((points.length - 1) * ratio)
+			)
+		);
+		const dateFormatter = new Intl.DateTimeFormat("en-US", {
+			month: "short",
+			day: "numeric",
+		});
+
+		for (const [index, point] of points.entries()) {
+			const slot = xAxis.createSpan({
+				cls: "dynamic-daily-average-date-slot",
+			});
+			if (labelIndexes.has(index)) {
+				slot.createSpan({
+					cls: "dynamic-daily-average-date-label",
+					text: dateFormatter.format(this.parseDailyWordsDate(point.dateKey)),
+				});
+			}
+		}
+	}
+
+	private getDailyWordsAxisMaximum(values: number[], average: number): number {
+		const maximum = Math.max(0, average, ...values);
+		if (maximum === 0) {
+			return 0;
+		}
+
+		const magnitude = 10 ** Math.floor(Math.log10(maximum));
+		const normalized = maximum / magnitude;
+		const multiplier = normalized <= 1
+			? 1
+			: normalized <= 2 ? 2 : normalized <= 4 ? 4 : normalized <= 8 ? 8 : 10;
+		return multiplier * magnitude;
+	}
+
+	private formatDailyWordsAxisValue(value: number): string {
+		return value.toLocaleString("en-US", {
+			notation: "compact",
+			maximumFractionDigits: 1,
+		});
+	}
+
+	private parseDailyWordsDate(dateKey: string): Date {
+		const [year, month, day] = dateKey.split("-").map(Number);
+		return new Date(year ?? 0, (month ?? 1) - 1, day ?? 1);
 	}
 
 	private renderWritingStreak(): void {

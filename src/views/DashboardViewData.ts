@@ -1,4 +1,5 @@
 import { TFile } from "obsidian";
+import { DailyMetrics } from "models/DailyMetrics";
 
 export interface DashboardFileTypeMetric {
 	type: "markdown" | "canvas" | "excalidraw" | "other";
@@ -10,6 +11,57 @@ export interface DashboardRecentActivity {
 	name: string;
 	path: string;
 	timestamp: number;
+}
+
+export interface DashboardDailyWordsPoint {
+	dateKey: string;
+	words: number;
+}
+
+export interface DashboardDailyAverageWords {
+	currentAverage: number;
+	previousAverage: number;
+	changePercentage: number;
+	points: DashboardDailyWordsPoint[];
+}
+
+export function getDashboardDailyAverageWords(
+	dailyHistory: Record<string, DailyMetrics>,
+	today = new Date(),
+	days = 30
+): DashboardDailyAverageWords {
+	const periodDays = Math.max(1, Math.floor(days));
+	const startOfToday = new Date(
+		today.getFullYear(),
+		today.getMonth(),
+		today.getDate()
+	);
+	const allPoints: DashboardDailyWordsPoint[] = [];
+
+	for (let offset = (periodDays * 2) - 1; offset >= 0; offset--) {
+		const date = new Date(startOfToday);
+		date.setDate(startOfToday.getDate() - offset);
+		const dateKey = toLocalDateKey(date);
+		allPoints.push({
+			dateKey,
+			words: Math.max(0, dailyHistory[dateKey]?.words ?? 0),
+		});
+	}
+
+	const previousPoints = allPoints.slice(0, periodDays);
+	const points = allPoints.slice(periodDays);
+	const currentAverage = getAverageWords(points);
+	const previousAverage = getAverageWords(previousPoints);
+	const changePercentage = previousAverage > 0
+		? ((currentAverage - previousAverage) / previousAverage) * 100
+		: currentAverage > 0 ? 100 : 0;
+
+	return {
+		currentAverage,
+		previousAverage,
+		changePercentage,
+		points,
+	};
 }
 
 export function getDashboardFileTypes(files: TFile[]): DashboardFileTypeMetric[] {
@@ -69,4 +121,15 @@ export function getDashboardRecentActivities(
 	return activities
 		.sort((first, second) => second.timestamp - first.timestamp)
 		.slice(0, Math.max(0, limit));
+}
+
+function getAverageWords(points: DashboardDailyWordsPoint[]): number {
+	return points.reduce((total, point) => total + point.words, 0) / points.length;
+}
+
+function toLocalDateKey(date: Date): string {
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, "0");
+	const day = String(date.getDate()).padStart(2, "0");
+	return `${year}-${month}-${day}`;
 }
