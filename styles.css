@@ -161,6 +161,10 @@
 	color: #a371f7;
 }
 
+.dynamic-summary-metric-icon--vault-size {
+	color: #3fb950;
+}
+
 .dynamic-summary-metric-value {
 	display: flex;
 	flex: 1 1 auto;
@@ -209,6 +213,10 @@
 
 .dynamic-summary-metric-footer--files {
 	--dynamic-summary-footer-color: #8957e5;
+}
+
+.dynamic-summary-metric-footer--vault-size {
+	--dynamic-summary-footer-color: #238636;
 }
 
 .dynamic-summary-metric-footer-icon {

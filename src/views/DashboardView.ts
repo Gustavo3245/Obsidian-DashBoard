@@ -33,6 +33,7 @@ type DashboardCardModifier =
 	| "total-characters"
 	| "total-folders"
 	| "total-files"
+	| "vault-size"
 	| "tag-insights"
 	| "file-types"
 	| "recent-activity";
@@ -40,7 +41,7 @@ type DashboardCardModifier =
 const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["summary", "total-words"],
 	["summary", "total-folders"],
-	["summary", "expanded", "third-column"],
+	["summary", "expanded", "third-column", "vault-size"],
 	["summary", "tall", "upper-row", "total-characters"],
 	["summary", "tall", "upper-row", "total-files"],
 	["summary", "expanded", "third-column"],
@@ -69,6 +70,7 @@ export class DashboardView extends ItemView {
 	private totalFilesCard: HTMLElement | null = null;
 	private totalFoldersCard: HTMLElement | null = null;
 	private totalWordsCard: HTMLElement | null = null;
+	private vaultSizeCard: HTMLElement | null = null;
 	private streakCard: HTMLElement | null = null;
 	private fileTypesCard: HTMLElement | null = null;
 	private tagInsightsCard: HTMLElement | null = null;
@@ -108,6 +110,7 @@ export class DashboardView extends ItemView {
 			this.renderTotalFiles();
 			this.renderTotalFolders();
 			this.renderTotalWords();
+			this.renderVaultSize();
 			this.renderWritingStreak();
 			this.renderTagInsights();
 		});
@@ -133,6 +136,7 @@ export class DashboardView extends ItemView {
 		this.renderTotalFiles();
 		this.renderTotalFolders();
 		this.renderTotalWords();
+		this.renderVaultSize();
 		this.renderWritingStreak();
 		this.renderFileTypes();
 		this.renderTagInsights();
@@ -156,6 +160,7 @@ export class DashboardView extends ItemView {
 		this.totalFilesCard = null;
 		this.totalFoldersCard = null;
 		this.totalWordsCard = null;
+		this.vaultSizeCard = null;
 		this.streakCard = null;
 		this.fileTypesCard = null;
 		this.tagInsightsCard = null;
@@ -248,6 +253,10 @@ export class DashboardView extends ItemView {
 
 			if (modifiers.includes("total-files")) {
 				this.totalFilesCard = card;
+			}
+
+			if (modifiers.includes("vault-size")) {
+				this.vaultSizeCard = card;
 			}
 
 			if (modifiers.includes("daily-average")) {
@@ -618,19 +627,44 @@ export class DashboardView extends ItemView {
 		);
 	}
 
+	private renderVaultSize(): void {
+		if (!this.vaultSizeCard) {
+			return;
+		}
+
+		const volume = this.stateManager.getVaultMetricsState().volume;
+		const averageSizePerFile = volume.totalFiles > 0
+			? volume.totalVaultSize / volume.totalFiles
+			: 0;
+		this.renderSummaryMetric(
+			this.vaultSizeCard,
+			"Vault size",
+			this.formatStorageSize(volume.totalVaultSize, 2),
+			"database",
+			"vault-size",
+			{
+				iconName: "file",
+				modifier: "vault-size",
+				text: `${this.formatStorageSize(averageSizePerFile, 1)} / file`,
+			}
+		);
+	}
+
 	private renderSummaryMetric(
 		card: HTMLElement,
 		label: string,
-		value: number,
+		value: number | string,
 		iconName: string,
-		iconModifier: "words" | "characters" | "folders" | "files",
+		iconModifier: "words" | "characters" | "folders" | "files" | "vault-size",
 		footer?: {
 			iconName: string;
-			modifier: "words" | "characters" | "folders" | "files";
+			modifier: "words" | "characters" | "folders" | "files" | "vault-size";
 			text: string;
 		}
 	): void {
-		const normalizedValue = Math.max(0, value);
+		const normalizedValue = typeof value === "number"
+			? Math.max(0, value).toLocaleString("en-US")
+			: value;
 
 		card.empty();
 		const content = card.createDiv({
@@ -646,7 +680,7 @@ export class DashboardView extends ItemView {
 		title.createSpan({ text: label });
 		content.createDiv({
 			cls: "dynamic-summary-metric-value",
-			text: normalizedValue.toLocaleString("en-US"),
+			text: normalizedValue,
 		});
 		if (footer) {
 			const footerElement = content.createDiv({
@@ -669,6 +703,17 @@ export class DashboardView extends ItemView {
 
 	private formatSummaryRatio(value: number): string {
 		return value.toFixed(1).replace(/\.0$/, "");
+	}
+
+	private formatStorageSize(bytes: number, maximumFractionDigits: number): string {
+		const normalizedBytes = Number.isFinite(bytes) ? Math.max(0, bytes) : 0;
+		const units = ["B", "KB", "MB", "GB", "TB"] as const;
+		const unitIndex = normalizedBytes > 0
+			? Math.min(Math.floor(Math.log(normalizedBytes) / Math.log(1024)), units.length - 1)
+			: 0;
+		const value = normalizedBytes / 1024 ** unitIndex;
+
+		return `${value.toLocaleString("en-US", { maximumFractionDigits })} ${units[unitIndex]}`;
 	}
 
 	private renderEstimatedTime(): void {
