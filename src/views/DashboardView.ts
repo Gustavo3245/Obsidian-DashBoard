@@ -34,6 +34,7 @@ type DashboardCardModifier =
 	| "total-folders"
 	| "total-files"
 	| "vault-size"
+	| "average-words-per-file"
 	| "tag-insights"
 	| "file-types"
 	| "recent-activity";
@@ -44,7 +45,7 @@ const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["summary", "expanded", "third-column", "vault-size"],
 	["summary", "tall", "upper-row", "total-characters"],
 	["summary", "tall", "upper-row", "total-files"],
-	["summary", "expanded", "third-column"],
+	["summary", "expanded", "third-column", "average-words-per-file"],
 	["summary", "workspace"],
 	["summary", "workspace"],
 	["wide", "estimated"],
@@ -71,6 +72,7 @@ export class DashboardView extends ItemView {
 	private totalFoldersCard: HTMLElement | null = null;
 	private totalWordsCard: HTMLElement | null = null;
 	private vaultSizeCard: HTMLElement | null = null;
+	private averageWordsPerFileCard: HTMLElement | null = null;
 	private streakCard: HTMLElement | null = null;
 	private fileTypesCard: HTMLElement | null = null;
 	private tagInsightsCard: HTMLElement | null = null;
@@ -111,6 +113,7 @@ export class DashboardView extends ItemView {
 			this.renderTotalFolders();
 			this.renderTotalWords();
 			this.renderVaultSize();
+			this.renderAverageWordsPerFile();
 			this.renderWritingStreak();
 			this.renderTagInsights();
 		});
@@ -137,6 +140,7 @@ export class DashboardView extends ItemView {
 		this.renderTotalFolders();
 		this.renderTotalWords();
 		this.renderVaultSize();
+		this.renderAverageWordsPerFile();
 		this.renderWritingStreak();
 		this.renderFileTypes();
 		this.renderTagInsights();
@@ -161,6 +165,7 @@ export class DashboardView extends ItemView {
 		this.totalFoldersCard = null;
 		this.totalWordsCard = null;
 		this.vaultSizeCard = null;
+		this.averageWordsPerFileCard = null;
 		this.streakCard = null;
 		this.fileTypesCard = null;
 		this.tagInsightsCard = null;
@@ -257,6 +262,10 @@ export class DashboardView extends ItemView {
 
 			if (modifiers.includes("vault-size")) {
 				this.vaultSizeCard = card;
+			}
+
+			if (modifiers.includes("average-words-per-file")) {
+				this.averageWordsPerFileCard = card;
 			}
 
 			if (modifiers.includes("daily-average")) {
@@ -525,10 +534,12 @@ export class DashboardView extends ItemView {
 		const totalWords = this.stateManager
 			.getVaultMetricsState()
 			.volume.snapshot.totalWords;
-		const averageWordsPerFile = Math.max(
-			0,
-			this.stateManager.getVaultMetricsState().volume.averageWordsPerFile
-		);
+		const totalSentences = this.stateManager
+			.getVaultMetricsState()
+			.volume.snapshot.totalSentences;
+		const wordsPerSentence = totalSentences > 0
+			? totalWords / totalSentences
+			: 0;
 		this.renderSummaryMetric(
 			this.totalWordsCard,
 			"Words",
@@ -536,9 +547,9 @@ export class DashboardView extends ItemView {
 			"pen-line",
 			"words",
 			{
-				iconName: "file-text",
+				iconName: "text",
 				modifier: "words",
-				text: `${this.formatSummaryRatio(averageWordsPerFile)} words / file`,
+				text: `${this.formatSummaryRatio(wordsPerSentence)} words / sentence`,
 			}
 		);
 	}
@@ -650,16 +661,58 @@ export class DashboardView extends ItemView {
 		);
 	}
 
+	private renderAverageWordsPerFile(): void {
+		if (!this.averageWordsPerFileCard) {
+			return;
+		}
+
+		const averageWordsPerFile = Math.max(
+			0,
+			this.stateManager.getVaultMetricsState().volume.averageWordsPerFile
+		);
+		const writingTrend = getDashboardDailyAverageWords(
+			this.stateManager.getDailyMetricsState()
+		).changePercentage;
+		this.renderSummaryMetric(
+			this.averageWordsPerFileCard,
+			"Avg words per file",
+			averageWordsPerFile.toLocaleString("en-US", {
+				maximumFractionDigits: 2,
+			}),
+			"trending-up",
+			"average-words-per-file",
+			{
+				modifier: "average-words-per-file",
+				comparisonText: "vs prev. 30 days",
+				changePercentage: writingTrend,
+			}
+		);
+	}
+
 	private renderSummaryMetric(
 		card: HTMLElement,
 		label: string,
 		value: number | string,
 		iconName: string,
-		iconModifier: "words" | "characters" | "folders" | "files" | "vault-size",
+		iconModifier:
+			| "words"
+			| "characters"
+			| "folders"
+			| "files"
+			| "vault-size"
+			| "average-words-per-file",
 		footer?: {
-			iconName: string;
-			modifier: "words" | "characters" | "folders" | "files" | "vault-size";
-			text: string;
+			modifier:
+				| "words"
+				| "characters"
+				| "folders"
+				| "files"
+				| "vault-size"
+				| "average-words-per-file";
+			iconName?: string;
+			text?: string;
+			comparisonText?: string;
+			changePercentage?: number;
 		}
 	): void {
 		const normalizedValue = typeof value === "number"
@@ -683,21 +736,48 @@ export class DashboardView extends ItemView {
 			text: normalizedValue,
 		});
 		if (footer) {
+			const changeDirection = footer.changePercentage !== undefined
+				? footer.changePercentage > 0
+					? "positive"
+					: footer.changePercentage < 0 ? "negative" : "neutral"
+				: null;
 			const footerElement = content.createDiv({
-				cls: `dynamic-summary-metric-footer dynamic-summary-metric-footer--${footer.modifier}`,
+				cls: [
+					"dynamic-summary-metric-footer",
+					`dynamic-summary-metric-footer--${footer.modifier}`,
+					changeDirection
+						? `dynamic-summary-metric-footer--${changeDirection}`
+						: "",
+				].filter(Boolean).join(" "),
 			});
-			const footerIcon = footerElement.createSpan({
-				cls: "dynamic-summary-metric-footer-icon",
-			});
-			setIcon(footerIcon, footer.iconName);
-			footerElement.createSpan({
-				cls: "dynamic-summary-metric-footer-text",
-				text: footer.text,
-			});
+			if (footer.iconName && footer.text) {
+				const footerIcon = footerElement.createSpan({
+					cls: "dynamic-summary-metric-footer-icon",
+				});
+				setIcon(footerIcon, footer.iconName);
+				footerElement.createSpan({
+					cls: "dynamic-summary-metric-footer-text",
+					text: footer.text,
+				});
+			} else if (
+				footer.comparisonText
+				&& footer.changePercentage !== undefined
+			) {
+				footerElement.createSpan({
+					cls: "dynamic-summary-metric-footer-comparison",
+					text: footer.comparisonText,
+				});
+				footerElement.createSpan({
+					cls: "dynamic-summary-metric-footer-trend",
+					text: `${footer.changePercentage > 0
+						? "↑"
+						: footer.changePercentage < 0 ? "↓" : "→"} ${Math.abs(footer.changePercentage).toFixed(1)}%`,
+				});
+			}
 		}
 		content.setAttribute(
 			"aria-label",
-			`${label}: ${normalizedValue}${footer ? `, ${footer.text}` : ""}`
+			`${label}: ${normalizedValue}${footer?.text ? `, ${footer.text}` : ""}`
 		);
 	}
 

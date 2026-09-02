@@ -98,7 +98,9 @@
 .dynamic-dashboard-card--total-words,
 .dynamic-dashboard-card--total-characters,
 .dynamic-dashboard-card--total-folders,
-.dynamic-dashboard-card--total-files {
+.dynamic-dashboard-card--total-files,
+.dynamic-dashboard-card--vault-size,
+.dynamic-dashboard-card--average-words-per-file {
 	container-name: summary-metric;
 	container-type: size;
 }
@@ -165,6 +167,10 @@
 	color: #3fb950;
 }
 
+.dynamic-summary-metric-icon--average-words-per-file {
+	color: #3fb950;
+}
+
 .dynamic-summary-metric-value {
 	display: flex;
 	flex: 1 1 auto;
@@ -219,6 +225,19 @@
 	--dynamic-summary-footer-color: #238636;
 }
 
+.dynamic-summary-metric-footer--average-words-per-file {
+	--dynamic-summary-footer-color: #238636;
+	justify-content: space-between;
+}
+
+.dynamic-summary-metric-footer--negative {
+	--dynamic-summary-footer-color: #f85149;
+}
+
+.dynamic-summary-metric-footer--neutral {
+	--dynamic-summary-footer-color: var(--text-faint);
+}
+
 .dynamic-summary-metric-footer-icon {
 	display: flex;
 	flex: 0 0 auto;
@@ -238,6 +257,19 @@
 	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+.dynamic-summary-metric-footer-comparison,
+.dynamic-summary-metric-footer-trend {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.dynamic-summary-metric-footer-trend {
+	flex: 0 0 auto;
+	color: var(--dynamic-summary-footer-color);
+	font-weight: var(--font-semibold);
 }
 
 @container summary-metric (min-width: 110px) and (min-height: 90px) {
