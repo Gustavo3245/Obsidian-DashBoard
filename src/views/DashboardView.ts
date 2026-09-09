@@ -26,7 +26,6 @@ type DashboardCardModifier =
 	| "upper-row"
 	| "third-column"
 	| "expanded"
-	| "workspace"
 	| "estimated"
 	| "daily-average"
 	| "total-words"
@@ -46,8 +45,6 @@ const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["summary", "tall", "upper-row", "total-characters"],
 	["summary", "tall", "upper-row", "total-files"],
 	["summary", "expanded", "third-column", "average-words-per-file"],
-	["summary", "workspace"],
-	["summary", "workspace"],
 	["wide", "estimated"],
 	["wide", "tall", "daily-average"],
 	["detail", "file-types"],
@@ -105,18 +102,7 @@ export class DashboardView extends ItemView {
 		this.contentEl.addClass("dynamic-dashboard-view");
 		this.updateLayoutMode();
 		this.renderLayout();
-		this.unsubscribeState = this.stateManager.subscribe(() => {
-			this.renderDailyAverageWords();
-			this.renderEstimatedTime();
-			this.renderTotalCharacters();
-			this.renderTotalFiles();
-			this.renderTotalFolders();
-			this.renderTotalWords();
-			this.renderVaultSize();
-			this.renderAverageWordsPerFile();
-			this.renderWritingStreak();
-			this.renderTagInsights();
-		});
+		this.unsubscribeState = this.stateManager.subscribe(() => this.renderStateMetrics());
 		this.registerPresentationEvents();
 		this.registerEvent(
 			this.app.workspace.on("layout-change", () => this.updateLayoutMode())
@@ -133,6 +119,12 @@ export class DashboardView extends ItemView {
 			);
 			this.streakResizeObserver.observe(this.streakCard);
 		}
+		this.renderStateMetrics();
+		this.renderFileTypes();
+		this.renderRecentActivity();
+	}
+
+	private renderStateMetrics(): void {
 		this.renderDailyAverageWords();
 		this.renderEstimatedTime();
 		this.renderTotalCharacters();
@@ -142,9 +134,7 @@ export class DashboardView extends ItemView {
 		this.renderVaultSize();
 		this.renderAverageWordsPerFile();
 		this.renderWritingStreak();
-		this.renderFileTypes();
 		this.renderTagInsights();
-		this.renderRecentActivity();
 	}
 
 	protected async onClose(): Promise<void> {
@@ -590,11 +580,11 @@ export class DashboardView extends ItemView {
 		const totalFolders = this.stateManager
 			.getVaultMetricsState()
 			.volume.totalFolders;
-		const totalFiles = this.stateManager
+		const totalMarkdownFiles = this.stateManager
 			.getVaultMetricsState()
-			.volume.totalFiles;
-		const filesPerFolder = totalFolders > 0
-			? totalFiles / totalFolders
+			.volume.totalMarkdownFiles;
+		const notesPerFolder = totalFolders > 0
+			? totalMarkdownFiles / totalFolders
 			: 0;
 		this.renderSummaryMetric(
 			this.totalFoldersCard,
@@ -603,9 +593,9 @@ export class DashboardView extends ItemView {
 			"folder",
 			"folders",
 			{
-				iconName: "files",
+				iconName: "file-text",
 				modifier: "folders",
-				text: `${this.formatSummaryRatio(filesPerFolder)} files / folder`,
+				text: `${this.formatSummaryRatio(notesPerFolder)} notes / folder`,
 			}
 		);
 	}
@@ -848,7 +838,7 @@ export class DashboardView extends ItemView {
 		labelIconModifier: "reading" | "speaking"
 	): void {
 		const metric = parent.createDiv({
-			cls: "dynamic-estimated-time-metric",
+			cls: `dynamic-estimated-time-metric dynamic-estimated-time-metric--${labelIconModifier}`,
 		});
 		const metricLabel = metric.createDiv({
 			cls: "dynamic-estimated-time-label",

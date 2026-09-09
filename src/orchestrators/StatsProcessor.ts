@@ -121,7 +121,6 @@ export class StatProcessor {
 		const volumeMetrics = await this.calculator.getVolumeMetrics(range);
 
 		this.stateManager.emitNewState({
-			...this.stateManager.getVaultMetricsState().volume,
 			volume: volumeMetrics
 		})
 	}
@@ -289,11 +288,7 @@ export class StatProcessor {
 	 * for Markdown files inside the selected range.
 	 */
 	async refreshMetadataMetrics(range: TimeRange) {
-		const appears = await this.calculator.getAppearsMetrics(range);
-
-		this.stateManager.emitNewState({
-			appears,
-		});
+		await this.appearsLoad(range);
 	}
 
 	async vaultLoad(range: TimeRange) {

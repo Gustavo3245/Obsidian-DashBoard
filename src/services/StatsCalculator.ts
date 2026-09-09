@@ -48,21 +48,6 @@ export class StatsCalculator {
 		}
 	}
 
-	async updateDailyMetrics(file: TFile): Promise<DailyMetrics> {
-		const updateSnapshot = await this.updateSnapshotMetrics(file);
-
-		return {
-			date: new Date().toLocaleDateString('pt-BR'),
-			words: updateSnapshot.totalWords,
-			characters: updateSnapshot.totalCharacters,
-			sentences: updateSnapshot.totalSentences,
-			timeMetrics: {
-				activeMinutes: this.sessionService.getActiveMinutes(),
-				sessions: 1
-			}
-		}
-	}
-
 	async getSnapshot(range: TimeRange): Promise<VaultMetrics['volume']['snapshot']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
 		
@@ -75,16 +60,6 @@ export class StatsCalculator {
 			totalWords: filesMetrics.reduce((total, file) => total + file.words, 0),
 			totalSentences: filesMetrics.reduce((total, file) => total + file.sentences, 0)
 		};
-	}
-
-	async updateSnapshotMetrics(file: TFile): Promise<VaultMetrics['volume']['snapshot']> {
-		const metrics = await this.getFileMetrics(file);
-
-		return {
-			totalCharacters: metrics.characters,
-			totalWords: metrics.words,
-			totalSentences: metrics.sentences,
-		}
 	}
 
 	async getVolumeMetrics(range: TimeRange): Promise<VaultMetrics['volume']> {
