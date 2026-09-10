@@ -665,7 +665,7 @@ export class DashboardView extends ItemView {
 		).changePercentage;
 		this.renderSummaryMetric(
 			this.averageWordsPerFileCard,
-			"Avg words per file",
+			"Words per file",
 			averageWordsPerFile.toLocaleString("en-US", {
 				maximumFractionDigits: 2,
 			}),

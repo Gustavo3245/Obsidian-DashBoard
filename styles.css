@@ -170,7 +170,7 @@
 	min-width: 0;
 	overflow: hidden;
 	color: var(--text-normal);
-	font-size: 22px;
+	font-size: 20px;
 	font-weight: var(--font-semibold);
 	line-height: 1;
 	text-align: center;
@@ -271,7 +271,7 @@
 	}
 
 	.dynamic-summary-metric-value {
-		font-size: 28px;
+		font-size: 20px;
 	}
 
 	.dynamic-summary-metric-footer {
@@ -299,7 +299,7 @@
 	}
 
 	.dynamic-summary-metric-value {
-		font-size: 34px;
+		font-size: 28px;
 	}
 
 	.dynamic-summary-metric-footer {
@@ -1569,7 +1569,7 @@
 }
 
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-value {
-	font-size: 26px;
+	font-size: 28px;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-value-icon,
@@ -1653,4 +1653,26 @@
 .dynamic-dashboard-container--workspace .dynamic-writing-streak-weekdays,
 .dynamic-dashboard-container--workspace .dynamic-writing-streak-months {
 	font-size: 9px;
+}
+
+@container summary-metric (max-width: 199px) {
+	.dynamic-dashboard-card--average-words-per-file .dynamic-summary-metric {
+		padding-right: 8px;
+		padding-left: 8px;
+	}
+
+	.dynamic-dashboard-card--average-words-per-file .dynamic-summary-metric-title {
+		align-items: center;
+		gap: 4px;
+		overflow: hidden;
+		line-height: 1;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.dynamic-dashboard-card--average-words-per-file .dynamic-summary-metric-title > span:last-child {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
 }
