@@ -423,6 +423,17 @@ export class DashboardView extends ItemView {
 				text: "No recent activity",
 			});
 		}
+
+		const button = this.recentActivityCard.createEl("button", {
+			cls: "dynamic-recent-activity-button",
+			text: "View all activity",
+		});
+		button.type = "button";
+		button.setAttribute("aria-disabled", "true");
+		const buttonIcon = button.createSpan({
+			cls: "dynamic-recent-activity-button-icon",
+		});
+		setIcon(buttonIcon, "arrow-right");
 	}
 
 	private formatRelativeTime(timestamp: number): string {
@@ -1284,10 +1295,10 @@ export class DashboardView extends ItemView {
 		const metric = getDashboardDailyAverageWords(
 			this.stateManager.getDailyMetricsState()
 		);
-		const availablePlotWidth = Math.max(0, this.dailyAverageCard.clientWidth - 115);
+		const availablePlotWidth = Math.max(0, this.dailyAverageCard.clientWidth - 64);
 		const visibleDays = Math.max(
 			7,
-			Math.min(30, Math.floor((availablePlotWidth + 3) / 9))
+			Math.min(30, Math.floor((availablePlotWidth + 2) / 8))
 		);
 		const points = metric.points.slice(-visibleDays);
 		const axisMaximum = this.getDailyWordsAxisMaximum(
