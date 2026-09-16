@@ -781,11 +781,6 @@ export class DashboardView extends ItemView {
 				metric: appears.minorAppearsTag,
 				color: "#22c55e",
 			},
-			{
-				label: "Total unique tags",
-				metric: { name: "Unique", count: appears.totalUniqueTags },
-				color: "#facc15",
-			},
 		] as const;
 
 		this.tagInsightsCard.empty();
@@ -830,6 +825,26 @@ export class DashboardView extends ItemView {
 				`${insight.label}: ${metric.name}, ${metric.count}`
 			);
 		}
+
+		const uniqueTags = this.tagInsightsCard.createDiv({
+			cls: "dynamic-tag-insights-total",
+		});
+		const uniqueTagsLabel = uniqueTags.createDiv({
+			cls: "dynamic-tag-insights-total-label",
+		});
+		const uniqueTagsIcon = uniqueTagsLabel.createSpan({
+			cls: "dynamic-tag-insights-total-icon",
+		});
+		setIcon(uniqueTagsIcon, "tags");
+		uniqueTagsLabel.createSpan({ text: "Total unique tags" });
+		uniqueTags.createDiv({
+			cls: "dynamic-tag-insights-total-value",
+			text: appears.totalUniqueTags.toLocaleString(),
+		});
+		uniqueTags.setAttribute(
+			"aria-label",
+			`Total unique tags: ${appears.totalUniqueTags}`
+		);
 	}
 
 	private renderTotalWords(): void {
