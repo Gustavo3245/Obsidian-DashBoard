@@ -475,6 +475,33 @@
 	color: var(--text-faint);
 }
 
+.dynamic-estimated-time-progress {
+	display: grid;
+	flex: 0 0 auto;
+	grid-template-columns: repeat(20, minmax(0, 1fr));
+	gap: 2px;
+	width: 100%;
+	min-width: 0;
+}
+
+.dynamic-estimated-time-progress-segment {
+	width: 100%;
+	min-width: 0;
+	aspect-ratio: 1;
+	border-radius: 2px;
+	background: var(--background-modifier-border);
+}
+
+.dynamic-estimated-time-progress--reading
+	.dynamic-estimated-time-progress-segment--active {
+	background: #a371f7;
+}
+
+.dynamic-estimated-time-progress--speaking
+	.dynamic-estimated-time-progress-segment--active {
+	background: #39d353;
+}
+
 @container estimated-time (min-width: 360px) {
 	.dynamic-estimated-time-hourglass-icon {
 		display: flex;
@@ -1635,7 +1662,7 @@
 	display: flex;
 	grid-row: 3;
 	justify-content: flex-start;
-	gap: 0;
+	gap: 6px;
 	min-width: 0;
 	min-height: 0;
 	padding: 8px 12px;
@@ -1669,6 +1696,10 @@
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-value {
 	flex: 1 1 auto;
 	font-size: 20px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-estimated-time-progress {
+	gap: 2px;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-value-icon,

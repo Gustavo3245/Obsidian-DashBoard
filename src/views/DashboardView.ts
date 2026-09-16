@@ -67,6 +67,7 @@ const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 
 const FILE_TYPE_COLORS = ["#8b5cf6", "#38bdf8", "#22c55e", "#facc15"] as const;
 const TOP_FOLDER_COLORS = ["#a371f7", "#58a6ff", "#3fb950", "#facc15", "#f97316"] as const;
+const ESTIMATED_TIME_PROGRESS_SEGMENTS = 20;
 const FILE_TYPE_LABELS = {
 	markdown: "Markdown",
 	canvas: "Canvas",
@@ -1125,6 +1126,13 @@ export class DashboardView extends ItemView {
 		const estimates = this.stateManager.getVaultMetricsState().estimates;
 		const readingTime = this.formatEstimatedTime(estimates.estimatedReadingTime);
 		const speakingTime = this.formatEstimatedTime(estimates.estimatedSpeakingTime);
+		const readingSeconds = this.getEstimatedTimeSeconds(
+			estimates.estimatedReadingTime
+		);
+		const speakingSeconds = this.getEstimatedTimeSeconds(
+			estimates.estimatedSpeakingTime
+		);
+		const maximumSeconds = Math.max(readingSeconds, speakingSeconds);
 
 		this.estimatedTimeCard.empty();
 		const content = this.estimatedTimeCard.createDiv({
@@ -1148,7 +1156,8 @@ export class DashboardView extends ItemView {
 			readingTime,
 			"clock-3",
 			"book-open",
-			"reading"
+			"reading",
+			maximumSeconds > 0 ? readingSeconds / maximumSeconds : 0
 		);
 		this.renderEstimatedTimeMetric(
 			metrics,
@@ -1156,7 +1165,8 @@ export class DashboardView extends ItemView {
 			speakingTime,
 			"mic",
 			"audio-lines",
-			"speaking"
+			"speaking",
+			maximumSeconds > 0 ? speakingSeconds / maximumSeconds : 0
 		);
 	}
 
@@ -1166,7 +1176,8 @@ export class DashboardView extends ItemView {
 		value: string,
 		valueIconName: string,
 		labelIconName: string,
-		labelIconModifier: "reading" | "speaking"
+		labelIconModifier: "reading" | "speaking",
+		completion: number
 	): void {
 		const metric = parent.createDiv({
 			cls: `dynamic-estimated-time-metric dynamic-estimated-time-metric--${labelIconModifier}`,
@@ -1195,7 +1206,61 @@ export class DashboardView extends ItemView {
 			cls: "dynamic-estimated-time-hourglass-icon",
 		});
 		setIcon(hourglassIcon, "hourglass");
-		metric.setAttribute("aria-label", `${label}: ${value}`);
+
+		const normalizedCompletion = Math.min(1, Math.max(0, completion));
+		const activeSegments = normalizedCompletion > 0
+			? Math.max(
+				1,
+				Math.round(normalizedCompletion * ESTIMATED_TIME_PROGRESS_SEGMENTS)
+			)
+			: 0;
+		const progress = metric.createDiv({
+			cls: `dynamic-estimated-time-progress dynamic-estimated-time-progress--${labelIconModifier}`,
+		});
+		progress.setAttribute("role", "progressbar");
+		progress.setAttribute("aria-label", `${label} relative completion`);
+		progress.setAttribute("aria-valuemin", "0");
+		progress.setAttribute("aria-valuemax", "100");
+		progress.setAttribute(
+			"aria-valuenow",
+			String(Math.round(normalizedCompletion * 100))
+		);
+
+		for (let index = 0; index < ESTIMATED_TIME_PROGRESS_SEGMENTS; index++) {
+			progress.createSpan({
+				cls: [
+					"dynamic-estimated-time-progress-segment",
+					index < activeSegments
+						? "dynamic-estimated-time-progress-segment--active"
+						: "",
+				].filter(Boolean).join(" "),
+			});
+		}
+
+		metric.setAttribute(
+			"aria-label",
+			`${label}: ${value}, ${Math.round(normalizedCompletion * 100)}% relative completion`
+		);
+	}
+
+	private getEstimatedTimeSeconds(
+		value: {
+			hours: number;
+			minutes: number;
+			seconds: number;
+			totalSeconds?: number;
+		} | string
+	): number {
+		if (typeof value === "string") {
+			return 0;
+		}
+
+		const calculatedSeconds = value.totalSeconds
+			?? (value.hours * 3600) + (value.minutes * 60) + value.seconds;
+
+		return Number.isFinite(calculatedSeconds)
+			? Math.max(0, calculatedSeconds)
+			: 0;
 	}
 
 	private formatEstimatedTime(
