@@ -48,6 +48,71 @@ export class StatsCalculator {
 		}
 	}
 
+	/**
+	 * Estimate daily content totals for the days before the current local day.
+	 * Each Markdown file contributes its current content metrics to the local day
+	 * represented by its last modification timestamp.
+	 */
+	async getHistoricalDailyMetrics(
+		days: number,
+		today = new Date()
+	): Promise<Record<string, DailyMetrics>> {
+		const normalizedDays = Number.isFinite(days)
+			? Math.max(0, Math.floor(days))
+			: 0;
+		const startOfToday = new Date(
+			today.getFullYear(),
+			today.getMonth(),
+			today.getDate()
+		);
+		const firstDay = new Date(startOfToday);
+		firstDay.setDate(startOfToday.getDate() - normalizedDays);
+		const endOfPreviousDay = new Date(startOfToday.getTime() - 1);
+		const history: Record<string, DailyMetrics> = {};
+
+		for (let offset = normalizedDays; offset >= 1; offset--) {
+			const date = new Date(startOfToday);
+			date.setDate(startOfToday.getDate() - offset);
+			const dateKey = this.toLocalDateKey(date);
+			history[dateKey] = {
+				date: dateKey,
+				words: 0,
+				characters: 0,
+				sentences: 0,
+				timeMetrics: {
+					activeMinutes: 0,
+					sessions: 0,
+				},
+			};
+		}
+
+		if (normalizedDays === 0) {
+			return history;
+		}
+
+		const files = this.vaultService.getFilesByCustomRange(
+			firstDay,
+			endOfPreviousDay
+		);
+		const filesMetrics = await Promise.all(files.map(async (file) => ({
+			dateKey: this.toLocalDateKey(new Date(file.stat.mtime)),
+			metrics: await this.vaultService.getFileContentMetrics(file),
+		})));
+
+		for (const { dateKey, metrics } of filesMetrics) {
+			const dailyMetrics = history[dateKey];
+			if (!dailyMetrics) {
+				continue;
+			}
+
+			dailyMetrics.words += metrics.words;
+			dailyMetrics.characters += metrics.characters;
+			dailyMetrics.sentences += metrics.sentences;
+		}
+
+		return history;
+	}
+
 	async getSnapshot(range: TimeRange): Promise<VaultMetrics['volume']['snapshot']> {
 		const relevantFiles = this.vaultService.getFilesByRange(range);
 		
@@ -144,6 +209,13 @@ export class StatsCalculator {
 			mostActiveWeek: this.vaultService.calculateMostActiveWeek(dailyMetrics),
 			mostActiveMonth: this.vaultService.calculateMostActiveMonth(dailyMetrics)
 		}
+	}
+
+	private toLocalDateKey(date: Date): string {
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, "0");
+		const day = String(date.getDate()).padStart(2, "0");
+		return `${year}-${month}-${day}`;
 	}
 
 }

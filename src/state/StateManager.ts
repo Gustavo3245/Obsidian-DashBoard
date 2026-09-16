@@ -89,6 +89,34 @@ export class StateManager {
 		this.notifyListeners();
 		this.triggerSave();
 	}
+
+	/** Add absent daily records in one state emission without replacing saved dates. */
+	public addMissingDailyMetrics(
+		dailyMetrics: Record<string, DailyMetrics>
+	): number {
+		let addedDates = 0;
+
+		for (const [date, metrics] of Object.entries(dailyMetrics)) {
+			if (Object.prototype.hasOwnProperty.call(this.dailyMetricsHistory, date)) {
+				continue;
+			}
+
+			this.dailyMetricsHistory[date] = DailyMapper.mapToDailyMetrics({
+				...metrics,
+				date,
+			});
+			addedDates++;
+		}
+
+		if (addedDates === 0) {
+			return 0;
+		}
+
+		Logger.state("historical daily metrics added", { addedDates });
+		this.notifyListeners();
+		this.triggerSave();
+		return addedDates;
+	}
 	
 	public emitNewState(patch: Partial<VaultMetrics>) {
 		this.vaultMetricsState = VaultMapper.mapToVaultMetrics({

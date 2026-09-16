@@ -18,14 +18,10 @@ export class Logger {
 	private static debug(scope: string, name: string, details?: LogDetails): void {
 
 		if (details) {
-			// Logging is an explicit, development-facing plugin feature.
-			// eslint-disable-next-line obsidianmd/rule-custom-message
-			console.info(`${this.prefix}[${scope}] ${name}`, details);
+			console.debug(`${this.prefix}[${scope}] ${name}`, details);
 			return;
 		}
 
-		// Logging is an explicit, development-facing plugin feature.
-		// eslint-disable-next-line obsidianmd/rule-custom-message
-		console.info(`${this.prefix}[${scope}] ${name}`);
+		console.debug(`${this.prefix}[${scope}] ${name}`);
 	}
 }

@@ -1,5 +1,8 @@
 import { Plugin } from "obsidian";
-import { openDashboardView } from "views/DashboardView";
+import {
+	DASHBOARD_ICON_ID,
+	openDashboardView,
+} from "views/DashboardView";
 
 export class DashboardCommands {
 	constructor(private plugin: Plugin) {}
@@ -8,16 +11,18 @@ export class DashboardCommands {
 		this.plugin.addCommand({
 			id: "open-dashboard-left",
 			name: "Open dashboard on left",
+			icon: DASHBOARD_ICON_ID,
 			callback: () => {
-				void openDashboardView(this.plugin.app.workspace, "left");
+				void openDashboardView(this.plugin.app.workspace);
 			},
 		});
 
 		this.plugin.addCommand({
 			id: "open-dashboard-right",
-			name: "Open dashboard on right",
+			name: "Open dashboard on left (legacy shortcut)",
+			icon: DASHBOARD_ICON_ID,
 			callback: () => {
-				void openDashboardView(this.plugin.app.workspace, "right");
+				void openDashboardView(this.plugin.app.workspace);
 			},
 		});
 	}

@@ -1,26 +1,33 @@
 import {
 	ItemView,
+	Notice,
 	setIcon,
-	Side,
 	Workspace,
 	WorkspaceItem,
 	WorkspaceLeaf,
 	WorkspaceSidedock,
 } from "obsidian";
 import { StateManager } from "state/StateManager";
+import { Logger } from "utils/Logger";
 import {
 	getDashboardDailyAverageWords,
 	getDashboardFileTypes,
+	getDashboardLastModifiedFiles,
 	getDashboardRecentActivities,
+	getDashboardTopFolders,
+	getDashboardTopNotes,
 } from "views/DashboardViewData";
 
 export const DASHBOARD_VIEW_TYPE = "dynamic-dashboard-view";
-export const DASHBOARD_ICON_ID = "dynamic-dashboard";
+export const DASHBOARD_ICON_ID = "trending-up";
+
+let dashboardOpenPromise: Promise<void> | null = null;
 
 type DashboardCardModifier =
 	| "summary"
 	| "wide"
 	| "detail"
+	| "workspace-only"
 	| "streak"
 	| "tall"
 	| "upper-row"
@@ -35,8 +42,12 @@ type DashboardCardModifier =
 	| "vault-size"
 	| "average-words-per-file"
 	| "tag-insights"
+	| "vault-insights"
 	| "file-types"
-	| "recent-activity";
+	| "recent-activity"
+	| "top-folders"
+	| "last-modified-files"
+	| "top-notes";
 
 const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["summary", "total-words"],
@@ -49,11 +60,17 @@ const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["wide", "tall", "daily-average"],
 	["detail", "file-types"],
 	["detail", "expanded", "tag-insights"],
+	["detail", "workspace-only", "vault-insights"],
 	["detail", "recent-activity"],
 	["wide", "streak"],
+	["detail", "workspace-only", "top-folders"],
+	["detail", "workspace-only", "last-modified-files"],
+	["detail", "workspace-only", "top-notes"],
 ];
 
 const FILE_TYPE_COLORS = ["#8b5cf6", "#38bdf8", "#22c55e", "#facc15"] as const;
+const TOP_FOLDER_COLORS = ["#a371f7", "#58a6ff", "#3fb950", "#facc15", "#f97316"] as const;
+const ESTIMATED_TIME_PROGRESS_SEGMENTS = 20;
 const FILE_TYPE_LABELS = {
 	markdown: "Markdown",
 	canvas: "Canvas",
@@ -73,11 +90,14 @@ export class DashboardView extends ItemView {
 	private streakCard: HTMLElement | null = null;
 	private fileTypesCard: HTMLElement | null = null;
 	private tagInsightsCard: HTMLElement | null = null;
+	private vaultInsightsCard: HTMLElement | null = null;
 	private recentActivityCard: HTMLElement | null = null;
+	private topFoldersCard: HTMLElement | null = null;
+	private topNotesCard: HTMLElement | null = null;
 	private dailyAverageResizeObserver: ResizeObserver | null = null;
 	private streakResizeObserver: ResizeObserver | null = null;
 	private unsubscribeState: (() => void) | null = null;
-	private recentActivityRefreshTimer: number | null = null;
+	private presentationRefreshTimer: number | null = null;
 
 	constructor(leaf: WorkspaceLeaf, private stateManager: StateManager) {
 		super(leaf);
@@ -122,6 +142,7 @@ export class DashboardView extends ItemView {
 		this.renderStateMetrics();
 		this.renderFileTypes();
 		this.renderRecentActivity();
+		this.renderTopFolders();
 	}
 
 	private renderStateMetrics(): void {
@@ -135,6 +156,8 @@ export class DashboardView extends ItemView {
 		this.renderAverageWordsPerFile();
 		this.renderWritingStreak();
 		this.renderTagInsights();
+		this.renderVaultInsights();
+		this.renderTopNotes();
 	}
 
 	protected async onClose(): Promise<void> {
@@ -144,9 +167,9 @@ export class DashboardView extends ItemView {
 		this.dailyAverageResizeObserver = null;
 		this.streakResizeObserver?.disconnect();
 		this.streakResizeObserver = null;
-		if (this.recentActivityRefreshTimer !== null) {
-			window.clearTimeout(this.recentActivityRefreshTimer);
-			this.recentActivityRefreshTimer = null;
+		if (this.presentationRefreshTimer !== null) {
+			window.clearTimeout(this.presentationRefreshTimer);
+			this.presentationRefreshTimer = null;
 		}
 		this.dailyAverageCard = null;
 		this.estimatedTimeCard = null;
@@ -159,7 +182,10 @@ export class DashboardView extends ItemView {
 		this.streakCard = null;
 		this.fileTypesCard = null;
 		this.tagInsightsCard = null;
+		this.vaultInsightsCard = null;
 		this.recentActivityCard = null;
+		this.topFoldersCard = null;
+		this.topNotesCard = null;
 		this.containerEl.removeClass("dynamic-dashboard-container");
 		this.containerEl.removeClass("dynamic-dashboard-container--workspace");
 		this.contentEl.removeClass("dynamic-dashboard-view");
@@ -217,11 +243,18 @@ export class DashboardView extends ItemView {
 			cls: "dynamic-dashboard-layout",
 		});
 		const overview = dashboard.createDiv({ cls: "dynamic-dashboard-overview" });
-		const overviewTitle = overview.createSpan({
+		const overviewCopy = overview.createDiv({
+			cls: "dynamic-dashboard-overview-copy",
+		});
+		const overviewTitle = overviewCopy.createSpan({
 			cls: "dynamic-dashboard-overview-title",
 		});
-		setIcon(overviewTitle.createSpan(), "chart-no-axes-column-increasing");
+		setIcon(overviewTitle.createSpan(), "trending-up");
 		overviewTitle.appendText("Overview");
+		overviewCopy.createSpan({
+			cls: "dynamic-dashboard-overview-subtitle",
+			text: "Explore statistics and insights about your vault.",
+		});
 		overview.createSpan({
 			cls: "dynamic-dashboard-overview-range",
 			text: "All time",
@@ -274,8 +307,20 @@ export class DashboardView extends ItemView {
 				this.tagInsightsCard = card;
 			}
 
+			if (modifiers.includes("vault-insights")) {
+				this.vaultInsightsCard = card;
+			}
+
 			if (modifiers.includes("recent-activity")) {
 				this.recentActivityCard = card;
+			}
+
+			if (modifiers.includes("top-folders")) {
+				this.topFoldersCard = card;
+			}
+
+			if (modifiers.includes("top-notes")) {
+				this.topNotesCard = card;
 			}
 		}
 	}
@@ -299,7 +344,8 @@ export class DashboardView extends ItemView {
 	private registerPresentationEvents(): void {
 		const refreshFiles = () => {
 			this.renderFileTypes();
-			this.scheduleRecentActivityRefresh();
+			this.renderTopFolders();
+			this.schedulePresentationRefresh();
 		};
 		this.registerEvent(
 			this.app.vault.on("create", refreshFiles)
@@ -311,18 +357,20 @@ export class DashboardView extends ItemView {
 			this.app.vault.on("rename", refreshFiles)
 		);
 		this.registerEvent(
-			this.app.vault.on("modify", () => this.scheduleRecentActivityRefresh())
+			this.app.vault.on("modify", () => this.schedulePresentationRefresh())
 		);
 	}
 
-	private scheduleRecentActivityRefresh(): void {
-		if (this.recentActivityRefreshTimer !== null) {
-			window.clearTimeout(this.recentActivityRefreshTimer);
+	private schedulePresentationRefresh(): void {
+		if (this.presentationRefreshTimer !== null) {
+			window.clearTimeout(this.presentationRefreshTimer);
 		}
 
-		this.recentActivityRefreshTimer = window.setTimeout(() => {
-			this.recentActivityRefreshTimer = null;
+		this.presentationRefreshTimer = window.setTimeout(() => {
+			this.presentationRefreshTimer = null;
 			this.renderRecentActivity();
+			this.renderVaultInsights();
+			this.renderTopNotes();
 		}, 150);
 	}
 
@@ -378,6 +426,17 @@ export class DashboardView extends ItemView {
 				text: "No recent activity",
 			});
 		}
+
+		const button = this.recentActivityCard.createEl("button", {
+			cls: "dynamic-recent-activity-button",
+			text: "View all activity",
+		});
+		button.type = "button";
+		button.setAttribute("aria-disabled", "true");
+		const buttonIcon = button.createSpan({
+			cls: "dynamic-recent-activity-button-icon",
+		});
+		setIcon(buttonIcon, "arrow-right");
 	}
 
 	private formatRelativeTime(timestamp: number): string {
@@ -443,6 +502,278 @@ export class DashboardView extends ItemView {
 		}
 	}
 
+	private renderTopFolders(): void {
+		if (!this.topFoldersCard) {
+			return;
+		}
+
+		const folders = getDashboardTopFolders(this.app.vault.getFiles());
+		const maximumFileCount = folders[0]?.fileCount ?? 0;
+
+		this.topFoldersCard.empty();
+		const title = this.topFoldersCard.createDiv({
+			cls: "dynamic-top-folders-title",
+		});
+		const titleIcon = title.createSpan({
+			cls: "dynamic-top-folders-title-icon",
+		});
+		setIcon(titleIcon, "folder");
+		title.createSpan({ text: "Top folders" });
+		title.createSpan({
+			cls: "dynamic-top-folders-title-detail",
+			text: "(by file count)",
+		});
+
+		const list = this.topFoldersCard.createDiv({
+			cls: "dynamic-top-folders-list",
+		});
+
+		for (const [index, folder] of folders.entries()) {
+			const item = list.createDiv({
+				cls: "dynamic-top-folders-item",
+			});
+			const color = TOP_FOLDER_COLORS[index] ?? TOP_FOLDER_COLORS.at(-1)!;
+			item.style.setProperty("--dynamic-top-folder-color", color);
+			item.setAttribute(
+				"aria-label",
+				`${folder.path}: ${folder.fileCount} files`
+			);
+
+			const header = item.createDiv({
+				cls: "dynamic-top-folders-item-header",
+			});
+			const icon = header.createSpan({
+				cls: "dynamic-top-folders-item-icon",
+			});
+			setIcon(icon, "folder");
+			header.createSpan({
+				cls: "dynamic-top-folders-path",
+				text: `/${folder.path}`,
+			});
+			header.createSpan({
+				cls: "dynamic-top-folders-count",
+				text: folder.fileCount.toLocaleString(),
+			});
+
+			const track = item.createDiv({
+				cls: "dynamic-top-folders-track",
+			});
+			const fill = track.createDiv({
+				cls: "dynamic-top-folders-fill",
+			});
+			fill.style.width = maximumFileCount > 0
+				? `${(folder.fileCount / maximumFileCount) * 100}%`
+				: "0";
+		}
+
+		if (folders.length === 0) {
+			list.createDiv({
+				cls: "dynamic-top-folders-empty",
+				text: "No folders found",
+			});
+		}
+
+		const button = this.topFoldersCard.createEl("button", {
+			cls: "dynamic-top-folders-button",
+			text: "View all folders",
+		});
+		button.type = "button";
+		button.setAttribute("aria-disabled", "true");
+		const buttonIcon = button.createSpan({
+			cls: "dynamic-top-folders-button-icon",
+		});
+		setIcon(buttonIcon, "arrow-right");
+	}
+
+	private renderTopNotes(): void {
+		if (!this.topNotesCard) {
+			return;
+		}
+
+		const notes = getDashboardTopNotes(this.stateManager.getFilesStats());
+		const maximumCharacterCount = notes[0]?.characterCount ?? 0;
+
+		this.topNotesCard.empty();
+		const title = this.topNotesCard.createDiv({
+			cls: "dynamic-top-folders-title dynamic-top-notes-title",
+		});
+		const titleIcon = title.createSpan({
+			cls: "dynamic-top-folders-title-icon",
+		});
+		setIcon(titleIcon, "notebook-pen");
+		title.createSpan({ text: "Top notes" });
+		title.createSpan({
+			cls: "dynamic-top-folders-title-detail",
+			text: "(by character count)",
+		});
+
+		const list = this.topNotesCard.createDiv({
+			cls: "dynamic-top-folders-list",
+		});
+
+		for (const [index, note] of notes.entries()) {
+			const item = list.createDiv({
+				cls: "dynamic-top-folders-item",
+			});
+			const color = TOP_FOLDER_COLORS[index] ?? TOP_FOLDER_COLORS.at(-1)!;
+			item.style.setProperty("--dynamic-top-folder-color", color);
+			item.setAttribute(
+				"aria-label",
+				`${note.name}: ${note.characterCount} characters`
+			);
+			item.setAttribute("title", note.path);
+
+			const header = item.createDiv({
+				cls: "dynamic-top-folders-item-header",
+			});
+			const icon = header.createSpan({
+				cls: "dynamic-top-folders-item-icon",
+			});
+			setIcon(icon, "file-text");
+			header.createSpan({
+				cls: "dynamic-top-folders-path",
+				text: note.name,
+			});
+			header.createSpan({
+				cls: "dynamic-top-folders-count",
+				text: note.characterCount.toLocaleString(),
+			});
+
+			const track = item.createDiv({
+				cls: "dynamic-top-folders-track",
+			});
+			const fill = track.createDiv({
+				cls: "dynamic-top-folders-fill",
+			});
+			fill.style.width = maximumCharacterCount > 0
+				? `${(note.characterCount / maximumCharacterCount) * 100}%`
+				: "0";
+		}
+
+		if (notes.length === 0) {
+			list.createDiv({
+				cls: "dynamic-top-folders-empty",
+				text: "No notes found",
+			});
+		}
+
+		const button = this.topNotesCard.createEl("button", {
+			cls: "dynamic-top-folders-button",
+			text: "View all notes",
+		});
+		button.type = "button";
+		button.setAttribute("aria-disabled", "true");
+		const buttonIcon = button.createSpan({
+			cls: "dynamic-top-folders-button-icon",
+		});
+		setIcon(buttonIcon, "arrow-right");
+	}
+
+	private renderVaultInsights(): void {
+		if (!this.vaultInsightsCard) {
+			return;
+		}
+
+		const markdownFiles = this.app.vault.getMarkdownFiles();
+		const modifiedFiles = getDashboardLastModifiedFiles(markdownFiles);
+		const latestFile = modifiedFiles[0];
+		const mostActiveFolder = this.stateManager
+			.getVaultMetricsState().appears.mostActiveFolder;
+		const folderName = mostActiveFolder.toLowerCase().includes("nothing but wind")
+			? "No folder found"
+			: `/${mostActiveFolder}`;
+
+		this.vaultInsightsCard.empty();
+		const title = this.vaultInsightsCard.createDiv({
+			cls: "dynamic-vault-insights-title",
+		});
+		const titleIcon = title.createSpan({
+			cls: "dynamic-vault-insights-title-icon",
+		});
+		setIcon(titleIcon, "folder");
+		title.createSpan({ text: "Vault insights" });
+
+		const content = this.vaultInsightsCard.createDiv({
+			cls: "dynamic-vault-insights-content",
+		});
+		const folderSection = content.createDiv({
+			cls: "dynamic-vault-insights-section",
+		});
+		folderSection.createDiv({
+			cls: "dynamic-vault-insights-label",
+			text: "Most active folder",
+		});
+		folderSection.createDiv({
+			cls: "dynamic-vault-insights-folder",
+			text: folderName,
+			attr: { title: folderName },
+		});
+
+		const latestSection = content.createDiv({
+			cls: "dynamic-vault-insights-section",
+		});
+		latestSection.createDiv({
+			cls: "dynamic-vault-insights-label",
+			text: "Last modified file",
+		});
+		this.renderVaultInsightFile(latestSection, latestFile);
+
+		const filesSection = content.createDiv({
+			cls: "dynamic-vault-insights-section dynamic-vault-insights-section--files",
+		});
+		filesSection.createDiv({
+			cls: "dynamic-vault-insights-label",
+			text: "Last modified files",
+		});
+		for (const file of modifiedFiles) {
+			this.renderVaultInsightFile(filesSection, file);
+		}
+
+		if (modifiedFiles.length === 0) {
+			filesSection.createDiv({
+				cls: "dynamic-vault-insights-empty",
+				text: "No modified files",
+			});
+		}
+
+		const button = this.vaultInsightsCard.createEl("button", {
+			cls: "dynamic-vault-insights-button",
+			text: `View all (${markdownFiles.length.toLocaleString()})`,
+		});
+		button.type = "button";
+		button.setAttribute("aria-disabled", "true");
+		const buttonIcon = button.createSpan({
+			cls: "dynamic-vault-insights-button-icon",
+		});
+		setIcon(buttonIcon, "arrow-right");
+	}
+
+	private renderVaultInsightFile(
+		parent: HTMLElement,
+		file: ReturnType<typeof getDashboardLastModifiedFiles>[number] | undefined
+	): void {
+		if (!file) {
+			parent.createDiv({
+				cls: "dynamic-vault-insights-empty",
+				text: "No file found",
+			});
+			return;
+		}
+
+		const row = parent.createDiv({
+			cls: "dynamic-vault-insights-file",
+			attr: { title: file.path },
+		});
+		row.createSpan({
+			cls: "dynamic-vault-insights-file-name",
+			text: file.name,
+		});
+		row.createSpan({
+			cls: "dynamic-vault-insights-file-time",
+			text: this.formatRelativeTime(file.timestamp),
+		});
+	}
+
 	private renderTagInsights(): void {
 		if (!this.tagInsightsCard) {
 			return;
@@ -454,21 +785,25 @@ export class DashboardView extends ItemView {
 				label: "Most used tag",
 				metric: appears.mostAppearsTag,
 				color: "#8b5cf6",
+				compactOnly: false,
 			},
 			{
 				label: "Most used frontmatter tag",
 				metric: appears.mostAppearsTagInFrontMatter,
 				color: "#38bdf8",
+				compactOnly: false,
 			},
 			{
 				label: "Least used tag",
 				metric: appears.minorAppearsTag,
 				color: "#22c55e",
+				compactOnly: false,
 			},
 			{
 				label: "Total unique tags",
 				metric: { name: "Unique", count: appears.totalUniqueTags },
 				color: "#facc15",
+				compactOnly: true,
 			},
 		] as const;
 
@@ -491,7 +826,12 @@ export class DashboardView extends ItemView {
 				? { name: "No tags", count: 0 }
 				: insight.metric;
 			const item = list.createEl("li", {
-				cls: "dynamic-tag-insights-item",
+				cls: [
+					"dynamic-tag-insights-item",
+					insight.compactOnly
+						? "dynamic-tag-insights-item--compact-total"
+						: "",
+				].filter(Boolean).join(" "),
 			});
 			item.style.setProperty("--dynamic-tag-insight-color", insight.color);
 			item.createDiv({
@@ -514,6 +854,26 @@ export class DashboardView extends ItemView {
 				`${insight.label}: ${metric.name}, ${metric.count}`
 			);
 		}
+
+		const uniqueTags = this.tagInsightsCard.createDiv({
+			cls: "dynamic-tag-insights-total",
+		});
+		const uniqueTagsLabel = uniqueTags.createDiv({
+			cls: "dynamic-tag-insights-total-label",
+		});
+		const uniqueTagsIcon = uniqueTagsLabel.createSpan({
+			cls: "dynamic-tag-insights-total-icon",
+		});
+		setIcon(uniqueTagsIcon, "tags");
+		uniqueTagsLabel.createSpan({ text: "Total unique tags" });
+		uniqueTags.createDiv({
+			cls: "dynamic-tag-insights-total-value",
+			text: appears.totalUniqueTags.toLocaleString(),
+		});
+		uniqueTags.setAttribute(
+			"aria-label",
+			`Total unique tags: ${appears.totalUniqueTags}`
+		);
 	}
 
 	private renderTotalWords(): void {
@@ -759,9 +1119,7 @@ export class DashboardView extends ItemView {
 				});
 				footerElement.createSpan({
 					cls: "dynamic-summary-metric-footer-trend",
-					text: `${footer.changePercentage > 0
-						? "↑"
-						: footer.changePercentage < 0 ? "↓" : "→"} ${Math.abs(footer.changePercentage).toFixed(1)}%`,
+					text: this.formatTrendPercentage(footer.changePercentage),
 				});
 			}
 		}
@@ -773,6 +1131,15 @@ export class DashboardView extends ItemView {
 
 	private formatSummaryRatio(value: number): string {
 		return value.toFixed(1).replace(/\.0$/, "");
+	}
+
+	private formatTrendPercentage(value: number): string {
+		if (value > 100) {
+			return "+100%";
+		}
+
+		const direction = value > 0 ? "↑" : value < 0 ? "↓" : "→";
+		return `${direction} ${Math.abs(value).toFixed(1)}%`;
 	}
 
 	private formatStorageSize(bytes: number, maximumFractionDigits: number): string {
@@ -794,6 +1161,13 @@ export class DashboardView extends ItemView {
 		const estimates = this.stateManager.getVaultMetricsState().estimates;
 		const readingTime = this.formatEstimatedTime(estimates.estimatedReadingTime);
 		const speakingTime = this.formatEstimatedTime(estimates.estimatedSpeakingTime);
+		const readingSeconds = this.getEstimatedTimeSeconds(
+			estimates.estimatedReadingTime
+		);
+		const speakingSeconds = this.getEstimatedTimeSeconds(
+			estimates.estimatedSpeakingTime
+		);
+		const maximumSeconds = Math.max(readingSeconds, speakingSeconds);
 
 		this.estimatedTimeCard.empty();
 		const content = this.estimatedTimeCard.createDiv({
@@ -817,7 +1191,8 @@ export class DashboardView extends ItemView {
 			readingTime,
 			"clock-3",
 			"book-open",
-			"reading"
+			"reading",
+			maximumSeconds > 0 ? readingSeconds / maximumSeconds : 0
 		);
 		this.renderEstimatedTimeMetric(
 			metrics,
@@ -825,7 +1200,8 @@ export class DashboardView extends ItemView {
 			speakingTime,
 			"mic",
 			"audio-lines",
-			"speaking"
+			"speaking",
+			maximumSeconds > 0 ? speakingSeconds / maximumSeconds : 0
 		);
 	}
 
@@ -835,7 +1211,8 @@ export class DashboardView extends ItemView {
 		value: string,
 		valueIconName: string,
 		labelIconName: string,
-		labelIconModifier: "reading" | "speaking"
+		labelIconModifier: "reading" | "speaking",
+		completion: number
 	): void {
 		const metric = parent.createDiv({
 			cls: `dynamic-estimated-time-metric dynamic-estimated-time-metric--${labelIconModifier}`,
@@ -864,7 +1241,61 @@ export class DashboardView extends ItemView {
 			cls: "dynamic-estimated-time-hourglass-icon",
 		});
 		setIcon(hourglassIcon, "hourglass");
-		metric.setAttribute("aria-label", `${label}: ${value}`);
+
+		const normalizedCompletion = Math.min(1, Math.max(0, completion));
+		const activeSegments = normalizedCompletion > 0
+			? Math.max(
+				1,
+				Math.round(normalizedCompletion * ESTIMATED_TIME_PROGRESS_SEGMENTS)
+			)
+			: 0;
+		const progress = metric.createDiv({
+			cls: `dynamic-estimated-time-progress dynamic-estimated-time-progress--${labelIconModifier}`,
+		});
+		progress.setAttribute("role", "progressbar");
+		progress.setAttribute("aria-label", `${label} relative completion`);
+		progress.setAttribute("aria-valuemin", "0");
+		progress.setAttribute("aria-valuemax", "100");
+		progress.setAttribute(
+			"aria-valuenow",
+			String(Math.round(normalizedCompletion * 100))
+		);
+
+		for (let index = 0; index < ESTIMATED_TIME_PROGRESS_SEGMENTS; index++) {
+			progress.createSpan({
+				cls: [
+					"dynamic-estimated-time-progress-segment",
+					index < activeSegments
+						? "dynamic-estimated-time-progress-segment--active"
+						: "",
+				].filter(Boolean).join(" "),
+			});
+		}
+
+		metric.setAttribute(
+			"aria-label",
+			`${label}: ${value}, ${Math.round(normalizedCompletion * 100)}% relative completion`
+		);
+	}
+
+	private getEstimatedTimeSeconds(
+		value: {
+			hours: number;
+			minutes: number;
+			seconds: number;
+			totalSeconds?: number;
+		} | string
+	): number {
+		if (typeof value === "string") {
+			return 0;
+		}
+
+		const calculatedSeconds = value.totalSeconds
+			?? (value.hours * 3600) + (value.minutes * 60) + value.seconds;
+
+		return Number.isFinite(calculatedSeconds)
+			? Math.max(0, calculatedSeconds)
+			: 0;
 	}
 
 	private formatEstimatedTime(
@@ -888,10 +1319,10 @@ export class DashboardView extends ItemView {
 		const metric = getDashboardDailyAverageWords(
 			this.stateManager.getDailyMetricsState()
 		);
-		const availablePlotWidth = Math.max(0, this.dailyAverageCard.clientWidth - 115);
+		const availablePlotWidth = Math.max(0, this.dailyAverageCard.clientWidth - 64);
 		const visibleDays = Math.max(
 			7,
-			Math.min(30, Math.floor((availablePlotWidth + 3) / 9))
+			Math.min(30, Math.floor((availablePlotWidth + 2) / 8))
 		);
 		const points = metric.points.slice(-visibleDays);
 		const axisMaximum = this.getDailyWordsAxisMaximum(
@@ -919,10 +1350,6 @@ export class DashboardView extends ItemView {
 		const title = heading.createDiv({
 			cls: "dynamic-daily-average-title",
 		});
-		const titleIcon = title.createSpan({
-			cls: "dynamic-daily-average-title-icon",
-		});
-		setIcon(titleIcon, "trending-up");
 		title.createSpan({ text: "Daily average words" });
 		heading.createDiv({
 			cls: "dynamic-daily-average-subtitle",
@@ -933,9 +1360,7 @@ export class DashboardView extends ItemView {
 		});
 		trend.createDiv({
 			cls: "dynamic-daily-average-change",
-			text: `${metric.changePercentage > 0
-				? "↑"
-				: metric.changePercentage < 0 ? "↓" : "→"} ${metric.changePercentage.toFixed(1)}%`,
+			text: this.formatTrendPercentage(metric.changePercentage),
 		});
 		trend.createDiv({
 			cls: "dynamic-daily-average-comparison",
@@ -972,7 +1397,10 @@ export class DashboardView extends ItemView {
 
 		for (const point of points) {
 			const bar = plot.createDiv({
-				cls: "dynamic-daily-average-bar",
+				cls: [
+					"dynamic-daily-average-bar",
+					point.words === 0 ? "dynamic-daily-average-bar--empty" : "",
+				].filter(Boolean).join(" "),
 			});
 			bar.style.height = axisMaximum > 0
 				? `${Math.min(100, (point.words / axisMaximum) * 100)}%`
@@ -1042,8 +1470,8 @@ export class DashboardView extends ItemView {
 		const isWorkspace = this.containerEl.hasClass(
 			"dynamic-dashboard-container--workspace"
 		);
-		const cellGap = isWorkspace ? 3 : 2;
-		const baseCellSize = isWorkspace ? 14 : 9;
+		const cellGap = 2;
+		const baseCellSize = isWorkspace ? 8 : 9;
 		const horizontalCellSize = Math.floor(
 			(this.streakCard.clientWidth - 48 - (52 * cellGap)) / 53
 		);
@@ -1202,15 +1630,33 @@ export class DashboardView extends ItemView {
 
 }
 
-export async function openDashboardView(
-	workspace: Workspace,
-	side: Side = "right"
+export function openDashboardView(
+	workspace: Workspace
+): Promise<void> {
+	if (dashboardOpenPromise) {
+		return dashboardOpenPromise;
+	}
+
+	dashboardOpenPromise = revealDashboardView(workspace)
+		.catch((error: unknown) => {
+			Logger.lifecycle("dashboard view opening failed", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			new Notice("Could not open the dynamic dashboard.");
+		})
+		.finally(() => {
+			dashboardOpenPromise = null;
+		});
+
+	return dashboardOpenPromise;
+}
+
+async function revealDashboardView(
+	workspace: Workspace
 ): Promise<void> {
 	const existingLeaf = workspace.getLeavesOfType(DASHBOARD_VIEW_TYPE)[0];
 	const leaf = existingLeaf
-		?? (side === "left"
-			? workspace.getLeftLeaf(false)
-			: workspace.getRightLeaf(false))
+		?? workspace.getLeftLeaf(false)
 		?? workspace.getLeaf("tab");
 
 	if (!existingLeaf) {
@@ -1218,6 +1664,11 @@ export async function openDashboardView(
 			type: DASHBOARD_VIEW_TYPE,
 			active: true,
 		});
+	}
+
+	if (typeof workspace.revealLeaf === "function") {
+		await workspace.revealLeaf(leaf);
+		return;
 	}
 
 	workspace.setActiveLeaf(leaf, { focus: true });

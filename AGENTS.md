@@ -89,8 +89,9 @@ Ao carregar o plugin, `DashboardPlugin.onload()`:
 4. cria `VaultEventListener`;
 5. registra listeners;
 6. inicia o rastreamento de sessão;
-7. registra a sessão diária atual;
-8. executa `statsProcessor.vaultLoad("all")` e inicia a atualização periódica do tempo ativo.
+7. registra imediatamente ribbon, comandos, settings e a atualização periódica do tempo ativo, liberando a interface sem aguardar a varredura do Vault;
+8. em segundo plano, quando `dailyHistory` está completamente vazio, estima e persiste os 30 dias anteriores;
+9. registra a sessão diária atual e executa `statsProcessor.vaultLoad("all")`.
 
 `vaultLoad("all")`:
 
@@ -117,6 +118,7 @@ interface StorageData {
 
 - `vaultMetrics`: snapshot agregado atual.
 - `dailyHistory`: histórico indexado por data no formato `YYYY-MM-DD`.
+- no primeiro carregamento sem histórico, os 30 dias locais anteriores são criados, inclusive os dias vazios; arquivos Markdown modificados nesse intervalo contribuem com suas métricas atuais para o dia do respectivo `mtime`. Essa reconstrução é uma estimativa, pois o Obsidian não disponibiliza o conteúdo histórico das notas.
 - `settings`: contém `idleLimitMinutes`, com padrão de 5 minutos, aplicado ao `SessionService`.
 - `fileStatsCacheState`: cache `Map<path, FileMetrics>` somente em memória; não é persistido.
 
@@ -199,7 +201,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 - `src/main.ts`: classe `DashboardPlugin`, carregamento/gravação dos dados e bootstrap. Deve permanecer pequeno e focado no lifecycle.
 - `src/settings.ts`: aba de configuração do limite de inatividade.
-- `src/commands/DashboardCommands.ts`: registra comandos para abrir o dashboard nos painéis laterais esquerdo ou direito.
+- `src/commands/DashboardCommands.ts`: registra o comando para abrir o dashboard obrigatoriamente no painel lateral esquerdo; o ID legado da direita permanece como alias para preservar atalhos existentes.
 - `src/commands/VaultCommands.ts`: registra o comando `refresh-vault-metrics`.
 
 ### Eventos e orquestração
@@ -210,16 +212,17 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 ### Views
 
 - `src/views/DashboardView.ts`: registra a view e o layout-base compacto do dashboard, seus identificadores e a abertura em qualquer painel lateral; a aba pode ser movida pelo drag-and-drop nativo do Obsidian.
-- `src/views/DashboardViewData.ts`: deriva dados transitórios exclusivos da apresentação, como tipos de arquivo, atividade recente e as duas janelas do gráfico diário; esses dados não integram nem são persistidos em `VaultMetrics`.
+- a abertura pela ribbon ou por comando é serializada, usa obrigatoriamente a sidebar esquerda e sempre revela a folha existente, inclusive quando ela está recolhida; falhas de abertura são registradas e exibidas ao usuário.
+- `src/views/DashboardViewData.ts`: deriva dados transitórios exclusivos da apresentação, como tipos de arquivo, atividade recente, top de pastas e as duas janelas do gráfico diário; esses dados não integram nem são persistidos em `VaultMetrics`.
 - o layout-base possui seis regiões em duas colunas e quatro linhas; entre 350px e 469px e somente com pelo menos 680px de altura, as duas linhas superiores e a fileira de detalhes preservam seus cards e recebem um terceiro card de insights de tags, formando um grid intermediário de três colunas; ao alcançar 850px de altura, o estado lateral completo também adiciona um segundo card largo antes dos detalhes; as linhas superiores mantêm 110px.
 - o calendário de `Writing streak` adiciona semanas conforme a largura disponível, limitado visualmente aos últimos 365 dias; na área central, depois de acomodar o ano, as células crescem conforme a largura e a altura disponíveis.
-- `Daily average words` deriva do histórico persistido duas janelas consecutivas de 30 dias, incluindo dias sem atividade como zero; a janela atual produz o valor e as barras, e a anterior produz a variação percentual. A quantidade de barras e suas dimensões acompanham o tamanho real do card, limitada aos 30 dias atuais.
-- `Estimated time` lê `estimatedReadingTime` e `estimatedSpeakingTime` do grupo persistido `estimates` e divide o card lateral igualmente entre leitura e fala; no workspace central esse card combinado permanece oculto porque as duas métricas ocupam resumos próprios.
+- `Daily average words` deriva do histórico persistido duas janelas consecutivas de 30 dias, incluindo dias sem atividade como zero; a janela atual produz o valor e as barras, e a anterior produz a variação percentual. O valor numérico ocupa uma linha acima do gráfico, que usa toda a largura útil do card; a quantidade de barras estreitas acompanha o tamanho real do card, limitada aos 30 dias atuais.
+- `Estimated time` lê `estimatedReadingTime` e `estimatedSpeakingTime` do grupo persistido `estimates` e divide o card lateral igualmente entre leitura e fala; cada tempo possui uma barra de vinte segmentos, preenchida proporcionalmente ao maior dos dois tempos. No workspace central, o card combinado permanece oculto porque as duas métricas ocupam resumos próprios, preservando suas barras.
 - a primeira fileira começa com `Words` de `volume.snapshot.totalWords`, `Folders` de `volume.totalFolders` e, quando a terceira coluna está disponível, `Vault size` de `volume.totalVaultSize`; a segunda exibe `Characters` de `volume.snapshot.totalCharacters`, `Files` de `volume.totalFiles` e `Words per file` de `volume.averageWordsPerFile`. Todos reutilizam o mesmo renderizador, formatação numérica e escala tipográfica baseada no tamanho do card; seus rodapés apresentam razões derivadas, incluindo palavras por sentença em `Words`, notas Markdown por pasta em `Folders` e todos os arquivos por pasta em `Files`. O card de média reutiliza a tendência de escrita dos períodos atual e anterior de 30 dias.
-- `Recent activity` começa com uma lista vertical; entre 320px e 469px, enquanto a fileira ainda tiver dois cards, distribui os dez registros em duas colunas de cinco. Quando altura e largura permitem revelar o terceiro card, retorna a uma lista vertical.
-- `Tag insights` lê do grupo persistido `appears` as tags mais usadas no Vault e no frontmatter, a tag menos usada e o total de tags únicas, apresentando quatro métricas em uma lista ordenada; esse card existe apenas nos estados laterais de três colunas.
+- `Recent activity` começa com uma lista vertical; entre 320px e 469px, enquanto a fileira ainda tiver dois cards, distribui os dez registros em duas colunas de cinco. Quando altura e largura permitem revelar o terceiro card, retorna a uma lista vertical. O botão inferior apenas visual para consultar toda a atividade aparece exclusivamente no workspace completo; nos layouts laterais, a lista continua ocupando o espaço disponível.
+- `Tag insights` lê do grupo persistido `appears` as tags mais usadas no Vault e no frontmatter, a tag menos usada e o total de tags únicas. Nos estados laterais de três colunas, as quatro métricas usam o mesmo formato de lista; no workspace completo, o total sai da lista e ocupa um bloco inferior separado, com divisor e valor destacado.
 - próximo ao limite visual, a partir de 470px internos, o estado expandido usa três colunas: seis resumos, dois cards largos, três detalhes e o streak completo; sua página tem altura própria e rolagem quando necessário.
-- quando a view está na área central, a hierarquia do `WorkspaceLeaf` ativa um layout horizontal próprio com vinte colunas: duas fileiras de quatro resumos, gráfico diário, insights de tags, atividade recente e streak. O card lateral de tempo estimado é desmembrado visualmente nos cards de leitura e fala, enquanto `File types` fica oculto nesse modo. O espaço da futura região de insights do Vault permanece vazio, sem conteúdo fictício. Mover a aba entre a área central e os painéis recalcula esse modo.
+- quando a view está na área central, a hierarquia do `WorkspaceLeaf` ativa um cabeçalho com título e subtítulo seguido por cinco linhas de cards em uma malha de 24 colunas: duas fileiras de quatro resumos; gráfico diário, insights de tags, insights do Vault e atividade recente; streak; e três cards de ranking. `Vault insights` mostra a pasta mais ativa persistida e deriva do `mtime` os três arquivos Markdown modificados mais recentemente. Na última linha, o primeiro card mostra as cinco pastas com mais arquivos, incluindo arquivos das subpastas; o último mostra as cinco notas com mais caracteres. As listas derivadas na apresentação não integram `VaultMetrics`, e seus botões inferiores ainda são apenas visuais. O dashboard completo e seu grid são centralizados, possuem moldura arredondada e são limitados a 1000px de largura, impedindo novas expansões visuais acima desse limite. O card lateral de tempo estimado é desmembrado visualmente nos cards de leitura e fala, enquanto `File types` fica oculto nesse modo. Mover a aba entre a área central e os painéis recalcula esse modo.
 - nos painéis laterais, a largura visual do dashboard é limitada a 480px; a área central não usa esse limite.
 
 ### Serviços e análise
@@ -252,7 +255,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 ### Recursos
 
-- `src/assets/icons/DashboardIcon.ts`: retorna o SVG registrado para a view e para a ribbon do dashboard.
+- view, ribbon, comandos e cabeçalho reutilizam o ícone nativo `trending-up` do Obsidian.
 
 ## Estado conhecido e débitos técnicos
 
