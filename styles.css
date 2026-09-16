@@ -633,21 +633,6 @@
 	text-transform: uppercase;
 }
 
-.dynamic-daily-average-title-icon {
-	display: flex;
-	flex: 0 0 auto;
-	align-items: center;
-	justify-content: center;
-	width: 13px;
-	height: 13px;
-	color: #39d353;
-}
-
-.dynamic-daily-average-title-icon svg {
-	width: 100%;
-	height: 100%;
-}
-
 .dynamic-daily-average-subtitle,
 .dynamic-daily-average-comparison {
 	margin-top: 4px;
@@ -657,6 +642,10 @@
 	line-height: 1;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.dynamic-daily-average-subtitle {
+	font-size: 9px;
 }
 
 .dynamic-daily-average-trend {
@@ -755,6 +744,12 @@
 	background: linear-gradient(to top, #238636, #56d364);
 }
 
+.dynamic-daily-average-bar--empty {
+	min-height: 3px;
+	background: #238636;
+	opacity: 0.45;
+}
+
 .dynamic-daily-average-x-axis {
 	display: grid;
 	grid-column: 2;
@@ -804,16 +799,15 @@
 		font-size: 12px;
 	}
 
-	.dynamic-daily-average-title-icon {
-		width: 16px;
-		height: 16px;
-	}
-
 	.dynamic-daily-average-subtitle,
 	.dynamic-daily-average-comparison,
 	.dynamic-daily-average-y-axis,
 	.dynamic-daily-average-x-axis {
 		font-size: 9px;
+	}
+
+	.dynamic-daily-average-subtitle {
+		font-size: 10px;
 	}
 
 	.dynamic-daily-average-change {
@@ -848,16 +842,15 @@
 		font-size: 14px;
 	}
 
-	.dynamic-daily-average-title-icon {
-		width: 18px;
-		height: 18px;
-	}
-
 	.dynamic-daily-average-subtitle,
 	.dynamic-daily-average-comparison,
 	.dynamic-daily-average-y-axis,
 	.dynamic-daily-average-x-axis {
 		font-size: 10px;
+	}
+
+	.dynamic-daily-average-subtitle {
+		font-size: 11px;
 	}
 
 	.dynamic-daily-average-change {
@@ -1252,7 +1245,7 @@
 }
 
 .dynamic-tag-insights-total {
-	display: flex;
+	display: none;
 	flex: 0 0 auto;
 	flex-direction: column;
 	align-items: center;
@@ -1899,6 +1892,10 @@
 	cursor: default;
 }
 
+.dynamic-recent-activity-button {
+	display: none;
+}
+
 .dynamic-vault-insights-button:hover,
 .dynamic-recent-activity-button:hover {
 	border-color: var(--background-modifier-border);
@@ -2083,6 +2080,11 @@
 	gap: 8px;
 }
 
+.dynamic-dashboard-container--workspace
+	.dynamic-tag-insights-item--compact-total {
+	display: none;
+}
+
 .dynamic-dashboard-container--workspace .dynamic-tag-insights-label {
 	font-size: 11px;
 }
@@ -2093,6 +2095,7 @@
 }
 
 .dynamic-dashboard-container--workspace .dynamic-tag-insights-total {
+	display: flex;
 	margin-top: 10px;
 	padding-top: 9px;
 }
@@ -2127,6 +2130,10 @@
 	grid-template-rows: repeat(5, minmax(0, 1fr));
 	grid-auto-flow: row;
 	gap: 6px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-recent-activity-button {
+	display: flex;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-recent-activity-item:nth-child(n + 6) {

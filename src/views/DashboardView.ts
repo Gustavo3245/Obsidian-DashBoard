@@ -782,16 +782,25 @@ export class DashboardView extends ItemView {
 				label: "Most used tag",
 				metric: appears.mostAppearsTag,
 				color: "#8b5cf6",
+				compactOnly: false,
 			},
 			{
 				label: "Most used frontmatter tag",
 				metric: appears.mostAppearsTagInFrontMatter,
 				color: "#38bdf8",
+				compactOnly: false,
 			},
 			{
 				label: "Least used tag",
 				metric: appears.minorAppearsTag,
 				color: "#22c55e",
+				compactOnly: false,
+			},
+			{
+				label: "Total unique tags",
+				metric: { name: "Unique", count: appears.totalUniqueTags },
+				color: "#facc15",
+				compactOnly: true,
 			},
 		] as const;
 
@@ -814,7 +823,12 @@ export class DashboardView extends ItemView {
 				? { name: "No tags", count: 0 }
 				: insight.metric;
 			const item = list.createEl("li", {
-				cls: "dynamic-tag-insights-item",
+				cls: [
+					"dynamic-tag-insights-item",
+					insight.compactOnly
+						? "dynamic-tag-insights-item--compact-total"
+						: "",
+				].filter(Boolean).join(" "),
 			});
 			item.style.setProperty("--dynamic-tag-insight-color", insight.color);
 			item.createDiv({
@@ -1102,9 +1116,7 @@ export class DashboardView extends ItemView {
 				});
 				footerElement.createSpan({
 					cls: "dynamic-summary-metric-footer-trend",
-					text: `${footer.changePercentage > 0
-						? "↑"
-						: footer.changePercentage < 0 ? "↓" : "→"} ${Math.abs(footer.changePercentage).toFixed(1)}%`,
+					text: this.formatTrendPercentage(footer.changePercentage),
 				});
 			}
 		}
@@ -1116,6 +1128,15 @@ export class DashboardView extends ItemView {
 
 	private formatSummaryRatio(value: number): string {
 		return value.toFixed(1).replace(/\.0$/, "");
+	}
+
+	private formatTrendPercentage(value: number): string {
+		if (value > 100) {
+			return "+100%";
+		}
+
+		const direction = value > 0 ? "↑" : value < 0 ? "↓" : "→";
+		return `${direction} ${Math.abs(value).toFixed(1)}%`;
 	}
 
 	private formatStorageSize(bytes: number, maximumFractionDigits: number): string {
@@ -1326,10 +1347,6 @@ export class DashboardView extends ItemView {
 		const title = heading.createDiv({
 			cls: "dynamic-daily-average-title",
 		});
-		const titleIcon = title.createSpan({
-			cls: "dynamic-daily-average-title-icon",
-		});
-		setIcon(titleIcon, "trending-up");
 		title.createSpan({ text: "Daily average words" });
 		heading.createDiv({
 			cls: "dynamic-daily-average-subtitle",
@@ -1340,9 +1357,7 @@ export class DashboardView extends ItemView {
 		});
 		trend.createDiv({
 			cls: "dynamic-daily-average-change",
-			text: `${metric.changePercentage > 0
-				? "↑"
-				: metric.changePercentage < 0 ? "↓" : "→"} ${metric.changePercentage.toFixed(1)}%`,
+			text: this.formatTrendPercentage(metric.changePercentage),
 		});
 		trend.createDiv({
 			cls: "dynamic-daily-average-comparison",
@@ -1379,7 +1394,10 @@ export class DashboardView extends ItemView {
 
 		for (const point of points) {
 			const bar = plot.createDiv({
-				cls: "dynamic-daily-average-bar",
+				cls: [
+					"dynamic-daily-average-bar",
+					point.words === 0 ? "dynamic-daily-average-bar--empty" : "",
+				].filter(Boolean).join(" "),
 			});
 			bar.style.height = axisMaximum > 0
 				? `${Math.min(100, (point.words / axisMaximum) * 100)}%`
