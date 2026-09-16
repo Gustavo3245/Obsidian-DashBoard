@@ -12,6 +12,7 @@ import {
 	getDashboardDailyAverageWords,
 	getDashboardFileTypes,
 	getDashboardRecentActivities,
+	getDashboardTopFolders,
 } from "views/DashboardViewData";
 
 export const DASHBOARD_VIEW_TYPE = "dynamic-dashboard-view";
@@ -63,6 +64,7 @@ const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 ];
 
 const FILE_TYPE_COLORS = ["#8b5cf6", "#38bdf8", "#22c55e", "#facc15"] as const;
+const TOP_FOLDER_COLORS = ["#a371f7", "#58a6ff", "#3fb950", "#facc15", "#f97316"] as const;
 const FILE_TYPE_LABELS = {
 	markdown: "Markdown",
 	canvas: "Canvas",
@@ -83,6 +85,7 @@ export class DashboardView extends ItemView {
 	private fileTypesCard: HTMLElement | null = null;
 	private tagInsightsCard: HTMLElement | null = null;
 	private recentActivityCard: HTMLElement | null = null;
+	private topFoldersCard: HTMLElement | null = null;
 	private dailyAverageResizeObserver: ResizeObserver | null = null;
 	private streakResizeObserver: ResizeObserver | null = null;
 	private unsubscribeState: (() => void) | null = null;
@@ -131,6 +134,7 @@ export class DashboardView extends ItemView {
 		this.renderStateMetrics();
 		this.renderFileTypes();
 		this.renderRecentActivity();
+		this.renderTopFolders();
 	}
 
 	private renderStateMetrics(): void {
@@ -169,6 +173,7 @@ export class DashboardView extends ItemView {
 		this.fileTypesCard = null;
 		this.tagInsightsCard = null;
 		this.recentActivityCard = null;
+		this.topFoldersCard = null;
 		this.containerEl.removeClass("dynamic-dashboard-container");
 		this.containerEl.removeClass("dynamic-dashboard-container--workspace");
 		this.contentEl.removeClass("dynamic-dashboard-view");
@@ -293,6 +298,10 @@ export class DashboardView extends ItemView {
 			if (modifiers.includes("recent-activity")) {
 				this.recentActivityCard = card;
 			}
+
+			if (modifiers.includes("top-folders")) {
+				this.topFoldersCard = card;
+			}
 		}
 	}
 
@@ -315,6 +324,7 @@ export class DashboardView extends ItemView {
 	private registerPresentationEvents(): void {
 		const refreshFiles = () => {
 			this.renderFileTypes();
+			this.renderTopFolders();
 			this.scheduleRecentActivityRefresh();
 		};
 		this.registerEvent(
@@ -457,6 +467,89 @@ export class DashboardView extends ItemView {
 			const fill = track.createDiv({ cls: "dynamic-file-types-fill" });
 			fill.style.width = `${metric.percentage}%`;
 		}
+	}
+
+	private renderTopFolders(): void {
+		if (!this.topFoldersCard) {
+			return;
+		}
+
+		const folders = getDashboardTopFolders(this.app.vault.getFiles());
+		const maximumFileCount = folders[0]?.fileCount ?? 0;
+
+		this.topFoldersCard.empty();
+		const title = this.topFoldersCard.createDiv({
+			cls: "dynamic-top-folders-title",
+		});
+		const titleIcon = title.createSpan({
+			cls: "dynamic-top-folders-title-icon",
+		});
+		setIcon(titleIcon, "folder");
+		title.createSpan({ text: "Top folders" });
+		title.createSpan({
+			cls: "dynamic-top-folders-title-detail",
+			text: "(by file count)",
+		});
+
+		const list = this.topFoldersCard.createDiv({
+			cls: "dynamic-top-folders-list",
+		});
+
+		for (const [index, folder] of folders.entries()) {
+			const item = list.createDiv({
+				cls: "dynamic-top-folders-item",
+			});
+			const color = TOP_FOLDER_COLORS[index] ?? TOP_FOLDER_COLORS.at(-1)!;
+			item.style.setProperty("--dynamic-top-folder-color", color);
+			item.setAttribute(
+				"aria-label",
+				`${folder.path}: ${folder.fileCount} files`
+			);
+
+			const header = item.createDiv({
+				cls: "dynamic-top-folders-item-header",
+			});
+			const icon = header.createSpan({
+				cls: "dynamic-top-folders-item-icon",
+			});
+			setIcon(icon, "folder");
+			header.createSpan({
+				cls: "dynamic-top-folders-path",
+				text: `/${folder.path}`,
+			});
+			header.createSpan({
+				cls: "dynamic-top-folders-count",
+				text: folder.fileCount.toLocaleString(),
+			});
+
+			const track = item.createDiv({
+				cls: "dynamic-top-folders-track",
+			});
+			const fill = track.createDiv({
+				cls: "dynamic-top-folders-fill",
+			});
+			fill.style.width = maximumFileCount > 0
+				? `${(folder.fileCount / maximumFileCount) * 100}%`
+				: "0";
+		}
+
+		if (folders.length === 0) {
+			list.createDiv({
+				cls: "dynamic-top-folders-empty",
+				text: "No folders found",
+			});
+		}
+
+		const button = this.topFoldersCard.createEl("button", {
+			cls: "dynamic-top-folders-button",
+			text: "View all folders",
+		});
+		button.type = "button";
+		button.setAttribute("aria-disabled", "true");
+		const buttonIcon = button.createSpan({
+			cls: "dynamic-top-folders-button-icon",
+		});
+		setIcon(buttonIcon, "arrow-right");
 	}
 
 	private renderTagInsights(): void {

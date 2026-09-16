@@ -25,6 +25,11 @@ export interface DashboardDailyAverageWords {
 	points: DashboardDailyWordsPoint[];
 }
 
+export interface DashboardTopFolder {
+	path: string;
+	fileCount: number;
+}
+
 export function getDashboardDailyAverageWords(
 	dailyHistory: Record<string, DailyMetrics>,
 	today = new Date(),
@@ -120,6 +125,33 @@ export function getDashboardRecentActivities(
 
 	return activities
 		.sort((first, second) => second.timestamp - first.timestamp)
+		.slice(0, Math.max(0, limit));
+}
+
+export function getDashboardTopFolders(
+	files: TFile[],
+	limit = 5
+): DashboardTopFolder[] {
+	const folderCounts = new Map<string, number>();
+
+	for (const file of files) {
+		let folder = file.parent;
+
+		while (folder && !folder.isRoot()) {
+			folderCounts.set(
+				folder.path,
+				(folderCounts.get(folder.path) ?? 0) + 1
+			);
+			folder = folder.parent;
+		}
+	}
+
+	return [...folderCounts.entries()]
+		.map(([path, fileCount]) => ({ path, fileCount }))
+		.sort((first, second) =>
+			second.fileCount - first.fileCount
+			|| first.path.localeCompare(second.path)
+		)
 		.slice(0, Math.max(0, limit));
 }
 
