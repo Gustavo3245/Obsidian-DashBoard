@@ -15,6 +15,7 @@ export class StateManager {
 	private stateListeners: Set<StateListener> = new Set();
 
 	private saveTimeout: number | null = null;
+	private persistQueue: Promise<void> = Promise.resolve();
 
 	constructor(
 		initialVaultData: VaultMetrics,
@@ -90,32 +91,42 @@ export class StateManager {
 		this.triggerSave();
 	}
 
-	/** Add absent daily records in one state emission without replacing saved dates. */
-	public addMissingDailyMetrics(
+	/** Reconcile content totals while preserving time and session tracking. */
+	public reconcileDailyContentMetrics(
 		dailyMetrics: Record<string, DailyMetrics>
 	): number {
-		let addedDates = 0;
+		let changedDates = 0;
 
 		for (const [date, metrics] of Object.entries(dailyMetrics)) {
-			if (Object.prototype.hasOwnProperty.call(this.dailyMetricsHistory, date)) {
+			const current = this.dailyMetricsHistory[date];
+			const reconciled = DailyMapper.mapToDailyMetrics({
+				...current,
+				date,
+				words: metrics.words,
+				characters: metrics.characters,
+				sentences: metrics.sentences,
+				timeMetrics: current?.timeMetrics ?? metrics.timeMetrics,
+			});
+
+			if (current
+				&& current.words === reconciled.words
+				&& current.characters === reconciled.characters
+				&& current.sentences === reconciled.sentences) {
 				continue;
 			}
 
-			this.dailyMetricsHistory[date] = DailyMapper.mapToDailyMetrics({
-				...metrics,
-				date,
-			});
-			addedDates++;
+			this.dailyMetricsHistory[date] = reconciled;
+			changedDates++;
 		}
 
-		if (addedDates === 0) {
+		if (changedDates === 0) {
 			return 0;
 		}
 
-		Logger.state("historical daily metrics added", { addedDates });
+		Logger.state("historical daily metrics reconciled", { changedDates });
 		this.notifyListeners();
 		this.triggerSave();
-		return addedDates;
+		return changedDates;
 	}
 	
 	public emitNewState(patch: Partial<VaultMetrics>) {
@@ -146,31 +157,40 @@ export class StateManager {
 
 		this.saveTimeout = window.setTimeout(() => {
 			this.saveTimeout = null;
-			void this.persist();
+			void this.persist().catch((error: unknown) => {
+				Logger.state("state persistence failed", {
+					error: error instanceof Error ? error.message : String(error),
+				});
+			});
 		}, 2000);
 
 	}
 
 	private async persist(): Promise<void> {
-		await this.persistCallback({
+		const snapshot = {
 			vaultMetrics: this.vaultMetricsState,
-			dailyHistory: this.dailyMetricsHistory
-		});
+			dailyHistory: { ...this.dailyMetricsHistory },
+		};
+		const previousPersist = this.persistQueue.catch(() => undefined);
+		const currentPersist = previousPersist.then(() =>
+			this.persistCallback(snapshot)
+		);
+		this.persistQueue = currentPersist;
+		await currentPersist;
 
 		Logger.state("state persisted", {
-			vaultMetrics: this.vaultMetricsState,
-			dailyHistory: this.dailyMetricsHistory,
+			vaultMetrics: snapshot.vaultMetrics,
+			dailyHistory: snapshot.dailyHistory,
 		});
 
 	}
 
 	public async flushPendingSave(): Promise<void> {
-		if (this.saveTimeout === null) {
-			return;
+		if (this.saveTimeout !== null) {
+			window.clearTimeout(this.saveTimeout);
+			this.saveTimeout = null;
 		}
 
-		window.clearTimeout(this.saveTimeout);
-		this.saveTimeout = null;
 		await this.persist();
 	}
 }

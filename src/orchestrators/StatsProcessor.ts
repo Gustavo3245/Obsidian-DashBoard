@@ -30,21 +30,17 @@ export class StatProcessor {
 		this.stateManager.setFilePreview(path, updatedFilePreview);
 	}
 
-	/** Estimate previous daily metrics only when no persisted history exists. */
-	async backfillInitialDailyHistory(days: number): Promise<void> {
-		if (Object.keys(this.stateManager.getDailyMetricsState()).length > 0) {
-			return;
-		}
-
+	/** Reconcile recent content totals while preserving tracked session values. */
+	async reconcileRecentDailyHistory(days: number): Promise<void> {
 		const historicalMetrics = await this.calculator
 			.getHistoricalDailyMetrics(days);
-		this.stateManager.addMissingDailyMetrics(historicalMetrics);
+		this.stateManager.reconcileDailyContentMetrics(historicalMetrics);
 	}
 
-	async startDailySession(range: TimeRange): Promise<void> {
+	async startDailySession(): Promise<void> {
 		
 		const today = moment().format("YYYY-MM-DD");
-		const dailyMetricsLoad = await this.calculator.getDailyMetrics(range);
+		const dailyMetricsLoad = await this.calculator.getDailyMetrics("today");
 		const currentDailyMetrics = this.stateManager.getDailyMetricsByDate(today);
 
 		this.stateManager.emitNewDailyMetrics(today, {
