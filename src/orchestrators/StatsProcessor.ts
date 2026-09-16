@@ -4,6 +4,7 @@ import { moment, TFile } from "obsidian";
 import { StateManager } from "state/StateManager";
 import { VaultService } from "services/VaultService";
 import { StatsCalculator } from "services/StatsCalculator";
+import { Logger } from "utils/Logger";
 
 export class StatProcessor {
 
@@ -298,22 +299,25 @@ export class StatProcessor {
 			const stats = await this.calculator.getFileMetrics(file);
 			this.stateManager.setFileCache(file.path, stats);
 		}))
-		
-		const [volume, estimates, appears, streak, storage] = await Promise.all([
-			this.calculator.getVolumeMetrics(range),
-			this.calculator.getEstimatesMetric(range),
-			this.calculator.getAppearsMetrics(range),
-			this.calculator.getStreakMetrics(range),
-			this.calculator.storageValuesMetrics(range)
-		])
 
-		this.stateManager.emitNewState({
-			volume: volume,
-			estimates: estimates,
-			appears: appears,
-			streak: streak,
-			storageValues: storage
-		});
+		const metricLoads = [
+			["volume", this.volumesLoad(range)],
+			["estimates", this.estimatesLoad(range)],
+			["appears", this.appearsLoad(range)],
+			["streak", this.streakLoad(range)],
+			["storageValues", this.storageValuesLoad(range)],
+		] as const;
+
+		await Promise.all(metricLoads.map(async ([group, load]) => {
+			try {
+				await load;
+			} catch (error) {
+				Logger.state("vault metric load failed", {
+					group,
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+		}));
 
 	}
 }

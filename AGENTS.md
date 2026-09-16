@@ -96,7 +96,7 @@ Ao carregar o plugin, `DashboardPlugin.onload()`:
 
 1. calcula e armazena `FileMetrics` de cada Markdown no cache em memória;
 2. calcula em paralelo os grupos `volume`, `estimates`, `appears`, `streak` e `storageValues`;
-3. emite um novo `VaultMetrics`;
+3. publica cada grupo assim que seu cálculo termina, sem impedir os demais quando um deles falha;
 4. como a sessão diária já foi registrada, os cálculos históricos incluem o dia atual.
 
 Essa varredura lê o conteúdo dos arquivos várias vezes. Trate alterações nessa etapa como sensíveis a desempenho, principalmente em Vaults grandes e dispositivos móveis.
@@ -120,7 +120,7 @@ interface StorageData {
 - `settings`: contém `idleLimitMinutes`, com padrão de 5 minutos, aplicado ao `SessionService`.
 - `fileStatsCacheState`: cache `Map<path, FileMetrics>` somente em memória; não é persistido.
 
-O `StateManager` aceita patches, normaliza-os com os mappers e agenda gravação após 2 segundos. Chamadas sucessivas reiniciam o timer. Ao adicionar novos campos persistidos:
+O `StateManager` normaliza o snapshot e cada registro diário carregado, aceita patches e agenda gravação após 2 segundos. Chamadas sucessivas reiniciam o timer. Ao adicionar novos campos persistidos:
 
 1. atualize o modelo;
 2. atualize `DEFAULT_STORAGE_DATA`;
