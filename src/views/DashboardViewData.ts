@@ -1,5 +1,6 @@
 import { TFile } from "obsidian";
 import { DailyMetrics } from "models/DailyMetrics";
+import { FileMetrics } from "models/FileMetrics";
 
 export interface DashboardFileTypeMetric {
 	type: "markdown" | "canvas" | "excalidraw" | "other";
@@ -28,6 +29,18 @@ export interface DashboardDailyAverageWords {
 export interface DashboardTopFolder {
 	path: string;
 	fileCount: number;
+}
+
+export interface DashboardTopNote {
+	name: string;
+	path: string;
+	characterCount: number;
+}
+
+export interface DashboardModifiedFile {
+	name: string;
+	path: string;
+	timestamp: number;
 }
 
 export function getDashboardDailyAverageWords(
@@ -150,6 +163,40 @@ export function getDashboardTopFolders(
 		.map(([path, fileCount]) => ({ path, fileCount }))
 		.sort((first, second) =>
 			second.fileCount - first.fileCount
+			|| first.path.localeCompare(second.path)
+		)
+		.slice(0, Math.max(0, limit));
+}
+
+export function getDashboardTopNotes(
+	files: Iterable<FileMetrics>,
+	limit = 5
+): DashboardTopNote[] {
+	return [...files]
+		.map((file) => ({
+			name: file.name.replace(/\.md$/i, ""),
+			path: file.path,
+			characterCount: Math.max(0, file.characters),
+		}))
+		.sort((first, second) =>
+			second.characterCount - first.characterCount
+			|| first.path.localeCompare(second.path)
+		)
+		.slice(0, Math.max(0, limit));
+}
+
+export function getDashboardLastModifiedFiles(
+	files: TFile[],
+	limit = 3
+): DashboardModifiedFile[] {
+	return files
+		.map((file) => ({
+			name: file.basename,
+			path: file.path,
+			timestamp: file.stat.mtime,
+		}))
+		.sort((first, second) =>
+			second.timestamp - first.timestamp
 			|| first.path.localeCompare(second.path)
 		)
 		.slice(0, Math.max(0, limit));
