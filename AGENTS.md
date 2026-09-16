@@ -89,8 +89,9 @@ Ao carregar o plugin, `DashboardPlugin.onload()`:
 4. cria `VaultEventListener`;
 5. registra listeners;
 6. inicia o rastreamento de sessão;
-7. registra a sessão diária atual;
-8. executa `statsProcessor.vaultLoad("all")` e inicia a atualização periódica do tempo ativo.
+7. quando `dailyHistory` está completamente vazio, estima e persiste os 30 dias anteriores;
+8. registra a sessão diária atual;
+9. executa `statsProcessor.vaultLoad("all")` e inicia a atualização periódica do tempo ativo.
 
 `vaultLoad("all")`:
 
@@ -117,6 +118,7 @@ interface StorageData {
 
 - `vaultMetrics`: snapshot agregado atual.
 - `dailyHistory`: histórico indexado por data no formato `YYYY-MM-DD`.
+- no primeiro carregamento sem histórico, os 30 dias locais anteriores são criados, inclusive os dias vazios; arquivos Markdown modificados nesse intervalo contribuem com suas métricas atuais para o dia do respectivo `mtime`. Essa reconstrução é uma estimativa, pois o Obsidian não disponibiliza o conteúdo histórico das notas.
 - `settings`: contém `idleLimitMinutes`, com padrão de 5 minutos, aplicado ao `SessionService`.
 - `fileStatsCacheState`: cache `Map<path, FileMetrics>` somente em memória; não é persistido.
 

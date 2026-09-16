@@ -11,6 +11,7 @@ import { DashboardCommands } from "commands/DashboardCommands";
 import { Logger } from "utils/Logger";
 import { getDashboardIcon } from "assets/icons/DashboardIcon";
 import {DASHBOARD_ICON_ID, DASHBOARD_VIEW_TYPE, DashboardView, openDashboardView} from "views/DashboardView";
+import { RANGE_DAYS } from "models/value_objects/TimeRange";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
@@ -127,6 +128,15 @@ export default class DashboardPlugin extends Plugin {
 		new DashboardCommands(this).register();
 
 		this.addSettingTab(new DashboardSettingTab(this.app, this));
+		try {
+			await this.serviceContainer.statsProcessor.backfillInitialDailyHistory(
+				RANGE_DAYS.month
+			);
+		} catch (error) {
+			Logger.lifecycle("initial daily history backfill failed", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
 		try {
 			await this.serviceContainer.statsProcessor.startDailySession("all");
 		} catch (error) {
