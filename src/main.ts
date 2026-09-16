@@ -127,7 +127,13 @@ export default class DashboardPlugin extends Plugin {
 		new DashboardCommands(this).register();
 
 		this.addSettingTab(new DashboardSettingTab(this.app, this));
-		await this.serviceContainer.statsProcessor.startDailySession("all");
+		try {
+			await this.serviceContainer.statsProcessor.startDailySession("all");
+		} catch (error) {
+			Logger.lifecycle("daily session initialization failed", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
 		await this.serviceContainer.statsProcessor.vaultLoad("all");
 
 		this.registerInterval(window.setInterval(() => {

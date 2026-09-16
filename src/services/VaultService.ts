@@ -193,24 +193,14 @@ export class VaultService {
 	 * Get the total number of Markdown files inside the vault.
 	 */
 	getTotalMarkdownFiles(): number {
-		const files = this.app.vault.getMarkdownFiles();
-
-		if(files.length == 0 || !files) {
-			return 0;
-		}
-		return files.length;
+		return this.app.vault.getMarkdownFiles().length;
 	}
 
 	/**
 	 * Get the total number of files of every type inside the vault.
 	 */
 	getTotalFiles(): number {
-		const files = this.app.vault.getFiles();
-
-		if(files.length == 0 || !files){
-			return 0;
-		}
-		return files.length;
+		return this.app.vault.getFiles().length;
 	}
 
 	/**
@@ -218,12 +208,7 @@ export class VaultService {
 	 * The root folder is not counted (includeRoot = false).
 	 */
 	getTotalFolders(): number {
-		const folders = this.app.vault.getAllFolders(false);
-
-		if(folders.length == 0){
-			return 0;
-		}
-		return folders.length;
+		return this.app.vault.getAllFolders(false).length;
 	}
 
 	/**
@@ -285,14 +270,6 @@ export class VaultService {
 	}
 
 	/**
-	 * get the current average file length inside the files range,
-	 * this function uses the current totalWords parameter made available by getTotalWords().
-	 */
-	async getAverageWordsPerFiles(files: TFile[], totalWords: number): Promise<number> { 
-		return files.length > 0 ? totalWords / files.length : 0;
-	}
-
-	/**
 	 * get all Orphan files inside the vault
 	 * orphan file is a file that has no connection whatsoever (tags and Hyperlinks).
 	 */
@@ -317,13 +294,6 @@ export class VaultService {
 		
 		const totalSizeBytes = files.reduce((total, file) => total + file.stat.size, 0);
 		return Number(totalSizeBytes.toFixed(2));
-	}
-
-	/**
-	 * Get the word count directly from a content string kept in memory.
-	 */
-	getTotalWordsFromMemory(data: string): number {
-		return ContentAnalyzer.analyze(data).words;
 	}
 
 	/**

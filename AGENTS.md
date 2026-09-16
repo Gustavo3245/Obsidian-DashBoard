@@ -96,7 +96,7 @@ Ao carregar o plugin, `DashboardPlugin.onload()`:
 
 1. calcula e armazena `FileMetrics` de cada Markdown no cache em memória;
 2. calcula em paralelo os grupos `volume`, `estimates`, `appears`, `streak` e `storageValues`;
-3. emite um novo `VaultMetrics`;
+3. publica cada grupo assim que seu cálculo termina, sem impedir os demais quando um deles falha;
 4. como a sessão diária já foi registrada, os cálculos históricos incluem o dia atual.
 
 Essa varredura lê o conteúdo dos arquivos várias vezes. Trate alterações nessa etapa como sensíveis a desempenho, principalmente em Vaults grandes e dispositivos móveis.
@@ -120,7 +120,7 @@ interface StorageData {
 - `settings`: contém `idleLimitMinutes`, com padrão de 5 minutos, aplicado ao `SessionService`.
 - `fileStatsCacheState`: cache `Map<path, FileMetrics>` somente em memória; não é persistido.
 
-O `StateManager` aceita patches, normaliza-os com os mappers e agenda gravação após 2 segundos. Chamadas sucessivas reiniciam o timer. Ao adicionar novos campos persistidos:
+O `StateManager` normaliza o snapshot e cada registro diário carregado, aceita patches e agenda gravação após 2 segundos. Chamadas sucessivas reiniciam o timer. Ao adicionar novos campos persistidos:
 
 1. atualize o modelo;
 2. atualize `DEFAULT_STORAGE_DATA`;
@@ -215,11 +215,11 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 - o calendário de `Writing streak` adiciona semanas conforme a largura disponível, limitado visualmente aos últimos 365 dias; na área central, depois de acomodar o ano, as células crescem conforme a largura e a altura disponíveis.
 - `Daily average words` deriva do histórico persistido duas janelas consecutivas de 30 dias, incluindo dias sem atividade como zero; a janela atual produz o valor e as barras, e a anterior produz a variação percentual. A quantidade de barras e suas dimensões acompanham o tamanho real do card, limitada aos 30 dias atuais.
 - `Estimated time` lê `estimatedReadingTime` e `estimatedSpeakingTime` do grupo persistido `estimates` e divide o card lateral igualmente entre leitura e fala; no workspace central esse card combinado permanece oculto porque as duas métricas ocupam resumos próprios.
-- a primeira fileira começa com `Words` de `volume.snapshot.totalWords`, `Folders` de `volume.totalFolders` e, quando a terceira coluna está disponível, `Vault size` de `volume.totalVaultSize`; a segunda exibe `Characters` de `volume.snapshot.totalCharacters`, `Files` de `volume.totalFiles` e `Avg words per file` de `volume.averageWordsPerFile`. Todos reutilizam o mesmo renderizador, formatação numérica e escala tipográfica baseada no tamanho do card; seus rodapés apresentam razões derivadas, incluindo palavras por sentença no card `Words`, e o card de média reutiliza a tendência de escrita dos períodos atual e anterior de 30 dias.
+- a primeira fileira começa com `Words` de `volume.snapshot.totalWords`, `Folders` de `volume.totalFolders` e, quando a terceira coluna está disponível, `Vault size` de `volume.totalVaultSize`; a segunda exibe `Characters` de `volume.snapshot.totalCharacters`, `Files` de `volume.totalFiles` e `Words per file` de `volume.averageWordsPerFile`. Todos reutilizam o mesmo renderizador, formatação numérica e escala tipográfica baseada no tamanho do card; seus rodapés apresentam razões derivadas, incluindo palavras por sentença em `Words`, notas Markdown por pasta em `Folders` e todos os arquivos por pasta em `Files`. O card de média reutiliza a tendência de escrita dos períodos atual e anterior de 30 dias.
 - `Recent activity` começa com uma lista vertical; entre 320px e 469px, enquanto a fileira ainda tiver dois cards, distribui os dez registros em duas colunas de cinco. Quando altura e largura permitem revelar o terceiro card, retorna a uma lista vertical.
 - `Tag insights` lê do grupo persistido `appears` as tags mais usadas no Vault e no frontmatter, a tag menos usada e o total de tags únicas, apresentando quatro métricas em uma lista ordenada; esse card existe apenas nos estados laterais de três colunas.
 - próximo ao limite visual, a partir de 470px internos, o estado expandido usa três colunas: seis resumos, dois cards largos, três detalhes e o streak completo; sua página tem altura própria e rolagem quando necessário.
-- quando a view está na área central, a hierarquia do `WorkspaceLeaf` ativa um layout horizontal próprio com vinte colunas: oito resumos, gráfico diário, tipos de arquivo, atividade recente e streak; o gráfico e os tipos de arquivo dividem igualmente o espaço anterior à atividade recente. Mover a aba entre a área central e os painéis recalcula esse modo.
+- quando a view está na área central, a hierarquia do `WorkspaceLeaf` ativa um layout horizontal próprio com vinte colunas: duas fileiras de quatro resumos, gráfico diário, insights de tags, atividade recente e streak. O card lateral de tempo estimado é desmembrado visualmente nos cards de leitura e fala, enquanto `File types` fica oculto nesse modo. O espaço da futura região de insights do Vault permanece vazio, sem conteúdo fictício. Mover a aba entre a área central e os painéis recalcula esse modo.
 - nos painéis laterais, a largura visual do dashboard é limitada a 480px; a área central não usa esse limite.
 
 ### Serviços e análise
@@ -235,7 +235,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 - `src/state/StateManager.ts`: fonte de verdade em memória, cache por caminho e persistência com debounce.
 - `src/utils/Logger.ts`: logger estruturado para lifecycle, eventos e emissões de estado; não deve registrar conteúdo de notas.
-- `src/datas/VaultMetricData.ts`: `StorageData` e valores persistidos padrão.
+- `src/datas/VaultMetricData.ts`: `StorageData` e valores persistidos padrão; reutiliza `VaultMapper.getEmptyVaultMetrics()` como fonte única do snapshot vazio.
 - `src/mappers/VaultMapper.ts`: objeto vazio e merge seguro de grupos de `VaultMetrics`.
 - `src/mappers/DailyMapper.ts`: objetos vazios e normalização de `DailyMetrics`/`FileMetrics`.
 
@@ -246,7 +246,6 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 - `src/models/DailyMetrics.ts`: totais e tempo de uma data.
 - `src/models/FileMetrics.ts`: métricas e identidade de um arquivo.
 - `src/models/DashboardSettings.ts`: contrato e padrão das configurações.
-- `src/models/StatusBarMetrics.ts`: contrato planejado para status bar; ainda não usado.
 - `src/models/value_objects/ReadingTime.ts`: horas, minutos, segundos e total em segundos.
 - `src/models/value_objects/TagType.ts`: nome e contagem de tag. O tipo atual se chama `tagType`.
 - `src/models/value_objects/TimeRange.ts`: fonte única dos intervalos predefinidos, suas quantidades de dias, o tipo `TimeRange` e `DateBounds`.
@@ -254,7 +253,6 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 ### Recursos
 
 - `src/assets/icons/DashboardIcon.ts`: retorna o SVG registrado para a view e para a ribbon do dashboard.
-- `src/assets/icons/DashboardLeftIcon.ts`: segundo SVG como string, também ainda não conectado.
 
 ## Estado conhecido e débitos técnicos
 
@@ -266,7 +264,7 @@ No estado atual, `npm run build` e `npm run lint` passam. Preserve esse baseline
 
 ### Lifecycle e composição
 
-- comandos, settings tab e ícone estão registrados; `Words`, `Folders`, `Vault size`, `Characters`, `Files`, `Avg words per file`, `Estimated time`, `Daily average words`, `File types`, `Tag insights`, `Recent activity` e `Writing streak` já possuem apresentação no layout-base;
+- comandos, settings tab e ícone estão registrados; `Words`, `Folders`, `Vault size`, `Characters`, `Files`, `Words per file`, `Estimated time`, `Daily average words`, `File types`, `Tag insights`, `Recent activity` e `Writing streak` já possuem apresentação no layout-base;
 - timers e eventos possuem cleanup pelo lifecycle do plugin;
 - mudanças no limite de inatividade afetam a sessão atual sem exigir reload.
 
