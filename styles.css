@@ -59,6 +59,7 @@
 }
 
 .dynamic-dashboard-card--expanded,
+.dynamic-dashboard-card--workspace-only,
 .dynamic-dashboard-overview {
 	display: none;
 }
@@ -70,6 +71,11 @@
 	min-width: 0;
 	padding: 0 3px;
 	color: var(--text-muted);
+}
+
+.dynamic-dashboard-overview-copy {
+	display: flex;
+	align-items: center;
 }
 
 .dynamic-dashboard-overview-title {
@@ -85,6 +91,10 @@
 .dynamic-dashboard-overview-title svg {
 	width: 14px;
 	height: 14px;
+}
+
+.dynamic-dashboard-overview-subtitle {
+	display: none;
 }
 
 .dynamic-dashboard-overview-range {
@@ -1426,40 +1436,70 @@
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-view {
-	width: calc(100% - 10px);
-	max-width: none;
+	width: min(calc(100% - 20px), 1000px);
+	max-width: 1000px;
+	margin-right: auto;
+	margin-left: auto;
 	overflow-x: hidden;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 14px;
+}
+
+.dynamic-dashboard-container--workspace .view-header-title {
+	display: none;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-layout {
-	grid-template-columns: repeat(20, minmax(0, 1fr));
+	grid-template-columns: repeat(24, minmax(0, 1fr));
 	grid-template-rows:
 		52px
-		repeat(2, 132px)
-		minmax(260px, 1fr)
-		minmax(190px, 0.75fr);
-	gap: 18px;
-	height: 100%;
-	min-height: 880px;
+		repeat(2, minmax(76px, 0.4fr))
+		minmax(240px, 1.9fr)
+		minmax(165px, 1.3fr)
+		minmax(210px, 1.8fr);
+	gap: 10px;
+	width: calc(100% - 10px);
+	height: calc(100% - 16px);
+	min-height: 900px;
+	margin: 8px auto;
 	overflow: visible;
-	padding: 12px;
+	padding: 6px;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-overview {
+	box-sizing: border-box;
 	display: flex;
 	grid-column: 1 / -1;
 	grid-row: 1;
 	justify-content: flex-start;
+	padding: 0 0 10px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-overview-copy {
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: center;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-overview-title {
-	font-size: 18px;
+	gap: 8px;
+	font-size: 16px;
 	text-transform: none;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-overview-title svg {
-	width: 20px;
-	height: 20px;
+	width: 22px;
+	height: 22px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-overview-subtitle {
+	display: block;
+	margin-top: 3px;
+	padding-left: 30px;
+	color: var(--text-muted);
+	font-size: 10px;
+	font-weight: var(--font-semibold);
+	line-height: 1.1;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-overview-range {
@@ -1468,37 +1508,41 @@
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-card--summary {
 	display: block;
-	grid-column: span 5;
+	grid-column: span 6;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-card--total-files {
-	grid-column: 1 / span 5;
+	grid-column: 1 / span 6;
 	grid-row: 2;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-card--total-folders {
-	grid-column: 6 / span 5;
+	grid-column: 7 / span 6;
 	grid-row: 2;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-card--vault-size {
-	grid-column: 11 / span 5;
+	grid-column: 13 / span 6;
 	grid-row: 2;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-card--total-words {
-	grid-column: 16 / span 5;
+	grid-column: 19 / span 6;
 	grid-row: 2;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-card--total-characters {
-	grid-column: 1 / span 5;
+	grid-column: 1 / span 6;
 	grid-row: 3;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-card--average-words-per-file {
-	grid-column: 6 / span 5;
+	grid-column: 7 / span 6;
 	grid-row: 3;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-summary-metric {
+	padding: 8px 12px;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-summary-metric-title {
@@ -1537,11 +1581,11 @@
 	box-sizing: border-box;
 	display: flex;
 	grid-row: 3;
-	justify-content: center;
-	gap: 14px;
+	justify-content: flex-start;
+	gap: 0;
 	min-width: 0;
 	min-height: 0;
-	padding: 15px 18px;
+	padding: 8px 12px;
 	overflow: hidden;
 	border: 1.75px solid var(--background-modifier-border);
 	border-radius: var(--radius-m);
@@ -1550,26 +1594,28 @@
 }
 
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-metric--reading {
-	grid-column: 11 / span 5;
+	grid-column: 13 / span 6;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-metric--speaking {
-	grid-column: 16 / span 5;
+	grid-column: 19 / span 6;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-label {
 	justify-content: flex-start;
 	gap: 7px;
 	font-size: 13px;
+	font-weight: var(--font-medium);
 }
 
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-label-icon {
-	width: 19px;
-	height: 19px;
+	width: 14px;
+	height: 14px;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-value {
-	font-size: 28px;
+	flex: 1 1 auto;
+	font-size: 20px;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-value-icon,
@@ -1578,7 +1624,7 @@
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-card--daily-average {
-	grid-column: 1 / span 8;
+	grid-column: 1 / span 9;
 	grid-row: 4;
 }
 
@@ -1588,21 +1634,45 @@
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-card--tag-insights {
 	display: flex;
-	grid-column: 9 / span 4;
+	grid-column: 10 / span 5;
+	grid-row: 4;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--workspace-only {
+	display: block;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--vault-insights {
+	grid-column: 15 / span 5;
 	grid-row: 4;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-card--recent-activity {
-	grid-column: 17 / span 4;
+	grid-column: 20 / span 5;
 	grid-row: 4;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-card--streak {
-	--dynamic-streak-cell-size: 14px;
-	--dynamic-streak-cell-gap: 3px;
+	--dynamic-streak-cell-size: 8px;
+	--dynamic-streak-cell-gap: 2px;
 	grid-column: 1 / -1;
 	grid-row: 5;
 	padding: 8px 10px;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--top-folders {
+	grid-column: 1 / span 8;
+	grid-row: 6;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--last-modified-files {
+	grid-column: 9 / span 8;
+	grid-row: 6;
+}
+
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--top-notes {
+	grid-column: 17 / span 8;
+	grid-row: 6;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-tag-insights-title,

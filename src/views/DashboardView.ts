@@ -21,6 +21,7 @@ type DashboardCardModifier =
 	| "summary"
 	| "wide"
 	| "detail"
+	| "workspace-only"
 	| "streak"
 	| "tall"
 	| "upper-row"
@@ -35,8 +36,12 @@ type DashboardCardModifier =
 	| "vault-size"
 	| "average-words-per-file"
 	| "tag-insights"
+	| "vault-insights"
 	| "file-types"
-	| "recent-activity";
+	| "recent-activity"
+	| "top-folders"
+	| "last-modified-files"
+	| "top-notes";
 
 const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["summary", "total-words"],
@@ -49,8 +54,12 @@ const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["wide", "tall", "daily-average"],
 	["detail", "file-types"],
 	["detail", "expanded", "tag-insights"],
+	["detail", "workspace-only", "vault-insights"],
 	["detail", "recent-activity"],
 	["wide", "streak"],
+	["detail", "workspace-only", "top-folders"],
+	["detail", "workspace-only", "last-modified-files"],
+	["detail", "workspace-only", "top-notes"],
 ];
 
 const FILE_TYPE_COLORS = ["#8b5cf6", "#38bdf8", "#22c55e", "#facc15"] as const;
@@ -217,11 +226,18 @@ export class DashboardView extends ItemView {
 			cls: "dynamic-dashboard-layout",
 		});
 		const overview = dashboard.createDiv({ cls: "dynamic-dashboard-overview" });
-		const overviewTitle = overview.createSpan({
+		const overviewCopy = overview.createDiv({
+			cls: "dynamic-dashboard-overview-copy",
+		});
+		const overviewTitle = overviewCopy.createSpan({
 			cls: "dynamic-dashboard-overview-title",
 		});
-		setIcon(overviewTitle.createSpan(), "chart-no-axes-column-increasing");
+		setIcon(overviewTitle.createSpan(), "trending-up");
 		overviewTitle.appendText("Overview");
+		overviewCopy.createSpan({
+			cls: "dynamic-dashboard-overview-subtitle",
+			text: "Explore statistics and insights about your vault.",
+		});
 		overview.createSpan({
 			cls: "dynamic-dashboard-overview-range",
 			text: "All time",
@@ -1042,8 +1058,8 @@ export class DashboardView extends ItemView {
 		const isWorkspace = this.containerEl.hasClass(
 			"dynamic-dashboard-container--workspace"
 		);
-		const cellGap = isWorkspace ? 3 : 2;
-		const baseCellSize = isWorkspace ? 14 : 9;
+		const cellGap = 2;
+		const baseCellSize = isWorkspace ? 8 : 9;
 		const horizontalCellSize = Math.floor(
 			(this.streakCard.clientWidth - 48 - (52 * cellGap)) / 53
 		);
