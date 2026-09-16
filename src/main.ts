@@ -1,4 +1,4 @@
-import { addIcon, Plugin } from "obsidian";
+import { Plugin } from "obsidian";
 import { DashboardSettingTab } from "./settings";
 import { DashboardSettings, DEFAULT_SETTINGS } from "models/DashboardSettings";
 import { VaultEventListener } from './events/VaultEventListener';
@@ -9,7 +9,6 @@ import { DailyMetrics } from 'models/DailyMetrics';
 import { VaultCommands } from "commands/VaultCommands";
 import { DashboardCommands } from "commands/DashboardCommands";
 import { Logger } from "utils/Logger";
-import { getDashboardIcon } from "assets/icons/DashboardIcon";
 import {DASHBOARD_ICON_ID, DASHBOARD_VIEW_TYPE, DashboardView, openDashboardView} from "views/DashboardView";
 import { RANGE_DAYS } from "models/value_objects/TimeRange";
 
@@ -44,7 +43,7 @@ export default class DashboardPlugin extends Plugin {
 			this.serviceContainer.statsProcessor
 		);
 
-		await this.bootstrapPlugin();
+		this.bootstrapPlugin();
 		Logger.lifecycle("plugin loaded");
 	}
 
@@ -116,7 +115,7 @@ export default class DashboardPlugin extends Plugin {
 		await this.saveSettings();
 	}
 
-	private async bootstrapPlugin() {
+	private bootstrapPlugin(): void {
 		this.vaultEvent.init();
 		this.vaultEvent.initActivityEvents();
 
@@ -128,6 +127,14 @@ export default class DashboardPlugin extends Plugin {
 		new DashboardCommands(this).register();
 
 		this.addSettingTab(new DashboardSettingTab(this.app, this));
+		this.registerInterval(window.setInterval(() => {
+			this.serviceContainer.statsProcessor.refreshActiveTime();
+		}, 60_000));
+
+		void this.initializeMetrics();
+	}
+
+	private async initializeMetrics(): Promise<void> {
 		try {
 			await this.serviceContainer.statsProcessor.backfillInitialDailyHistory(
 				RANGE_DAYS.month
@@ -144,15 +151,17 @@ export default class DashboardPlugin extends Plugin {
 				error: error instanceof Error ? error.message : String(error),
 			});
 		}
-		await this.serviceContainer.statsProcessor.vaultLoad("all");
-
-		this.registerInterval(window.setInterval(() => {
-			this.serviceContainer.statsProcessor.refreshActiveTime();
-		}, 60_000));
+		try {
+			await this.serviceContainer.statsProcessor.vaultLoad("all");
+			Logger.lifecycle("vault metrics initialized");
+		} catch (error) {
+			Logger.lifecycle("vault initialization failed", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
 	}
 
 	private registerDashboardView(): void {
-		addIcon(DASHBOARD_ICON_ID, getDashboardIcon());
 		this.registerView(
 			DASHBOARD_VIEW_TYPE,
 			(leaf) => new DashboardView(
@@ -163,7 +172,7 @@ export default class DashboardPlugin extends Plugin {
 		this.addRibbonIcon(
 			DASHBOARD_ICON_ID,
 			"Open dynamic dashboard",
-			() => { void openDashboardView(this.app.workspace, "right"); }
+			() => { void openDashboardView(this.app.workspace); }
 		);
 	}
 

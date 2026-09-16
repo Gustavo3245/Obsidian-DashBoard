@@ -89,9 +89,9 @@ Ao carregar o plugin, `DashboardPlugin.onload()`:
 4. cria `VaultEventListener`;
 5. registra listeners;
 6. inicia o rastreamento de sessão;
-7. quando `dailyHistory` está completamente vazio, estima e persiste os 30 dias anteriores;
-8. registra a sessão diária atual;
-9. executa `statsProcessor.vaultLoad("all")` e inicia a atualização periódica do tempo ativo.
+7. registra imediatamente ribbon, comandos, settings e a atualização periódica do tempo ativo, liberando a interface sem aguardar a varredura do Vault;
+8. em segundo plano, quando `dailyHistory` está completamente vazio, estima e persiste os 30 dias anteriores;
+9. registra a sessão diária atual e executa `statsProcessor.vaultLoad("all")`.
 
 `vaultLoad("all")`:
 
@@ -201,7 +201,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 - `src/main.ts`: classe `DashboardPlugin`, carregamento/gravação dos dados e bootstrap. Deve permanecer pequeno e focado no lifecycle.
 - `src/settings.ts`: aba de configuração do limite de inatividade.
-- `src/commands/DashboardCommands.ts`: registra comandos para abrir o dashboard nos painéis laterais esquerdo ou direito.
+- `src/commands/DashboardCommands.ts`: registra o comando para abrir o dashboard obrigatoriamente no painel lateral esquerdo; o ID legado da direita permanece como alias para preservar atalhos existentes.
 - `src/commands/VaultCommands.ts`: registra o comando `refresh-vault-metrics`.
 
 ### Eventos e orquestração
@@ -212,6 +212,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 ### Views
 
 - `src/views/DashboardView.ts`: registra a view e o layout-base compacto do dashboard, seus identificadores e a abertura em qualquer painel lateral; a aba pode ser movida pelo drag-and-drop nativo do Obsidian.
+- a abertura pela ribbon ou por comando é serializada, usa obrigatoriamente a sidebar esquerda e sempre revela a folha existente, inclusive quando ela está recolhida; falhas de abertura são registradas e exibidas ao usuário.
 - `src/views/DashboardViewData.ts`: deriva dados transitórios exclusivos da apresentação, como tipos de arquivo, atividade recente, top de pastas e as duas janelas do gráfico diário; esses dados não integram nem são persistidos em `VaultMetrics`.
 - o layout-base possui seis regiões em duas colunas e quatro linhas; entre 350px e 469px e somente com pelo menos 680px de altura, as duas linhas superiores e a fileira de detalhes preservam seus cards e recebem um terceiro card de insights de tags, formando um grid intermediário de três colunas; ao alcançar 850px de altura, o estado lateral completo também adiciona um segundo card largo antes dos detalhes; as linhas superiores mantêm 110px.
 - o calendário de `Writing streak` adiciona semanas conforme a largura disponível, limitado visualmente aos últimos 365 dias; na área central, depois de acomodar o ano, as células crescem conforme a largura e a altura disponíveis.
@@ -254,7 +255,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 ### Recursos
 
-- `src/assets/icons/DashboardIcon.ts`: retorna o SVG registrado para a view e para a ribbon do dashboard.
+- view, ribbon, comandos e cabeçalho reutilizam o ícone nativo `trending-up` do Obsidian.
 
 ## Estado conhecido e débitos técnicos
 

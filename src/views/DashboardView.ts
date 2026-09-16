@@ -1,13 +1,14 @@
 import {
 	ItemView,
+	Notice,
 	setIcon,
-	Side,
 	Workspace,
 	WorkspaceItem,
 	WorkspaceLeaf,
 	WorkspaceSidedock,
 } from "obsidian";
 import { StateManager } from "state/StateManager";
+import { Logger } from "utils/Logger";
 import {
 	getDashboardDailyAverageWords,
 	getDashboardFileTypes,
@@ -18,7 +19,9 @@ import {
 } from "views/DashboardViewData";
 
 export const DASHBOARD_VIEW_TYPE = "dynamic-dashboard-view";
-export const DASHBOARD_ICON_ID = "dynamic-dashboard";
+export const DASHBOARD_ICON_ID = "trending-up";
+
+let dashboardOpenPromise: Promise<void> | null = null;
 
 type DashboardCardModifier =
 	| "summary"
@@ -1627,15 +1630,33 @@ export class DashboardView extends ItemView {
 
 }
 
-export async function openDashboardView(
-	workspace: Workspace,
-	side: Side = "right"
+export function openDashboardView(
+	workspace: Workspace
+): Promise<void> {
+	if (dashboardOpenPromise) {
+		return dashboardOpenPromise;
+	}
+
+	dashboardOpenPromise = revealDashboardView(workspace)
+		.catch((error: unknown) => {
+			Logger.lifecycle("dashboard view opening failed", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+			new Notice("Could not open the dynamic dashboard.");
+		})
+		.finally(() => {
+			dashboardOpenPromise = null;
+		});
+
+	return dashboardOpenPromise;
+}
+
+async function revealDashboardView(
+	workspace: Workspace
 ): Promise<void> {
 	const existingLeaf = workspace.getLeavesOfType(DASHBOARD_VIEW_TYPE)[0];
 	const leaf = existingLeaf
-		?? (side === "left"
-			? workspace.getLeftLeaf(false)
-			: workspace.getRightLeaf(false))
+		?? workspace.getLeftLeaf(false)
 		?? workspace.getLeaf("tab");
 
 	if (!existingLeaf) {
@@ -1643,6 +1664,11 @@ export async function openDashboardView(
 			type: DASHBOARD_VIEW_TYPE,
 			active: true,
 		});
+	}
+
+	if (typeof workspace.revealLeaf === "function") {
+		await workspace.revealLeaf(leaf);
+		return;
 	}
 
 	workspace.setActiveLeaf(leaf, { focus: true });
