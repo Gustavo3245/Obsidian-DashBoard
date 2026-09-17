@@ -257,7 +257,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 ### Recursos
 
-- view, ribbon, comandos e cabeçalho reutilizam o ícone nativo `trending-up` do Obsidian.
+- `src/assets/icons/DashboardIcon.ts`: registra o cristal roxo com barras de métricas usado de forma consistente na view, ribbon, comandos e cabeçalho.
 
 ## Estado conhecido e débitos técnicos
 

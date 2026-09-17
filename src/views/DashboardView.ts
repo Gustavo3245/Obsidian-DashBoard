@@ -19,7 +19,7 @@ import {
 } from "views/DashboardViewData";
 
 export const DASHBOARD_VIEW_TYPE = "dynamic-dashboard-view";
-export const DASHBOARD_ICON_ID = "trending-up";
+export const DASHBOARD_ICON_ID = "dynamic-dashboard-crystal";
 
 let dashboardOpenPromise: Promise<void> | null = null;
 
@@ -249,7 +249,7 @@ export class DashboardView extends ItemView {
 		const overviewTitle = overviewCopy.createSpan({
 			cls: "dynamic-dashboard-overview-title",
 		});
-		setIcon(overviewTitle.createSpan(), "trending-up");
+		setIcon(overviewTitle.createSpan(), DASHBOARD_ICON_ID);
 		overviewTitle.appendText("Overview");
 		overviewCopy.createSpan({
 			cls: "dynamic-dashboard-overview-subtitle",

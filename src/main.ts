@@ -1,4 +1,4 @@
-import { Plugin } from "obsidian";
+import { addIcon, Plugin } from "obsidian";
 import { DashboardSettingTab } from "./settings";
 import { DashboardSettings, DEFAULT_SETTINGS } from "models/DashboardSettings";
 import { VaultEventListener } from './events/VaultEventListener';
@@ -9,6 +9,7 @@ import { DailyMetrics } from 'models/DailyMetrics';
 import { VaultCommands } from "commands/VaultCommands";
 import { DashboardCommands } from "commands/DashboardCommands";
 import { Logger } from "utils/Logger";
+import { getDashboardIcon } from "assets/icons/DashboardIcon";
 import {DASHBOARD_ICON_ID, DASHBOARD_VIEW_TYPE, DashboardView, openDashboardView} from "views/DashboardView";
 import { RANGE_DAYS } from "models/value_objects/TimeRange";
 
@@ -175,6 +176,7 @@ export default class DashboardPlugin extends Plugin {
 	}
 
 	private registerDashboardView(): void {
+		addIcon(DASHBOARD_ICON_ID, getDashboardIcon());
 		this.registerView(
 			DASHBOARD_VIEW_TYPE,
 			(leaf) => new DashboardView(
