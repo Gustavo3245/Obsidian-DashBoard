@@ -91,14 +91,26 @@ export class StateManager {
 		this.triggerSave();
 	}
 
-	/** Reconcile content totals while preserving time and session tracking. */
-	public reconcileDailyContentMetrics(
+	/** Fill absent or empty content totals without replacing tracked values. */
+	public mergeMissingDailyContentMetrics(
 		dailyMetrics: Record<string, DailyMetrics>
 	): number {
 		let changedDates = 0;
 
 		for (const [date, metrics] of Object.entries(dailyMetrics)) {
 			const current = this.dailyMetricsHistory[date];
+			const currentHasContent = current !== undefined
+				&& (current.words > 0
+					|| current.characters > 0
+					|| current.sentences > 0);
+			const incomingHasContent = metrics.words > 0
+				|| metrics.characters > 0
+				|| metrics.sentences > 0;
+
+			if (currentHasContent || (current !== undefined && !incomingHasContent)) {
+				continue;
+			}
+
 			const reconciled = DailyMapper.mapToDailyMetrics({
 				...current,
 				date,
@@ -108,13 +120,6 @@ export class StateManager {
 				timeMetrics: current?.timeMetrics ?? metrics.timeMetrics,
 			});
 
-			if (current
-				&& current.words === reconciled.words
-				&& current.characters === reconciled.characters
-				&& current.sentences === reconciled.sentences) {
-				continue;
-			}
-
 			this.dailyMetricsHistory[date] = reconciled;
 			changedDates++;
 		}
@@ -123,7 +128,7 @@ export class StateManager {
 			return 0;
 		}
 
-		Logger.state("historical daily metrics reconciled", { changedDates });
+		Logger.state("historical daily metrics merged", { changedDates });
 		this.notifyListeners();
 		this.triggerSave();
 		return changedDates;

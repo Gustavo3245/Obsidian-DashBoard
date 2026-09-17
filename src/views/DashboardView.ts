@@ -1332,6 +1332,9 @@ export class DashboardView extends ItemView {
 		const changeDirection = metric.changePercentage > 0
 			? "positive"
 			: metric.changePercentage < 0 ? "negative" : "neutral";
+		const formattedChangePercentage = this.formatTrendPercentage(
+			metric.changePercentage
+		);
 
 		this.dailyAverageCard.empty();
 		const content = this.dailyAverageCard.createDiv({
@@ -1339,7 +1342,7 @@ export class DashboardView extends ItemView {
 		});
 		content.setAttribute(
 			"aria-label",
-			`Daily average words: ${metric.currentAverage.toFixed(1)}, ${metric.changePercentage.toFixed(1)}% versus the previous 30 days`
+			`Daily average words: ${metric.currentAverage.toFixed(1)}, ${formattedChangePercentage} versus the previous 30 days`
 		);
 		const header = content.createDiv({
 			cls: "dynamic-daily-average-header",
@@ -1360,7 +1363,7 @@ export class DashboardView extends ItemView {
 		});
 		trend.createDiv({
 			cls: "dynamic-daily-average-change",
-			text: this.formatTrendPercentage(metric.changePercentage),
+			text: formattedChangePercentage,
 		});
 		trend.createDiv({
 			cls: "dynamic-daily-average-comparison",
@@ -1395,7 +1398,15 @@ export class DashboardView extends ItemView {
 			? `${Math.min(100, (metric.currentAverage / axisMaximum) * 100)}%`
 			: "0";
 
-		for (const point of points) {
+		for (const [index, point] of points.entries()) {
+			const pointIndex = metric.points.length - points.length + index;
+			const previousWords = pointIndex > 0
+				? metric.points[pointIndex - 1]?.words ?? 0
+				: 0;
+			const dailyChangePercentage = previousWords > 0
+				? ((point.words - previousWords) / previousWords) * 100
+				: point.words > 0 ? 100 : 0;
+			const dailyDescription = `${point.dateKey}: ${point.words} words, ${this.formatTrendPercentage(dailyChangePercentage)} vs previous day`;
 			const bar = plot.createDiv({
 				cls: [
 					"dynamic-daily-average-bar",
@@ -1405,8 +1416,8 @@ export class DashboardView extends ItemView {
 			bar.style.height = axisMaximum > 0
 				? `${Math.min(100, (point.words / axisMaximum) * 100)}%`
 				: "0";
-			bar.setAttribute("title", `${point.dateKey}: ${point.words} words`);
-			bar.setAttribute("aria-label", `${point.dateKey}: ${point.words} words`);
+			bar.setAttribute("title", dailyDescription);
+			bar.setAttribute("aria-label", dailyDescription);
 		}
 
 		const xAxis = graph.createDiv({

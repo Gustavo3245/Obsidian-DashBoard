@@ -30,11 +30,21 @@ export class StatProcessor {
 		this.stateManager.setFilePreview(path, updatedFilePreview);
 	}
 
-	/** Reconcile recent content totals while preserving tracked session values. */
-	async reconcileRecentDailyHistory(days: number): Promise<void> {
+	/** Fill absent recent content totals without replacing tracked daily values. */
+	async backfillMissingDailyHistory(days: number): Promise<void> {
 		const historicalMetrics = await this.calculator
 			.getHistoricalDailyMetrics(days);
-		this.stateManager.reconcileDailyContentMetrics(historicalMetrics);
+		const nonEmptyDays = Object.values(historicalMetrics)
+			.filter((metrics) => metrics.words > 0).length;
+		const totalWords = Object.values(historicalMetrics)
+			.reduce((total, metrics) => total + metrics.words, 0);
+
+		Logger.state("historical daily metrics calculated", {
+			days,
+			nonEmptyDays,
+			totalWords,
+		});
+		this.stateManager.mergeMissingDailyContentMetrics(historicalMetrics);
 	}
 
 	async startDailySession(): Promise<void> {

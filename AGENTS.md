@@ -90,7 +90,7 @@ Ao carregar o plugin, `DashboardPlugin.onload()`:
 5. registra imediatamente ribbon, comandos e settings, liberando a interface sem aguardar a varredura do Vault;
 6. aguarda `Workspace.onLayoutReady()` para não interpretar os eventos `create` da carga inicial como novos arquivos;
 7. registra listeners, inicia o rastreamento de sessão e a atualização periódica do tempo ativo;
-8. em segundo plano, reconcilia e persiste os 30 dias anteriores pelas datas de modificação dos arquivos, preservando tempo ativo e sessões existentes;
+8. em segundo plano, preenche e persiste datas ausentes dos 30 dias anteriores pela data de modificação ou, como fallback, pela criação dos arquivos, sem substituir valores diários existentes;
 9. registra a sessão diária atual usando somente arquivos modificados hoje, executa `statsProcessor.vaultLoad("all")` e força a persistência do resultado.
 
 `vaultLoad("all")`:

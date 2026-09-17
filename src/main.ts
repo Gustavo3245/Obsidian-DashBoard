@@ -147,12 +147,12 @@ export default class DashboardPlugin extends Plugin {
 
 	private async initializeMetrics(): Promise<void> {
 		try {
-			await this.serviceContainer.statsProcessor.reconcileRecentDailyHistory(
+			await this.serviceContainer.statsProcessor.backfillMissingDailyHistory(
 				RANGE_DAYS.month
 			);
 			await this.serviceContainer.stateManager.flushPendingSave();
 		} catch (error) {
-			Logger.lifecycle("recent daily history reconciliation failed", {
+			Logger.lifecycle("recent daily history backfill failed", {
 				error: error instanceof Error ? error.message : String(error),
 			});
 		}

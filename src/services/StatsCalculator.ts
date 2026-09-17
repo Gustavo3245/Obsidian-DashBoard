@@ -51,7 +51,9 @@ export class StatsCalculator {
 	/**
 	 * Estimate daily content totals for the days before the current local day.
 	 * Each Markdown file contributes its current content metrics to the local day
-	 * represented by its last modification timestamp.
+	 * represented by its last modification timestamp. When that timestamp is not
+	 * inside the historical window, a creation timestamp inside the window is used
+	 * as a conservative fallback.
 	 */
 	async getHistoricalDailyMetrics(
 		days: number,
@@ -90,14 +92,24 @@ export class StatsCalculator {
 			return history;
 		}
 
-		const files = this.vaultService.getFilesByCustomRange(
-			firstDay,
-			endOfPreviousDay
-		);
-		const filesMetrics = await Promise.all(files.map(async (file) => ({
-			dateKey: this.toLocalDateKey(new Date(file.stat.mtime)),
-			metrics: await this.vaultService.getFileContentMetrics(file),
-		})));
+		const startTimestamp = firstDay.getTime();
+		const endTimestamp = endOfPreviousDay.getTime();
+		const files = this.vaultService.getFilesByRange("all");
+		const historicalFiles = files.flatMap((file) => {
+			const timestamp = this.getHistoricalFileTimestamp(
+				file,
+				startTimestamp,
+				endTimestamp
+			);
+
+			return timestamp === null ? [] : [{ file, timestamp }];
+		});
+		const filesMetrics = await Promise.all(historicalFiles.map(
+			async ({ file, timestamp }) => ({
+				dateKey: this.toLocalDateKey(new Date(timestamp)),
+				metrics: await this.vaultService.getFileContentMetrics(file),
+			})
+		));
 
 		for (const { dateKey, metrics } of filesMetrics) {
 			const dailyMetrics = history[dateKey];
@@ -111,6 +123,22 @@ export class StatsCalculator {
 		}
 
 		return history;
+	}
+
+	private getHistoricalFileTimestamp(
+		file: TFile,
+		startTimestamp: number,
+		endTimestamp: number
+	): number | null {
+		if (file.stat.mtime >= startTimestamp && file.stat.mtime <= endTimestamp) {
+			return file.stat.mtime;
+		}
+
+		if (file.stat.ctime >= startTimestamp && file.stat.ctime <= endTimestamp) {
+			return file.stat.ctime;
+		}
+
+		return null;
 	}
 
 	async getSnapshot(range: TimeRange): Promise<VaultMetrics['volume']['snapshot']> {
