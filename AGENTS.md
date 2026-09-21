@@ -87,11 +87,11 @@ Ao carregar o plugin, `DashboardPlugin.onload()`:
 2. cria o `ServiceContainer`;
 3. inicializa estado, serviços, calculadora e processador;
 4. cria `VaultEventListener`;
-5. registra listeners;
-6. inicia o rastreamento de sessão;
-7. registra imediatamente ribbon, comandos, settings e a atualização periódica do tempo ativo, liberando a interface sem aguardar a varredura do Vault;
-8. em segundo plano, quando `dailyHistory` está completamente vazio, estima e persiste os 30 dias anteriores;
-9. registra a sessão diária atual e executa `statsProcessor.vaultLoad("all")`.
+5. registra imediatamente ribbon, comandos e settings, liberando a interface sem aguardar a varredura do Vault;
+6. aguarda `Workspace.onLayoutReady()` para não interpretar os eventos `create` da carga inicial como novos arquivos;
+7. registra listeners, inicia o rastreamento de sessão e a atualização periódica do tempo ativo;
+8. em segundo plano, preenche e persiste datas ausentes dos 30 dias anteriores pela data de modificação ou, como fallback, pela criação dos arquivos, sem substituir valores diários existentes;
+9. registra a sessão diária atual usando somente arquivos modificados hoje, executa `statsProcessor.vaultLoad("all")` e força a persistência do resultado.
 
 `vaultLoad("all")`:
 
@@ -123,6 +123,8 @@ interface StorageData {
 - `fileStatsCacheState`: cache `Map<path, FileMetrics>` somente em memória; não é persistido.
 
 O `StateManager` normaliza o snapshot e cada registro diário carregado, aceita patches e agenda gravação após 2 segundos. Chamadas sucessivas reiniciam o timer. Ao adicionar novos campos persistidos:
+
+As gravações são enfileiradas para preservar sua ordem. O backfill inicial e a carga completa também são explicitamente descarregados para o disco, evitando que o fechamento do Vault durante ou logo após o bootstrap perca os valores calculados.
 
 1. atualize o modelo;
 2. atualize `DEFAULT_STORAGE_DATA`;
@@ -161,7 +163,7 @@ Essas definições são inconsistentes em alguns pontos (especialmente palavras 
 
 ## Eventos registrados
 
-`VaultEventListener.init()` usa `plugin.registerEvent()` para garantir limpeza automática:
+Depois de `Workspace.onLayoutReady()`, `VaultEventListener.init()` usa `plugin.registerEvent()` para garantir limpeza automática e para ignorar os eventos `create` emitidos pelo carregamento inicial do Vault:
 
 - `workspace.quick-preview`: marca atividade e atualiza palavras/caracteres no cache do arquivo;
 - `vault.modify`: aplica o delta de Markdown ou reconcilia o tamanho de anexos;
@@ -181,7 +183,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 - `README.md`: ainda é majoritariamente o README do sample oficial; não descreve corretamente o produto atual.
 - `package.json`: scripts, versão npm e dependências. O nome e descrição ainda são do sample.
 - `package-lock.json`: lockfile npm; mantenha sincronizado com `package.json`.
-- `manifest.json`: metadados carregados pelo Obsidian. Atualmente contém valores provisórios.
+- `manifest.json`: metadados carregados pelo Obsidian, incluindo o link de apoio via Ko-fi em `fundingUrl`.
 - `versions.json`: mapeia versão do plugin para versão mínima do Obsidian.
 - `version-bump.mjs`: sincroniza a versão npm com manifesto e `versions.json`.
 - `esbuild.config.mjs`: bundle de `src/main.ts` para `main.js`.
@@ -255,7 +257,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 
 ### Recursos
 
-- view, ribbon, comandos e cabeçalho reutilizam o ícone nativo `trending-up` do Obsidian.
+- `src/assets/icons/DashboardIcon.ts`: registra o cristal roxo com barras de métricas usado de forma consistente na view, ribbon, comandos e cabeçalho.
 
 ## Estado conhecido e débitos técnicos
 

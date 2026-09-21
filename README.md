@@ -1,90 +1,124 @@
-# Obsidian Sample Plugin
+<div align="center">
+  <img src="Images/icon.svg" width="88" height="88" alt="Dynamic Dashboard logo">
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+  <h1>Dynamic Dashboard</h1>
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+  <p>Dynamic metrics and insights for your <a href="https://obsidian.md/">Obsidian</a> vault.</p>
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+  <p>
+    <a href="https://github.com/Gustavo3245/Obsidian-DashBoard/stargazers"><img src="https://img.shields.io/github/stars/Gustavo3245/Obsidian-DashBoard?style=for-the-badge&label=Stars&color=8B5CF6" alt="GitHub stars"></a>
+    <a href="https://github.com/Gustavo3245/Obsidian-DashBoard/issues"><img src="https://img.shields.io/github/issues/Gustavo3245/Obsidian-DashBoard?style=for-the-badge&label=Issues&color=EF476F" alt="GitHub issues"></a>
+  </p>
 
-## First time developing plugins?
+  <p>
+    <a href="https://github.com/Gustavo3245/Obsidian-DashBoard/releases"><img src="https://img.shields.io/github/downloads/Gustavo3245/Obsidian-DashBoard/total?style=for-the-badge&label=Downloads&color=EC4899" alt="GitHub downloads"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-0--BSD-5B6B8A?style=for-the-badge" alt="0-BSD license"></a>
+  </p>
 
-Quick starting guide for new plugin devs:
+  <p><strong>See your vault at a glance.</strong> Track writing activity, file statistics, tags, recent changes, and more—directly inside Obsidian.</p>
+</div>
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+## Preview
 
-## Releasing new releases
+Dynamic Dashboard adapts its cards and insights to the available sidebar space.
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+<div align="center">
+  <img src="Images/Screenshot from 2026-09-21 15-56-56.png" alt="Dynamic Dashboard with expanded insights in an Obsidian sidebar" width="900">
+</div>
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+<table>
+  <tr>
+    <td align="center" width="50%"><strong>Expanded sidebar</strong><br><br><img src="Images/Screenshot from 2026-09-21 15-57-30.png" alt="Dynamic Dashboard in an expanded sidebar" width="360"></td>
+    <td align="center" width="50%"><strong>Compact sidebar</strong><br><br><img src="Images/Screenshot from 2026-09-21 15-56-47.png" alt="Dynamic Dashboard in a compact sidebar" width="300"></td>
+  </tr>
+</table>
 
-## Adding your plugin to the community plugin list
+## Features
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+### Vault overview
 
-## How to use
+- See total files, folders, vault size, words, characters, and average words per file.
+- View useful derived ratios, such as words per file and files per folder.
+- Estimate reading and speaking time from the current contents of your vault.
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+### Writing activity
 
-## Manually installing the plugin
+- Follow your **daily average words** with a 30-day bar chart and comparison to the preceding 30 days.
+- Visualize writing consistency with a responsive **Writing Streak** calendar.
+- Track daily words, characters, sentences, sessions, and active time in the plugin's local data.
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+### Insights at a glance
 
-## Improve code quality with eslint
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
+- Explore file types and their relative share of the vault.
+- Find the most-used tag, most-used frontmatter tag, least-used tag, and total unique tags.
+- Review recent note activity, the most active folder, and recently modified notes.
 
-## Funding URL
+### Vault rankings
 
-You can include funding URLs where people who use your plugin can financially support it.
+- Identify the five folders with the most files.
+- Find the five notes with the highest character count.
+- Access focused Vault, Tag, and Recent Activity insight cards from the full dashboard.
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+### Adaptive dashboard
 
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
-```
+- Use a compact dashboard in the left sidebar or move it into the main workspace for the complete layout.
+- Cards and charts adapt to the available space while preserving the information that matters most.
 
-If you have multiple URLs, you can also do:
+## Installation
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
+> Dynamic Dashboard requires **Obsidian Desktop 1.6.6 or later**. Mobile is not supported.
 
-## API Documentation
+### Community Plugins
 
-See https://docs.obsidian.md
+Once Dynamic Dashboard is available in the Community Plugins directory:
+
+1. Open **Settings → Community plugins** in Obsidian.
+2. Turn off **Restricted mode**, if necessary.
+3. Select **Browse**, search for **Dynamic Dashboard**, then choose **Install**.
+4. Enable the plugin after installation.
+
+### Manual installation
+
+1. Download the latest release from the [Releases page](https://github.com/Gustavo3245/Obsidian-DashBoard/releases).
+2. In your vault, create the folder `.obsidian/plugins/dynamic-dashboard/` if it does not already exist.
+3. Copy `main.js`, `manifest.json`, and `styles.css` from the release into that folder.
+4. Restart Obsidian, then enable **Dynamic Dashboard** under **Settings → Community plugins**.
+
+## Privacy
+
+Dynamic Dashboard is local-first by design.
+
+- All metrics are calculated locally from the files and metadata already available in your vault.
+- The plugin does not send note contents, file names, tags, usage data, or metrics to external servers.
+- It has no account system, telemetry, analytics service, cloud sync, or external API dependency.
+- Its saved dashboard state is stored only in Obsidian's local plugin data for your vault.
+
+Your notes remain in your vault and under your control.
+
+## Support
+
+Please consider supporting the plugin. There are many hours of work and effort behind it. The two easiest ways to support the plugin are either by starring ⭐ the repository or by donating any amount on Ko-fi ❤️. Thank you!
+
+<a href="https://ko-fi.com/gustavomoreiradev"><img src="https://storage.ko-fi.com/cdn/kofi5.png?v=6" height="41" alt="Support me on Ko-fi"></a>
+
+## Contributing
+
+Contributions are welcome.
+
+- Report bugs or suggest improvements through [GitHub Issues](https://github.com/Gustavo3245/Obsidian-DashBoard/issues).
+- Before opening a pull request, keep the change focused and run `npm run build` and `npm run lint`.
+- For larger ideas or changes to metrics, please open an issue first so the approach can be discussed.
+
+## Work in progress
+
+Dynamic Dashboard is actively being developed. The current release already provides the dashboard, metrics, and local tracking described above, while several areas are still evolving:
+
+- More dashboard actions and navigation from insight cards.
+- Additional metrics, visual refinements, and responsive layout improvements.
+- Continued improvements to refresh behavior and historical activity tracking.
+
+Feedback, bug reports, and feature requests are especially welcome while these features take shape.
+
+## License
+
+Dynamic Dashboard is released under the [0-BSD License](LICENSE).
