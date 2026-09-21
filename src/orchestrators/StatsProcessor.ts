@@ -1,10 +1,11 @@
 import { TimeRange } from "models/value_objects/TimeRange";
 import { DailyMapper } from "mappers/DailyMapper";
-import { moment, TFile } from "obsidian";
+import { TFile } from "obsidian";
 import { StateManager } from "state/StateManager";
 import { VaultService } from "services/VaultService";
 import { StatsCalculator } from "services/StatsCalculator";
 import { Logger } from "utils/Logger";
+import { toLocalDateKey } from "utils/DateUtils";
 
 export class StatProcessor {
 
@@ -34,10 +35,18 @@ export class StatProcessor {
 	async backfillMissingDailyHistory(days: number): Promise<void> {
 		const historicalMetrics = await this.calculator
 			.getHistoricalDailyMetrics(days);
-		const nonEmptyDays = Object.values(historicalMetrics)
-			.filter((metrics) => metrics.words > 0).length;
-		const totalWords = Object.values(historicalMetrics)
-			.reduce((total, metrics) => total + metrics.words, 0);
+		let nonEmptyDays = 0;
+		let totalWords = 0;
+		for (const date of Object.keys(historicalMetrics)) {
+			const metrics = historicalMetrics[date];
+			if (metrics === undefined) {
+				continue;
+			}
+			totalWords += metrics.words;
+			if (metrics.words > 0) {
+				nonEmptyDays++;
+			}
+		}
 
 		Logger.state("historical daily metrics calculated", {
 			days,
@@ -49,7 +58,7 @@ export class StatProcessor {
 
 	async startDailySession(): Promise<void> {
 		
-		const today = moment().format("YYYY-MM-DD");
+		const today = toLocalDateKey(new Date());
 		const dailyMetricsLoad = await this.calculator.getDailyMetrics("today");
 		const currentDailyMetrics = this.stateManager.getDailyMetricsByDate(today);
 
@@ -67,7 +76,7 @@ export class StatProcessor {
 
 	refreshActiveTime(): void {
 
-		const today = moment().format("YYYY-MM-DD");
+		const today = toLocalDateKey(new Date());
 		
 		const currentDailyMetrics = this.stateManager.getDailyMetricsByDate(today);
 

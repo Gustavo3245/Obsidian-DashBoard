@@ -7,6 +7,8 @@ import { SessionService } from "./SessionService";
 import { VaultService } from "./VaultService";
 import { MetadataAnalyzer } from "analyzer/MetadataAnalyzer";
 import { StateManager } from "state/StateManager";
+import { ContentMetrics } from "analyzer/ContentAnalyzer";
+import { toLocalDateKey } from "utils/DateUtils";
 
 export class StatsCalculator {
 	constructor(private vaultService: VaultService,
@@ -75,7 +77,7 @@ export class StatsCalculator {
 		for (let offset = normalizedDays; offset >= 1; offset--) {
 			const date = new Date(startOfToday);
 			date.setDate(startOfToday.getDate() - offset);
-			const dateKey = this.toLocalDateKey(date);
+			const dateKey = toLocalDateKey(date);
 			history[dateKey] = {
 				date: dateKey,
 				words: 0,
@@ -95,18 +97,20 @@ export class StatsCalculator {
 		const startTimestamp = firstDay.getTime();
 		const endTimestamp = endOfPreviousDay.getTime();
 		const files = this.vaultService.getFilesByRange("all");
-		const historicalFiles = files.flatMap((file) => {
+		const historicalFiles: Array<{ file: TFile; timestamp: number }> = [];
+		for (const file of files) {
 			const timestamp = this.getHistoricalFileTimestamp(
 				file,
 				startTimestamp,
 				endTimestamp
 			);
-
-			return timestamp === null ? [] : [{ file, timestamp }];
-		});
-		const filesMetrics = await Promise.all(historicalFiles.map(
+			if (timestamp !== null) {
+				historicalFiles.push({ file, timestamp });
+			}
+		}
+		const filesMetrics: Array<{ dateKey: string; metrics: ContentMetrics }> = await Promise.all(historicalFiles.map(
 			async ({ file, timestamp }) => ({
-				dateKey: this.toLocalDateKey(new Date(timestamp)),
+				dateKey: toLocalDateKey(new Date(timestamp)),
 				metrics: await this.vaultService.getFileContentMetrics(file),
 			})
 		));
@@ -237,13 +241,6 @@ export class StatsCalculator {
 			mostActiveWeek: this.vaultService.calculateMostActiveWeek(dailyMetrics),
 			mostActiveMonth: this.vaultService.calculateMostActiveMonth(dailyMetrics)
 		}
-	}
-
-	private toLocalDateKey(date: Date): string {
-		const year = date.getFullYear();
-		const month = String(date.getMonth() + 1).padStart(2, "0");
-		const day = String(date.getDate()).padStart(2, "0");
-		return `${year}-${month}-${day}`;
 	}
 
 }
