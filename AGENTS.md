@@ -187,8 +187,8 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 - `versions.json`: mapeia versão do plugin para versão mínima do Obsidian.
 - `version-bump.mjs`: sincroniza a versão npm com manifesto e `versions.json`.
 - `esbuild.config.mjs`: bundle de `src/main.ts` para `main.js`.
-- `tsconfig.json`: configuração TypeScript, imports absolutos e verificações estritas.
-- `eslint.config.mts`: flat config do ESLint com regras `obsidianmd`.
+- `tsconfig.json`: configuração TypeScript, imports absolutos, verificações estritas e bibliotecas `DOM`/`ES2022` para tipar corretamente APIs padrão usadas pelo dashboard.
+- `eslint.config.mts`: flat config do ESLint com regras `obsidianmd` e bloqueio de atribuições `any`/`unknown` inseguras.
 - `styles.css`: dimensões responsivas e estilos globais da view do dashboard.
 - `LICENSE`: licença 0-BSD.
 - `.editorconfig`: UTF-8, LF, newline final e tabs de largura 4.

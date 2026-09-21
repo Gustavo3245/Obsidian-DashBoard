@@ -1,6 +1,7 @@
 import { TFile } from "obsidian";
 import { DailyMetrics } from "models/DailyMetrics";
 import { FileMetrics } from "models/FileMetrics";
+import { toLocalDateKey } from "utils/DateUtils";
 
 export interface DashboardFileTypeMetric {
 	type: "markdown" | "canvas" | "excalidraw" | "other";
@@ -105,11 +106,16 @@ export function getDashboardFileTypes(files: TFile[]): DashboardFileTypeMetric[]
 	}
 
 	const totalFiles = files.length;
-	return (Object.entries(counts) as Array<[DashboardFileTypeMetric["type"], number]>)
-		.map(([type, count]) => ({
+	const types: DashboardFileTypeMetric["type"][] = [
+		"markdown", "canvas", "excalidraw", "other",
+	];
+	return types.map((type) => {
+		const count = counts[type];
+		return {
 			type,
 			percentage: totalFiles > 0 ? (count / totalFiles) * 100 : 0,
-		}));
+		};
+	});
 }
 
 export function getDashboardRecentActivities(
@@ -204,11 +210,4 @@ export function getDashboardLastModifiedFiles(
 
 function getAverageWords(points: DashboardDailyWordsPoint[]): number {
 	return points.reduce((total, point) => total + point.words, 0) / points.length;
-}
-
-function toLocalDateKey(date: Date): string {
-	const year = date.getFullYear();
-	const month = String(date.getMonth() + 1).padStart(2, "0");
-	const day = String(date.getDate()).padStart(2, "0");
-	return `${year}-${month}-${day}`;
 }

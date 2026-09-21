@@ -107,16 +107,20 @@ export class VaultService {
 			
 		}
 
-		const mostAppearsTag = Object.entries(tagCount)
-									.sort((current, previous) => previous[1] - current[1]);
-
-		if(mostAppearsTag.length > 0 && mostAppearsTag[0]) {
-			return {
-				name: mostAppearsTag[0][0],
-				count: mostAppearsTag[0][1]
+		let mostAppearsTag: tagType | null = null;
+		for (const name of Object.keys(tagCount)) {
+			const count = tagCount[name];
+			if (count === undefined || (mostAppearsTag !== null
+				&& (count < mostAppearsTag.count
+					|| (count === mostAppearsTag.count
+						&& name.localeCompare(mostAppearsTag.name) >= 0)))) {
+				continue;
 			}
-		}  
-		return "Nothing but Wind";
+
+			mostAppearsTag = { name, count };
+		}
+
+		return mostAppearsTag ?? "Nothing but Wind";
 	}
 
 	/**
@@ -351,7 +355,11 @@ export class VaultService {
 		const minimumDate = this.getMinimumDateForRange(range, today);
 		const activeDates = new Set<number>();
 
-		for (const [dateKey, metrics] of Object.entries(dailyHistory)) {
+		for (const dateKey of Object.keys(dailyHistory)) {
+			const metrics = dailyHistory[dateKey];
+			if (metrics === undefined) {
+				continue;
+			}
 			const date = this.parseIsoDate(dateKey);
 
 			if (date === null || date < minimumDate || date > today) {
@@ -415,19 +423,20 @@ export class VaultService {
 		const today = this.getStartOfLocalDay(new Date());
 		const minimumDate = this.getMinimumDateForRange(range, today);
 
-		return Object.entries(dailyHistory)
-			.map(([dateKey, metrics]) => ({
-				date: this.parseIsoDate(dateKey),
-				dateKey,
-				metrics,
-			}))
-			.filter((dailyMetrics): dailyMetrics is DatedDailyMetrics =>
-				dailyMetrics.date !== null
-				&& dailyMetrics.date >= minimumDate
-				&& dailyMetrics.date <= today
-				&& this.hasDailyActivity(dailyMetrics.metrics)
-			)
-			.sort((first, second) => first.date - second.date);
+		const dailyMetricsInRange: DatedDailyMetrics[] = [];
+		for (const dateKey of Object.keys(dailyHistory)) {
+			const metrics = dailyHistory[dateKey];
+			const date = this.parseIsoDate(dateKey);
+			if (metrics === undefined || date === null
+				|| date < minimumDate || date > today
+				|| !this.hasDailyActivity(metrics)) {
+				continue;
+			}
+
+			dailyMetricsInRange.push({ date, dateKey, metrics });
+		}
+
+		return dailyMetricsInRange.sort((first, second) => first.date - second.date);
 	}
 
 	/**
@@ -488,9 +497,10 @@ export class VaultService {
 			const parsedDate = new Date(date);
 			const year = parsedDate.getUTCFullYear();
 			const month = parsedDate.getUTCMonth();
+			const monthNumber = month + 1;
 
 			return {
-				key: `${year}-${String(month + 1).padStart(2, "0")}`,
+				key: `${year}-${monthNumber < 10 ? "0" : ""}${monthNumber}`,
 				endDate: Date.UTC(year, month + 1, 0),
 			};
 		});

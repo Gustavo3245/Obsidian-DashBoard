@@ -21,6 +21,9 @@ export default tseslint.config(
 				extraFileExtensions: ['.json']
 			},
 		},
+		rules: {
+			"@typescript-eslint/no-unsafe-assignment": "error",
+		},
 	},
 	...obsidianmd.configs.recommended,
 	globalIgnores([

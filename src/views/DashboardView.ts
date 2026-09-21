@@ -9,6 +9,7 @@ import {
 } from "obsidian";
 import { StateManager } from "state/StateManager";
 import { Logger } from "utils/Logger";
+import { toLocalDateKey } from "utils/DateUtils";
 import {
 	getDashboardDailyAverageWords,
 	getDashboardFileTypes,
@@ -77,6 +78,10 @@ const FILE_TYPE_LABELS = {
 	excalidraw: "Excalidraw",
 	other: "Other",
 } as const;
+
+function getPaletteColor(colors: readonly string[], index: number): string {
+	return colors[index] ?? colors[colors.length - 1] ?? "#8b5cf6";
+}
 
 export class DashboardView extends ItemView {
 	private dailyAverageCard: HTMLElement | null = null;
@@ -478,7 +483,7 @@ export class DashboardView extends ItemView {
 		});
 
 		for (const [index, metric] of visibleMetrics.entries()) {
-			const color = FILE_TYPE_COLORS[index] ?? FILE_TYPE_COLORS.at(-1)!;
+			const color = getPaletteColor(FILE_TYPE_COLORS, index);
 			const row = body.createDiv({
 				cls: "dynamic-file-types-row",
 			});
@@ -532,7 +537,7 @@ export class DashboardView extends ItemView {
 			const item = list.createDiv({
 				cls: "dynamic-top-folders-item",
 			});
-			const color = TOP_FOLDER_COLORS[index] ?? TOP_FOLDER_COLORS.at(-1)!;
+			const color = getPaletteColor(TOP_FOLDER_COLORS, index);
 			item.style.setProperty("--dynamic-top-folder-color", color);
 			item.setAttribute(
 				"aria-label",
@@ -615,7 +620,7 @@ export class DashboardView extends ItemView {
 			const item = list.createDiv({
 				cls: "dynamic-top-folders-item",
 			});
-			const color = TOP_FOLDER_COLORS[index] ?? TOP_FOLDER_COLORS.at(-1)!;
+			const color = getPaletteColor(TOP_FOLDER_COLORS, index);
 			item.style.setProperty("--dynamic-top-folder-color", color);
 			item.setAttribute(
 				"aria-label",
@@ -1305,9 +1310,10 @@ export class DashboardView extends ItemView {
 			return "00h 00m 00s";
 		}
 
-		const formatUnit = (unit: number) => String(
-			Math.max(0, Math.floor(unit))
-		).padStart(2, "0");
+		const formatUnit = (unit: number): string => {
+			const normalizedUnit = Math.max(0, Math.floor(unit));
+			return `${normalizedUnit < 10 ? "0" : ""}${normalizedUnit}`;
+		};
 		return `${formatUnit(value.hours)}h ${formatUnit(value.minutes)}m ${formatUnit(value.seconds)}s`;
 	}
 
@@ -1554,7 +1560,7 @@ export class DashboardView extends ItemView {
 			0,
 			...dates
 				.filter((date) => date.getTime() >= oldestVisibleTime && date.getTime() <= today)
-				.map((date) => history[this.toLocalDateKey(date)]?.words ?? 0)
+				.map((date) => history[toLocalDateKey(date)]?.words ?? 0)
 		);
 
 		for (let weekIndex = 0; weekIndex < visibleWeeks; weekIndex++) {
@@ -1564,7 +1570,7 @@ export class DashboardView extends ItemView {
 
 			for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
 				const date = dates[(weekIndex * 7) + dayIndex]!;
-				const dateKey = this.toLocalDateKey(date);
+				const dateKey = toLocalDateKey(date);
 				const words = history[dateKey]?.words ?? 0;
 				const isOutsideYear = date.getTime() < oldestVisibleTime || date.getTime() > today;
 				const level = isOutsideYear ? 0 : this.getStreakLevel(words, maximumWords);
@@ -1632,13 +1638,6 @@ export class DashboardView extends ItemView {
 		return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 	}
 
-	private toLocalDateKey(date: Date): string {
-		const year = date.getFullYear();
-		const month = String(date.getMonth() + 1).padStart(2, "0");
-		const day = String(date.getDate()).padStart(2, "0");
-		return `${year}-${month}-${day}`;
-	}
-
 }
 
 export function openDashboardView(
@@ -1648,8 +1647,8 @@ export function openDashboardView(
 		return dashboardOpenPromise;
 	}
 
-	dashboardOpenPromise = revealDashboardView(workspace)
-		.catch((error: unknown) => {
+	const openingPromise: Promise<void> = revealDashboardView(workspace)
+		.catch((error: unknown): void => {
 			Logger.lifecycle("dashboard view opening failed", {
 				error: error instanceof Error ? error.message : String(error),
 			});
@@ -1658,6 +1657,7 @@ export function openDashboardView(
 		.finally(() => {
 			dashboardOpenPromise = null;
 		});
+	dashboardOpenPromise = openingPromise;
 
 	return dashboardOpenPromise;
 }

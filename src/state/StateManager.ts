@@ -23,12 +23,16 @@ export class StateManager {
 		private persistCallback: (data: { vaultMetrics: VaultMetrics, dailyHistory: Record<string, DailyMetrics> }) => Promise<void>
 	){
 		this.vaultMetricsState = VaultMapper.mapToVaultMetrics(initialVaultData ?? {});
-		this.dailyMetricsHistory = Object.fromEntries(
-			Object.entries(initialDailyHistory ?? {}).map(([date, metrics]) => [
-				date,
-				DailyMapper.mapToDailyMetrics({ ...metrics, date }),
-			])
-		);
+		this.dailyMetricsHistory = {};
+		for (const date of Object.keys(initialDailyHistory ?? {})) {
+			const metrics = initialDailyHistory[date];
+			if (metrics !== undefined) {
+				this.dailyMetricsHistory[date] = DailyMapper.mapToDailyMetrics({
+					...metrics,
+					date,
+				});
+			}
+		}
 	}
 
 	public getVaultMetricsState(): VaultMetrics {
@@ -97,7 +101,11 @@ export class StateManager {
 	): number {
 		let changedDates = 0;
 
-		for (const [date, metrics] of Object.entries(dailyMetrics)) {
+		for (const date of Object.keys(dailyMetrics)) {
+			const metrics = dailyMetrics[date];
+			if (metrics === undefined) {
+				continue;
+			}
 			const current = this.dailyMetricsHistory[date];
 			const currentHasContent = current !== undefined
 				&& (current.words > 0

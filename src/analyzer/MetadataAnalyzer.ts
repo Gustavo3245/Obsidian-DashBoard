@@ -45,17 +45,10 @@ export class MetadataAnalyzer {
 	 * this calculation uses ONLY frontmatter tags appearances.
 	 */
 	getMostAppearsTagInFrontMatter(files: TFile[]): tagType | string {
-		const tagCount = this.getTagCountsInFrontMatter(files);
-
-		const mostAppearsTag = Object.entries(tagCount).sort((current, previous) => previous[1] - current[1]);
-
-		if(mostAppearsTag?.length > 0 && mostAppearsTag[0]) {
-			return {
-				name: mostAppearsTag[0][0],
-				count: mostAppearsTag[0][1]
-			}
-		} 
-		return "Nothing But Wind";
+		return this.getFrontMatterTagByCount(
+			this.getTagCountsInFrontMatter(files),
+			"most"
+		);
 	}
 
 	/**
@@ -63,17 +56,34 @@ export class MetadataAnalyzer {
 	 * this calculation uses ONLY frontmatter tags appearances.
 	 */
 	getMinorAppearsTagInFrontMatter(files: TFile[]): tagType | string {
-		const tagCount = this.getTagCountsInFrontMatter(files);
+		return this.getFrontMatterTagByCount(
+			this.getTagCountsInFrontMatter(files),
+			"least"
+		);
+	}
 
-		const minorAppearsTag = Object.entries(tagCount).sort((current, previous) => current[1] - previous[1]);
+	/** Select a tag without converting the typed count record into untyped tuples. */
+	private getFrontMatterTagByCount(tagCount: Record<string, number>,preference: "most" | "least"): tagType | string {
+		let selectedName: string | null = null;
+		let selectedCount: number | null = null;
 
-		if(minorAppearsTag?.length > 0 && minorAppearsTag[0]){
-			return {
-				name: minorAppearsTag[0][0],
-				count: minorAppearsTag[0][1]
-			};
+		for (const name of Object.keys(tagCount)) {
+			const count = tagCount[name];
+			if (count === undefined) continue;
+
+			const isBetterMatch = selectedCount === null
+				|| (preference === "most" ? count > selectedCount : count < selectedCount)
+				|| (count === selectedCount && name.localeCompare(selectedName ?? "") < 0);
+
+			if (isBetterMatch) {
+				selectedName = name;
+				selectedCount = count;
+			}
 		}
-		return "Nothing but Wind";
+
+		return selectedName !== null && selectedCount !== null
+			? { name: selectedName, count: selectedCount }
+			: "Nothing but Wind";
 	}
 
 	/**
