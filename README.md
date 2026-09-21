@@ -94,3 +94,31 @@ Dynamic Dashboard is local-first by design.
 - Its saved dashboard state is stored only in Obsidian's local plugin data for your vault.
 
 Your notes remain in your vault and under your control.
+
+## Support
+
+Please consider supporting the plugin. There are many hours of work and effort behind it. The two easiest ways to support the plugin are either by starring ⭐ the repository or by donating any amount on Ko-fi ❤️. Thank you!
+
+<a href="https://ko-fi.com/gustavomoreiradev"><img src="https://storage.ko-fi.com/cdn/kofi5.png?v=6" height="41" alt="Support me on Ko-fi"></a>
+
+## Contributing
+
+Contributions are welcome.
+
+- Report bugs or suggest improvements through [GitHub Issues](https://github.com/Gustavo3245/Obsidian-DashBoard/issues).
+- Before opening a pull request, keep the change focused and run `npm run build` and `npm run lint`.
+- For larger ideas or changes to metrics, please open an issue first so the approach can be discussed.
+
+## Work in progress
+
+Dynamic Dashboard is actively being developed. The current release already provides the dashboard, metrics, and local tracking described above, while several areas are still evolving:
+
+- More dashboard actions and navigation from insight cards.
+- Additional metrics, visual refinements, and responsive layout improvements.
+- Continued improvements to refresh behavior and historical activity tracking.
+
+Feedback, bug reports, and feature requests are especially welcome while these features take shape.
+
+## License
+
+Dynamic Dashboard is released under the [0-BSD License](LICENSE).

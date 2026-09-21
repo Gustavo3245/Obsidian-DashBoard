@@ -183,7 +183,7 @@ Ao adicionar listeners, sempre use `registerEvent`, `registerDomEvent` ou outra 
 - `README.md`: ainda é majoritariamente o README do sample oficial; não descreve corretamente o produto atual.
 - `package.json`: scripts, versão npm e dependências. O nome e descrição ainda são do sample.
 - `package-lock.json`: lockfile npm; mantenha sincronizado com `package.json`.
-- `manifest.json`: metadados carregados pelo Obsidian. Atualmente contém valores provisórios.
+- `manifest.json`: metadados carregados pelo Obsidian, incluindo o link de apoio via Ko-fi em `fundingUrl`.
 - `versions.json`: mapeia versão do plugin para versão mínima do Obsidian.
 - `version-bump.mjs`: sincroniza a versão npm com manifesto e `versions.json`.
 - `esbuild.config.mjs`: bundle de `src/main.ts` para `main.js`.
