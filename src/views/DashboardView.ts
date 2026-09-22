@@ -26,14 +26,9 @@ let dashboardOpenPromise: Promise<void> | null = null;
 
 type DashboardCardModifier =
 	| "summary"
-	| "wide"
-	| "detail"
 	| "workspace-only"
 	| "streak"
 	| "tall"
-	| "upper-row"
-	| "third-column"
-	| "expanded"
 	| "estimated"
 	| "daily-average"
 	| "total-words"
@@ -53,24 +48,35 @@ type DashboardCardModifier =
 const DASHBOARD_CARD_LAYOUT: readonly (readonly DashboardCardModifier[])[] = [
 	["summary", "total-words"],
 	["summary", "total-folders"],
-	["summary", "expanded", "third-column", "vault-size"],
-	["summary", "tall", "upper-row", "total-characters"],
-	["summary", "tall", "upper-row", "total-files"],
-	["summary", "expanded", "third-column", "average-words-per-file"],
-	["wide", "estimated"],
-	["wide", "tall", "daily-average"],
-	["detail", "file-types"],
-	["detail", "expanded", "tag-insights"],
-	["detail", "workspace-only", "vault-insights"],
-	["detail", "recent-activity"],
-	["wide", "streak"],
-	["detail", "workspace-only", "top-folders"],
-	["detail", "workspace-only", "last-modified-files"],
-	["detail", "workspace-only", "top-notes"],
+	["summary", "vault-size"],
+	["summary", "tall", "total-characters"],
+	["summary", "tall", "total-files"],
+	["summary", "average-words-per-file"],
+	["estimated"],
+	["tall", "daily-average"],
+	["file-types"],
+	["tag-insights"],
+	["workspace-only", "vault-insights"],
+	["recent-activity"],
+	["streak"],
+	["workspace-only", "top-folders"],
+	["workspace-only", "last-modified-files"],
+	["workspace-only", "top-notes"],
 ];
 
-const FILE_TYPE_COLORS = ["#8b5cf6", "#38bdf8", "#22c55e", "#facc15"] as const;
-const TOP_FOLDER_COLORS = ["#a371f7", "#58a6ff", "#3fb950", "#facc15", "#f97316"] as const;
+const FILE_TYPE_COLORS = [
+	"var(--color-purple)",
+	"var(--color-blue)",
+	"var(--color-green)",
+	"var(--color-yellow)",
+] as const;
+const TOP_FOLDER_COLORS = [
+	"var(--color-purple)",
+	"var(--color-blue)",
+	"var(--color-green)",
+	"var(--color-yellow)",
+	"var(--color-orange)",
+] as const;
 const ESTIMATED_TIME_PROGRESS_SEGMENTS = 20;
 const FILE_TYPE_LABELS = {
 	markdown: "Markdown",
@@ -80,7 +86,7 @@ const FILE_TYPE_LABELS = {
 } as const;
 
 function getPaletteColor(colors: readonly string[], index: number): string {
-	return colors[index] ?? colors[colors.length - 1] ?? "#8b5cf6";
+	return colors[index] ?? colors[colors.length - 1] ?? "var(--color-purple)";
 }
 
 export class DashboardView extends ItemView {
@@ -789,25 +795,25 @@ export class DashboardView extends ItemView {
 			{
 				label: "Most used tag",
 				metric: appears.mostAppearsTag,
-				color: "#8b5cf6",
+				color: "var(--color-purple)",
 				compactOnly: false,
 			},
 			{
 				label: "Most used frontmatter tag",
 				metric: appears.mostAppearsTagInFrontMatter,
-				color: "#38bdf8",
+				color: "var(--color-blue)",
 				compactOnly: false,
 			},
 			{
 				label: "Least used tag",
 				metric: appears.minorAppearsTag,
-				color: "#22c55e",
+				color: "var(--color-green)",
 				compactOnly: false,
 			},
 			{
 				label: "Total unique tags",
 				metric: { name: "Unique", count: appears.totalUniqueTags },
-				color: "#facc15",
+				color: "var(--color-yellow)",
 				compactOnly: true,
 			},
 		] as const;
@@ -1647,8 +1653,8 @@ export function openDashboardView(
 		return dashboardOpenPromise;
 	}
 
-	const openingPromise: Promise<void> = revealDashboardView(workspace)
-		.catch((error: unknown): void => {
+	dashboardOpenPromise = revealDashboardView(workspace)
+		.catch((error: unknown) => {
 			Logger.lifecycle("dashboard view opening failed", {
 				error: error instanceof Error ? error.message : String(error),
 			});
@@ -1657,7 +1663,6 @@ export function openDashboardView(
 		.finally(() => {
 			dashboardOpenPromise = null;
 		});
-	dashboardOpenPromise = openingPromise;
 
 	return dashboardOpenPromise;
 }

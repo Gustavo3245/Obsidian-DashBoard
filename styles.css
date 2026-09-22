@@ -7,7 +7,7 @@
 	min-height: var(--dynamic-dashboard-min-height);
 }
 
-.workspace-leaf-content .dynamic-dashboard-container .dynamic-dashboard-view {
+.dynamic-dashboard-container .dynamic-dashboard-view {
 	box-sizing: border-box;
 	container-name: dynamic-dashboard;
 	container-type: size;
@@ -20,7 +20,7 @@
 	overflow-x: hidden;
 	overflow-y: auto;
 	margin: 5px auto;
-	padding: 3px;
+	padding: 3px !important;
 	background: var(--background-secondary);
 }
 
@@ -50,7 +50,9 @@
 	box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
 }
 
-.dynamic-dashboard-card--wide {
+.dynamic-dashboard-card--estimated,
+.dynamic-dashboard-card--daily-average,
+.dynamic-dashboard-card--streak {
 	grid-column: 1 / -1;
 }
 
@@ -58,7 +60,9 @@
 	display: none;
 }
 
-.dynamic-dashboard-card--expanded,
+.dynamic-dashboard-card--vault-size,
+.dynamic-dashboard-card--average-words-per-file,
+.dynamic-dashboard-card--tag-insights,
 .dynamic-dashboard-card--workspace-only,
 .dynamic-dashboard-overview {
 	display: none;
@@ -158,17 +162,17 @@
 
 .dynamic-summary-metric-icon--words,
 .dynamic-summary-metric-icon--files {
-	color: #a371f7;
+	color: var(--color-purple);
 }
 
 .dynamic-summary-metric-icon--characters,
 .dynamic-summary-metric-icon--folders {
-	color: #58a6ff;
+	color: var(--color-blue);
 }
 
 .dynamic-summary-metric-icon--vault-size,
 .dynamic-summary-metric-icon--average-words-per-file {
-	color: #3fb950;
+	color: var(--color-green);
 }
 
 .dynamic-summary-metric-value {
@@ -207,25 +211,25 @@
 
 .dynamic-summary-metric-footer--words,
 .dynamic-summary-metric-footer--files {
-	--dynamic-summary-footer-color: #8957e5;
+	--dynamic-summary-footer-color: var(--color-purple);
 }
 
 .dynamic-summary-metric-footer--characters,
 .dynamic-summary-metric-footer--folders {
-	--dynamic-summary-footer-color: #1f6feb;
+	--dynamic-summary-footer-color: var(--color-blue);
 }
 
 .dynamic-summary-metric-footer--vault-size {
-	--dynamic-summary-footer-color: #238636;
+	--dynamic-summary-footer-color: var(--color-green);
 }
 
 .dynamic-summary-metric-footer--average-words-per-file {
-	--dynamic-summary-footer-color: #238636;
+	--dynamic-summary-footer-color: var(--color-green);
 	justify-content: space-between;
 }
 
 .dynamic-summary-metric-footer--negative {
-	--dynamic-summary-footer-color: #f85149;
+	--dynamic-summary-footer-color: var(--color-red);
 }
 
 .dynamic-summary-metric-footer--neutral {
@@ -364,7 +368,7 @@
 .dynamic-estimated-time-title-icon {
 	width: 13px;
 	height: 13px;
-	color: #a371f7;
+	color: var(--color-purple);
 }
 
 .dynamic-estimated-time-title-icon svg,
@@ -444,11 +448,11 @@
 }
 
 .dynamic-estimated-time-label-icon--reading {
-	color: #a371f7;
+	color: var(--color-purple);
 }
 
 .dynamic-estimated-time-label-icon--speaking {
-	color: #39d353;
+	color: var(--color-green);
 }
 
 .dynamic-estimated-time-value {
@@ -494,12 +498,12 @@
 
 .dynamic-estimated-time-progress--reading
 	.dynamic-estimated-time-progress-segment--active {
-	background: #a371f7;
+	background: var(--color-purple);
 }
 
 .dynamic-estimated-time-progress--speaking
 	.dynamic-estimated-time-progress-segment--active {
-	background: #39d353;
+	background: var(--color-green);
 }
 
 @container estimated-time (min-width: 360px) {
@@ -660,11 +664,11 @@
 }
 
 .dynamic-daily-average-trend--positive .dynamic-daily-average-change {
-	color: #39d353;
+	color: var(--color-green);
 }
 
 .dynamic-daily-average-trend--negative .dynamic-daily-average-change {
-	color: #f85149;
+	color: var(--color-red);
 }
 
 .dynamic-daily-average-trend--neutral .dynamic-daily-average-change {
@@ -684,7 +688,7 @@
 .dynamic-daily-average-value {
 	flex: 0 0 auto;
 	align-self: flex-start;
-	color: #65c981;
+	color: var(--color-green);
 	font-size: 20px;
 	font-weight: var(--font-bold);
 	line-height: 1;
@@ -731,7 +735,7 @@
 	right: 0;
 	left: 0;
 	z-index: 1;
-	border-top: 1px dashed rgb(57 211 83 / 55%);
+	border-top: 1px dashed var(--color-green);
 	pointer-events: none;
 }
 
@@ -741,12 +745,12 @@
 	min-height: 0;
 	justify-self: center;
 	border-radius: 2px 2px 0 0;
-	background: linear-gradient(to top, #238636, #56d364);
+	background: var(--color-green);
 }
 
 .dynamic-daily-average-bar--empty {
 	min-height: 3px;
-	background: #238636;
+	background: var(--color-green);
 	opacity: 0.45;
 }
 
@@ -908,7 +912,7 @@
 }
 
 .dynamic-writing-streak-current-value {
-	color: #39d353;
+	color: var(--color-green);
 	font-weight: var(--font-semibold);
 }
 
@@ -981,25 +985,29 @@
 .dynamic-writing-streak-cell {
 	width: var(--dynamic-streak-cell-size);
 	height: var(--dynamic-streak-cell-size);
-	border: 1px solid rgb(240 246 252 / 4%);
+	border: 1px solid var(--background-modifier-border);
 	border-radius: 2px;
 	background: var(--background-modifier-border);
 }
 
 .dynamic-writing-streak-cell--level-1 {
-	background: #0e4429;
+	background: var(--color-green);
+	opacity: 0.2;
 }
 
 .dynamic-writing-streak-cell--level-2 {
-	background: #006d32;
+	background: var(--color-green);
+	opacity: 0.4;
 }
 
 .dynamic-writing-streak-cell--level-3 {
-	background: #26a641;
+	background: var(--color-green);
+	opacity: 0.7;
 }
 
 .dynamic-writing-streak-cell--level-4 {
-	background: #39d353;
+	background: var(--color-green);
+	opacity: 1;
 }
 
 .dynamic-writing-streak-cell--future {
@@ -1272,7 +1280,7 @@
 	justify-content: center;
 	width: 13px;
 	height: 13px;
-	color: #facc15;
+	color: var(--color-yellow);
 }
 
 .dynamic-tag-insights-total-icon svg {
@@ -1384,11 +1392,11 @@
 }
 
 .dynamic-recent-activity-item--created .dynamic-recent-activity-icon {
-	color: #8b5cf6;
+	color: var(--color-purple);
 }
 
 .dynamic-recent-activity-item--edited .dynamic-recent-activity-icon {
-	color: #3b82f6;
+	color: var(--color-blue);
 }
 
 .dynamic-recent-activity-content {
@@ -1427,8 +1435,10 @@
 		grid-template-rows: repeat(2, 110px) repeat(3, minmax(0, 1fr));
 	}
 
-	.dynamic-dashboard-card--upper-row,
-	.dynamic-dashboard-card--third-column {
+	.dynamic-dashboard-card--total-characters,
+	.dynamic-dashboard-card--total-files,
+	.dynamic-dashboard-card--vault-size,
+	.dynamic-dashboard-card--average-words-per-file {
 		display: block;
 	}
 
@@ -1482,7 +1492,8 @@
 	}
 
 	.dynamic-dashboard-card--tall,
-	.dynamic-dashboard-card--expanded {
+	.dynamic-dashboard-card--vault-size,
+	.dynamic-dashboard-card--average-words-per-file {
 		display: block;
 	}
 
@@ -1504,7 +1515,8 @@
 		white-space: normal;
 	}
 
-	.dynamic-dashboard-card--wide,
+	.dynamic-dashboard-card--estimated,
+	.dynamic-dashboard-card--daily-average,
 	.dynamic-dashboard-card--streak {
 		grid-column: 1 / -1;
 	}
@@ -1633,30 +1645,17 @@
 	white-space: nowrap;
 }
 
-.dynamic-dashboard-container--workspace .dynamic-dashboard-card--tall,
-.dynamic-dashboard-container--workspace .dynamic-dashboard-card--expanded {
+.dynamic-dashboard-container--workspace .dynamic-dashboard-card--tall {
 	display: block;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-card--estimated {
-	display: block;
-	grid-column: 13 / span 12;
-	grid-row: 3;
-	padding: 0;
-	overflow: visible;
-	border: 0;
-	background: transparent;
-	box-shadow: none;
+	display: contents;
 }
 
-.dynamic-dashboard-container--workspace .dynamic-estimated-time {
-	padding: 0;
-}
-
+.dynamic-dashboard-container--workspace .dynamic-estimated-time,
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-metrics {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 10px;
+	display: contents;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-title,
@@ -1667,6 +1666,7 @@
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-metric {
 	box-sizing: border-box;
 	display: flex;
+	grid-row: 3;
 	justify-content: flex-start;
 	gap: 6px;
 	min-width: 0;
@@ -1680,11 +1680,11 @@
 }
 
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-metric--reading {
-	grid-column: auto;
+	grid-column: 13 / span 6;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-metric--speaking {
-	grid-column: auto;
+	grid-column: 19 / span 6;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-label {
@@ -1776,7 +1776,7 @@
 }
 
 .dynamic-top-notes-title .dynamic-top-folders-title-icon {
-	color: #3fb950;
+	color: var(--color-green);
 }
 
 .dynamic-vault-insights-title {
@@ -1834,7 +1834,7 @@
 
 .dynamic-vault-insights-folder {
 	overflow: hidden;
-	color: #a371f7;
+	color: var(--color-purple);
 	font-size: 11px;
 	font-weight: var(--font-semibold);
 	line-height: 1.15;
@@ -1944,7 +1944,7 @@
 	justify-content: center;
 	width: 15px;
 	height: 15px;
-	color: #58a6ff;
+	color: var(--color-blue);
 }
 
 .dynamic-top-folders-title-icon svg,
