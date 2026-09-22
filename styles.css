@@ -7,7 +7,7 @@
 	min-height: var(--dynamic-dashboard-min-height);
 }
 
-.workspace-leaf-content .dynamic-dashboard-container .dynamic-dashboard-view {
+.dynamic-dashboard-container .dynamic-dashboard-view {
 	box-sizing: border-box;
 	container-name: dynamic-dashboard;
 	container-type: size;
@@ -20,7 +20,7 @@
 	overflow-x: hidden;
 	overflow-y: auto;
 	margin: 5px auto;
-	padding: 3px;
+	padding: 3px !important;
 	background: var(--background-secondary);
 }
 
@@ -1639,24 +1639,12 @@
 }
 
 .dynamic-dashboard-container--workspace .dynamic-dashboard-card--estimated {
-	display: block;
-	grid-column: 13 / span 12;
-	grid-row: 3;
-	padding: 0;
-	overflow: visible;
-	border: 0;
-	background: transparent;
-	box-shadow: none;
+	display: contents;
 }
 
-.dynamic-dashboard-container--workspace .dynamic-estimated-time {
-	padding: 0;
-}
-
+.dynamic-dashboard-container--workspace .dynamic-estimated-time,
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-metrics {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 10px;
+	display: contents;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-title,
@@ -1667,6 +1655,7 @@
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-metric {
 	box-sizing: border-box;
 	display: flex;
+	grid-row: 3;
 	justify-content: flex-start;
 	gap: 6px;
 	min-width: 0;
@@ -1680,11 +1669,11 @@
 }
 
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-metric--reading {
-	grid-column: auto;
+	grid-column: 13 / span 6;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-metric--speaking {
-	grid-column: auto;
+	grid-column: 19 / span 6;
 }
 
 .dynamic-dashboard-container--workspace .dynamic-estimated-time-label {

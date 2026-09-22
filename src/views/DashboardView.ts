@@ -1647,8 +1647,8 @@ export function openDashboardView(
 		return dashboardOpenPromise;
 	}
 
-	const openingPromise: Promise<void> = revealDashboardView(workspace)
-		.catch((error: unknown): void => {
+	dashboardOpenPromise = revealDashboardView(workspace)
+		.catch((error: unknown) => {
 			Logger.lifecycle("dashboard view opening failed", {
 				error: error instanceof Error ? error.message : String(error),
 			});
@@ -1657,7 +1657,6 @@ export function openDashboardView(
 		.finally(() => {
 			dashboardOpenPromise = null;
 		});
-	dashboardOpenPromise = openingPromise;
 
 	return dashboardOpenPromise;
 }

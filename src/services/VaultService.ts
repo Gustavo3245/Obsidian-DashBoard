@@ -497,10 +497,9 @@ export class VaultService {
 			const parsedDate = new Date(date);
 			const year = parsedDate.getUTCFullYear();
 			const month = parsedDate.getUTCMonth();
-			const monthNumber = month + 1;
 
 			return {
-				key: `${year}-${monthNumber < 10 ? "0" : ""}${monthNumber}`,
+				key: `${year}-${String(month + 1).padStart(2, "0")}`,
 				endDate: Date.UTC(year, month + 1, 0),
 			};
 		});
